@@ -1,0 +1,27 @@
+# ─────────────────────────────────────────────────────────────
+# docker-compose.yml — Desarrollo local y referencia Easypanel
+# ─────────────────────────────────────────────────────────────
+version: "3.8"
+
+services:
+  centaurads-links:
+    build: .
+    container_name: centaurads-links
+    ports:
+      - "8000:8000"
+    environment:
+      - ADMIN_KEY=${ADMIN_KEY:-centauro2026}
+      - DATABASE_URL=sqlite:///./data/centaurads_links.db
+    volumes:
+      # Persistir la base de datos SQLite entre reinicios
+      - links_data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  links_data:
+    driver: local

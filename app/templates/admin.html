@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CentauroADS Links — Panel de Administración</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --purple: #85439A;
+            --purple-dark: #6B3580;
+            --purple-light: #A667BD;
+            --orange: #F79131;
+            --orange-dark: #E07A1A;
+            --orange-light: #FFB366;
+            --bg: #0F0E13;
+            --bg-card: #1A1921;
+            --bg-hover: #232130;
+            --border: #2D2B3A;
+            --text: #EEEDF2;
+            --text-dim: #9895A7;
+            --success: #34D399;
+            --danger: #F87171;
+            --radius: 10px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* ── HEADER ── */
+        .header {
+            background: linear-gradient(135deg, var(--purple-dark) 0%, var(--purple) 50%, var(--orange) 100%);
+            padding: 1.25rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .header h1 {
+            font-size: 1.35rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+        .header h1 span { font-weight: 400; opacity: 0.8; }
+        .header-badge {
+            font-size: 0.75rem;
+            background: rgba(255,255,255,0.18);
+            padding: 0.3rem 0.75rem;
+            border-radius: 20px;
+            backdrop-filter: blur(4px);
+        }
+
+        /* ── AUTH BAR ── */
+        .auth-bar {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            padding: 0.75rem 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+        .auth-bar label { font-size: 0.8rem; color: var(--text-dim); }
+        .auth-bar input {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 0.4rem 0.75rem;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            width: 200px;
+        }
+        .auth-bar button {
+            background: var(--purple);
+            color: white;
+            border: none;
+            padding: 0.4rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .auth-bar button:hover { background: var(--purple-light); }
+        .auth-status {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.6rem;
+            border-radius: 20px;
+            margin-left: auto;
+        }
+        .auth-status.ok { background: rgba(52,211,153,0.15); color: var(--success); }
+        .auth-status.fail { background: rgba(248,113,113,0.15); color: var(--danger); }
+
+        /* ── MAIN ── */
+        .main { padding: 1.5rem 2rem; max-width: 1200px; margin: 0 auto; }
+
+        /* ── STATS ROW ── */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1rem 1.25rem;
+        }
+        .stat-card .label { font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
+        .stat-card .value { font-size: 1.75rem; font-weight: 700; margin-top: 0.25rem; }
+        .stat-card .value.purple { color: var(--purple-light); }
+        .stat-card .value.orange { color: var(--orange); }
+        .stat-card .value.green { color: var(--success); }
+
+        /* ── FORM CREAR ── */
+        .create-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .create-section h2 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        .form-group { display: flex; flex-direction: column; gap: 0.3rem; }
+        .form-group.full { grid-column: 1 / -1; }
+        .form-group label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 0.55rem 0.75rem;
+            border-radius: 6px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.9rem;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: var(--purple-light);
+        }
+        .form-group textarea { resize: vertical; min-height: 60px; }
+        .slug-preview {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--orange);
+            margin-top: 0.15rem;
+        }
+
+        .btn-create {
+            background: linear-gradient(135deg, var(--purple), var(--orange));
+            color: white;
+            border: none;
+            padding: 0.65rem 2rem;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            margin-top: 1rem;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .btn-create:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px rgba(133,67,154,0.35);
+        }
+        .btn-create:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        /* ── TABLE ── */
+        .table-section h2 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+        .table-wrap {
+            overflow-x: auto;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+        th {
+            text-align: left;
+            padding: 0.75rem 1rem;
+            font-weight: 600;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-dim);
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+        td {
+            padding: 0.65rem 1rem;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: var(--bg-hover); }
+
+        .slug-cell {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--orange);
+            font-weight: 500;
+        }
+        .slug-cell a {
+            color: var(--orange);
+            text-decoration: none;
+        }
+        .slug-cell a:hover { text-decoration: underline; }
+
+        .url-cell {
+            max-width: 250px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: var(--text-dim);
+            font-size: 0.78rem;
+        }
+
+        .badge {
+            font-size: 0.68rem;
+            padding: 0.2rem 0.55rem;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+        .badge.active { background: rgba(52,211,153,0.15); color: var(--success); }
+        .badge.inactive { background: rgba(248,113,113,0.15); color: var(--danger); }
+        .badge.cat {
+            background: rgba(133,67,154,0.15);
+            color: var(--purple-light);
+        }
+
+        .clicks-cell {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .actions { display: flex; gap: 0.4rem; }
+        .btn-sm {
+            padding: 0.3rem 0.6rem;
+            border-radius: 5px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text-dim);
+            cursor: pointer;
+            font-size: 0.72rem;
+            transition: all 0.15s;
+        }
+        .btn-sm:hover { border-color: var(--purple-light); color: var(--text); }
+        .btn-sm.danger:hover { border-color: var(--danger); color: var(--danger); }
+        .btn-sm.copy:hover { border-color: var(--success); color: var(--success); }
+
+        /* ── TOAST ── */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            padding: 0.75rem 1.25rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: white;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 999;
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.success { background: #059669; }
+        .toast.error { background: #DC2626; }
+
+        /* ── EMPTY STATE ── */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-dim);
+        }
+        .empty-state .icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 700px) {
+            .header, .auth-bar, .main { padding-left: 1rem; padding-right: 1rem; }
+            .form-grid { grid-template-columns: 1fr; }
+            .stats-row { grid-template-columns: 1fr 1fr; }
+        }
+
+        /* ── MODAL ── */
+        .modal-backdrop {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-backdrop.open { display: flex; }
+        .modal {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal h3 { margin-bottom: 1rem; }
+        .modal .actions-row {
+            display: flex; gap: 0.75rem; margin-top: 1rem; justify-content: flex-end;
+        }
+        .modal .btn-cancel {
+            padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid var(--border);
+            background: transparent; color: var(--text-dim); cursor: pointer;
+        }
+        .modal .btn-save {
+            padding: 0.5rem 1rem; border-radius: 6px; border: none;
+            background: var(--purple); color: white; cursor: pointer; font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ═══════════════ HEADER ═══════════════ -->
+<div class="header">
+    <h1>⚡ CentauroADS <span>Links</span></h1>
+    <div class="header-badge">Acortador de URLs corporativo v1.0</div>
+</div>
+
+<!-- ═══════════════ AUTH ═══════════════ -->
+<div class="auth-bar">
+    <label>Clave admin:</label>
+    <input type="password" id="adminKey" placeholder="••••••••">
+    <button onclick="authenticate()">Conectar</button>
+    <div class="auth-status" id="authStatus"></div>
+</div>
+
+<!-- ═══════════════ MAIN ═══════════════ -->
+<div class="main" id="mainContent" style="display:none;">
+
+    <!-- Stats -->
+    <div class="stats-row" id="statsRow">
+        <div class="stat-card">
+            <div class="label">Total enlaces</div>
+            <div class="value purple" id="statTotal">—</div>
+        </div>
+        <div class="stat-card">
+            <div class="label">Activos</div>
+            <div class="value green" id="statActive">—</div>
+        </div>
+        <div class="stat-card">
+            <div class="label">Clics totales</div>
+            <div class="value orange" id="statClicks">—</div>
+        </div>
+    </div>
+
+    <!-- Crear -->
+    <div class="create-section">
+        <h2>➕ Crear nuevo enlace</h2>
+        <div class="form-grid">
+            <div class="form-group">
+                <label>Nombre / Título</label>
+                <input type="text" id="fName" placeholder="Ej: Propuesta FIFA 2026">
+            </div>
+            <div class="form-group">
+                <label>Categoría</label>
+                <select id="fCategory">
+                    <option value="propuesta">📄 Propuesta</option>
+                    <option value="presentacion">📊 Presentación</option>
+                    <option value="video">🎬 Video / Reel</option>
+                    <option value="portafolio">💼 Portafolio</option>
+                    <option value="campaña">📢 Campaña</option>
+                    <option value="general" selected>🔗 General</option>
+                </select>
+            </div>
+            <div class="form-group full">
+                <label>URL destino (enlace largo de Canva, YouTube, etc.)</label>
+                <input type="url" id="fUrl" placeholder="https://www.canva.com/design/DAH...">
+            </div>
+            <div class="form-group">
+                <label>Slug personalizado (la ruta corta)</label>
+                <input type="text" id="fSlug" placeholder="propuesta-fifa-2026"
+                       oninput="updatePreview()">
+                <div class="slug-preview" id="slugPreview">
+                    https://centaurads.…/
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Descripción (opcional)</label>
+                <textarea id="fDesc" placeholder="Notas internas sobre este enlace..."></textarea>
+            </div>
+        </div>
+        <button class="btn-create" id="btnCreate" onclick="createLink()">
+            Crear enlace
+        </button>
+    </div>
+
+    <!-- Tabla -->
+    <div class="table-section">
+        <h2>📋 Enlaces registrados</h2>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Slug</th>
+                        <th>Nombre</th>
+                        <th>Categoría</th>
+                        <th>URL destino</th>
+                        <th>Clics</th>
+                        <th>Estado</th>
+                        <th>Creado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="linksBody">
+                </tbody>
+            </table>
+        </div>
+        <div class="empty-state" id="emptyState" style="display:none;">
+            <div class="icon">🔗</div>
+            <p>No hay enlaces todavía. ¡Crea el primero!</p>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════ EDIT MODAL ═══════════════ -->
+<div class="modal-backdrop" id="editModal">
+    <div class="modal">
+        <h3>✏️ Editar enlace</h3>
+        <input type="hidden" id="editId">
+        <div class="form-group" style="margin-bottom:0.75rem;">
+            <label>Nombre</label>
+            <input type="text" id="editName">
+        </div>
+        <div class="form-group" style="margin-bottom:0.75rem;">
+            <label>URL destino</label>
+            <input type="url" id="editUrl">
+        </div>
+        <div class="form-group" style="margin-bottom:0.75rem;">
+            <label>Descripción</label>
+            <textarea id="editDesc"></textarea>
+        </div>
+        <div class="form-group" style="margin-bottom:0.75rem;">
+            <label>Categoría</label>
+            <select id="editCategory">
+                <option value="propuesta">📄 Propuesta</option>
+                <option value="presentacion">📊 Presentación</option>
+                <option value="video">🎬 Video / Reel</option>
+                <option value="portafolio">💼 Portafolio</option>
+                <option value="campaña">📢 Campaña</option>
+                <option value="general">🔗 General</option>
+            </select>
+        </div>
+        <div class="actions-row">
+            <button class="btn-cancel" onclick="closeEditModal()">Cancelar</button>
+            <button class="btn-save" onclick="saveEdit()">Guardar</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════ TOAST ═══════════════ -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────
+// State
+// ─────────────────────────────────────────────────────────────────
+let adminKey = '';
+let links = [];
+const API = '/api';
+
+// ─────────────────────────────────────────────────────────────────
+// Auth
+// ─────────────────────────────────────────────────────────────────
+function authenticate() {
+    adminKey = document.getElementById('adminKey').value.trim();
+    if (!adminKey) return;
+    fetchLinks();
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Fetch links
+// ─────────────────────────────────────────────────────────────────
+async function fetchLinks() {
+    try {
+        const res = await fetch(`${API}/links?admin_key=${encodeURIComponent(adminKey)}`);
+        if (!res.ok) {
+            if (res.status === 401) {
+                showAuthStatus(false);
+                showToast('Clave incorrecta', 'error');
+                return;
+            }
+            throw new Error('Error del servidor');
+        }
+        links = await res.json();
+        showAuthStatus(true);
+        document.getElementById('mainContent').style.display = 'block';
+        renderStats();
+        renderTable();
+    } catch (e) {
+        showToast('Error de conexión: ' + e.message, 'error');
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Create link
+// ─────────────────────────────────────────────────────────────────
+async function createLink() {
+    const slug = document.getElementById('fSlug').value.trim().toLowerCase();
+    const target_url = document.getElementById('fUrl').value.trim();
+    const name = document.getElementById('fName').value.trim();
+    const description = document.getElementById('fDesc').value.trim();
+    const category = document.getElementById('fCategory').value;
+
+    if (!slug || !target_url || !name) {
+        showToast('Completa nombre, URL y slug', 'error');
+        return;
+    }
+
+    const btn = document.getElementById('btnCreate');
+    btn.disabled = true;
+    btn.textContent = 'Creando…';
+
+    try {
+        const res = await fetch(`${API}/links?admin_key=${encodeURIComponent(adminKey)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ slug, target_url, name, description, category }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            showToast(data.detail || 'Error al crear', 'error');
+            return;
+        }
+        showToast('✅ Enlace creado exitosamente', 'success');
+
+        // Limpiar formulario
+        document.getElementById('fSlug').value = '';
+        document.getElementById('fUrl').value = '';
+        document.getElementById('fName').value = '';
+        document.getElementById('fDesc').value = '';
+        updatePreview();
+        fetchLinks();
+    } catch (e) {
+        showToast('Error: ' + e.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Crear enlace';
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Delete link
+// ─────────────────────────────────────────────────────────────────
+async function deleteLink(id, name) {
+    if (!confirm(`¿Eliminar el enlace "${name}"?`)) return;
+    try {
+        const res = await fetch(`${API}/links/${id}?admin_key=${encodeURIComponent(adminKey)}`, {
+            method: 'DELETE',
+        });
+        if (res.ok) {
+            showToast('Enlace eliminado', 'success');
+            fetchLinks();
+        }
+    } catch (e) {
+        showToast('Error: ' + e.message, 'error');
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Toggle active
+// ─────────────────────────────────────────────────────────────────
+async function toggleActive(id, currentState) {
+    try {
+        const res = await fetch(`${API}/links/${id}?admin_key=${encodeURIComponent(adminKey)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ is_active: !currentState }),
+        });
+        if (res.ok) {
+            showToast(currentState ? 'Enlace desactivado' : 'Enlace activado', 'success');
+            fetchLinks();
+        }
+    } catch (e) {
+        showToast('Error: ' + e.message, 'error');
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Edit modal
+// ─────────────────────────────────────────────────────────────────
+function openEditModal(link) {
+    document.getElementById('editId').value = link.id;
+    document.getElementById('editName').value = link.name;
+    document.getElementById('editUrl').value = link.target_url;
+    document.getElementById('editDesc').value = link.description;
+    document.getElementById('editCategory').value = link.category;
+    document.getElementById('editModal').classList.add('open');
+}
+function closeEditModal() {
+    document.getElementById('editModal').classList.remove('open');
+}
+async function saveEdit() {
+    const id = document.getElementById('editId').value;
+    const payload = {
+        name: document.getElementById('editName').value,
+        target_url: document.getElementById('editUrl').value,
+        description: document.getElementById('editDesc').value,
+        category: document.getElementById('editCategory').value,
+    };
+    try {
+        const res = await fetch(`${API}/links/${id}?admin_key=${encodeURIComponent(adminKey)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        if (res.ok) {
+            showToast('✅ Enlace actualizado', 'success');
+            closeEditModal();
+            fetchLinks();
+        }
+    } catch (e) {
+        showToast('Error: ' + e.message, 'error');
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Copy link
+// ─────────────────────────────────────────────────────────────────
+function copyLink(slug) {
+    const url = `${window.location.origin}/${slug}`;
+    navigator.clipboard.writeText(url).then(() => {
+        showToast('📋 Enlace copiado: ' + url, 'success');
+    });
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Renderers
+// ─────────────────────────────────────────────────────────────────
+function renderStats() {
+    const total = links.length;
+    const active = links.filter(l => l.is_active).length;
+    const clicks = links.reduce((sum, l) => sum + l.click_count, 0);
+    document.getElementById('statTotal').textContent = total;
+    document.getElementById('statActive').textContent = active;
+    document.getElementById('statClicks').textContent = clicks.toLocaleString();
+}
+
+function renderTable() {
+    const tbody = document.getElementById('linksBody');
+    const empty = document.getElementById('emptyState');
+
+    if (links.length === 0) {
+        tbody.innerHTML = '';
+        empty.style.display = 'block';
+        return;
+    }
+    empty.style.display = 'none';
+
+    const catIcons = {
+        propuesta: '📄', presentacion: '📊', video: '🎬',
+        portafolio: '💼', 'campaña': '📢', general: '🔗',
+    };
+
+    tbody.innerHTML = links.map(l => {
+        const date = new Date(l.created_at).toLocaleDateString('es-VE', {
+            day: '2-digit', month: 'short', year: '2-digit'
+        });
+        const icon = catIcons[l.category] || '🔗';
+        return `
+        <tr>
+            <td class="slug-cell">
+                <a href="/${l.slug}" target="_blank">/${l.slug}</a>
+            </td>
+            <td>${esc(l.name)}</td>
+            <td><span class="badge cat">${icon} ${esc(l.category)}</span></td>
+            <td class="url-cell" title="${esc(l.target_url)}">${esc(l.target_url)}</td>
+            <td class="clicks-cell">${l.click_count}</td>
+            <td>
+                <span class="badge ${l.is_active ? 'active' : 'inactive'}"
+                      style="cursor:pointer"
+                      onclick='toggleActive(${l.id}, ${l.is_active})'>
+                    ${l.is_active ? '● Activo' : '○ Inactivo'}
+                </span>
+            </td>
+            <td style="color:var(--text-dim); font-size:0.78rem; white-space:nowrap;">${date}</td>
+            <td>
+                <div class="actions">
+                    <button class="btn-sm copy" onclick="copyLink('${l.slug}')" title="Copiar URL corto">📋</button>
+                    <button class="btn-sm" onclick='openEditModal(${JSON.stringify(l).replace(/'/g, "&#39;")})' title="Editar">✏️</button>
+                    <button class="btn-sm danger" onclick="deleteLink(${l.id}, '${esc(l.name)}')" title="Eliminar">🗑️</button>
+                </div>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────
+function updatePreview() {
+    const slug = document.getElementById('fSlug').value.trim().toLowerCase();
+    const preview = document.getElementById('slugPreview');
+    preview.textContent = slug
+        ? `${window.location.origin}/${slug}`
+        : `${window.location.origin}/…`;
+}
+
+function showAuthStatus(ok) {
+    const el = document.getElementById('authStatus');
+    el.textContent = ok ? '✓ Conectado' : '✗ Inválida';
+    el.className = 'auth-status ' + (ok ? 'ok' : 'fail');
+}
+
+function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = `toast ${type} show`;
+    setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function esc(str) {
+    const d = document.createElement('div');
+    d.textContent = str || '';
+    return d.innerHTML;
+}
+
+// Auto-auth si hay clave guardada
+document.getElementById('adminKey').addEventListener('keydown', e => {
+    if (e.key === 'Enter') authenticate();
+});
+</script>
+
+</body>
+</html>
