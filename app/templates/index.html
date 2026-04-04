@@ -153,12 +153,39 @@
         <h1>Aplicativo <br><span>Acortar Links</span></h1>
         <p>Sistema corporativo de <strong>Centauro ADS</strong> para la gestión y configuración de enlaces acortados.</p>
         
-        <a href="/admin" class="btn-primary">
-            Solicitar Software / Ingresar
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M5 12h14M12 5l7 7-7 7"/>
-            </svg>
-        </a>
+        
+        <div class="auth-box" style="margin-top: 1.5rem; display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+            <p id="errorMsg" style="color: #F87171; font-weight: 600; display: none; margin:0; font-size: 0.9rem;">Contraseña incorrecta</p>
+            <input type="password" id="adminKey" placeholder="Ingresa la clave de acceso corporativa..." 
+                   style="width: 100%; max-width: 320px; padding: 0.8rem 1.2rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.4); color: white; font-size: 1rem; text-align: center; outline: none; font-family: 'DM Sans', sans-serif;">
+            
+            <button onclick="login()" class="btn-primary" style="width: 100%; max-width: 320px;">
+                Ingresar al Sistema
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
+            </button>
+        </div>
+
+        <script>
+            if (window.location.search.includes('error=1')) {
+                document.getElementById('errorMsg').style.display = 'block';
+            }
+
+            function login() {
+                const key = document.getElementById('adminKey').value.trim();
+                if (key) {
+                    localStorage.setItem('centauroads_admin_key', key);
+                    window.location.href = '/admin';
+                }
+            }
+
+            // Auto-login on enter
+            document.getElementById('adminKey').addEventListener('keydown', e => {
+                if (e.key === 'Enter') login();
+            });
+        </script>
+
     </div>
 
 </body>

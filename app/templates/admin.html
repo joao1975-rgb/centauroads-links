@@ -395,16 +395,14 @@
     <div class="header-badge">Acortador de URLs corporativo v1.0</div>
 </div>
 
-<!-- ═══════════════ AUTH ═══════════════ -->
+<!-- ═══════════════ TOP BAR ═══════════════ -->
 <div class="auth-bar">
-    <label>Clave admin:</label>
-    <input type="password" id="adminKey" placeholder="••••••••">
-    <button onclick="authenticate()">Conectar</button>
-    <div class="auth-status" id="authStatus"></div>
+    <label>🟢 Sistema Conectado</label>
+    <button onclick="logout()" style="background: rgba(248,113,113,0.15); color: var(--danger); margin-left: auto;">Cerrar sesión</button>
 </div>
 
 <!-- ═══════════════ MAIN ═══════════════ -->
-<div class="main" id="mainContent" style="display:none;">
+<div class="main" id="mainContent">
 
     <!-- Stats -->
     <div class="stats-row" id="statsRow">
@@ -543,16 +541,24 @@
 // ─────────────────────────────────────────────────────────────────
 // State
 // ─────────────────────────────────────────────────────────────────
-let adminKey = '';
+let adminKey = localStorage.getItem('centauroads_admin_key');
+
+// Redirigir inmediatamente a la portada si no hay clave
+if (!adminKey) { window.location.href = '/'; }
+
 let links = [];
 const API = '/api';
 
 // ─────────────────────────────────────────────────────────────────
-// Auth
+// Auth / Init
 // ─────────────────────────────────────────────────────────────────
-function authenticate() {
-    adminKey = document.getElementById('adminKey').value.trim();
-    if (!adminKey) return;
+function logout() {
+    localStorage.removeItem('centauroads_admin_key');
+    window.location.href = '/';
+}
+
+// Inicializar cargando links si hay clave
+if (adminKey) {
     fetchLinks();
 }
 
@@ -564,8 +570,9 @@ async function fetchLinks() {
         const res = await fetch(`${API}/links?admin_key=${encodeURIComponent(adminKey)}`);
         if (!res.ok) {
             if (res.status === 401) {
-                showAuthStatus(false);
-                showToast('Clave incorrecta', 'error');
+                // Clave errónea o caducada, redirigir a inicio
+                localStorage.removeItem('centauroads_admin_key');
+                window.location.href = '/?error=1';
                 return;
             }
             throw new Error('Error del servidor');
@@ -854,10 +861,7 @@ function esc(str) {
     return d.innerHTML;
 }
 
-// Auto-auth si hay clave guardada
-document.getElementById('adminKey').addEventListener('keydown', e => {
-    if (e.key === 'Enter') authenticate();
-});
+
 </script>
 
 </body>
