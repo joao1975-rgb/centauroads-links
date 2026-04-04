@@ -585,7 +585,7 @@ async function fetchLinks() {
             throw new Error('Error del servidor');
         }
         links = await res.json();
-        showAuthStatus(true);
+        
         document.getElementById('mainContent').style.display = 'block';
         renderStats();
         renderTable();
@@ -853,11 +853,7 @@ function updatePreview() {
         : `${window.location.origin}/…`;
 }
 
-function showAuthStatus(ok) {
-    const el = document.getElementById('authStatus');
-    el.textContent = ok ? '✓ Conectado' : '✗ Inválida';
-    el.className = 'auth-status ' + (ok ? 'ok' : 'fail');
-}
+
 
 function showToast(msg, type = 'success') {
     const t = document.getElementById('toast');
