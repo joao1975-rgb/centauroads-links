@@ -467,6 +467,13 @@
         <div class="success-box" id="successBox">
             <h3>✨ ¡Enlace listo para compartir!</h3>
             <div class="short-link" id="successLinkResult"></div>
+            
+            <div style="background: rgba(0,0,0,0.3); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; text-align: left; font-size: 0.85rem; color: var(--text-dim); line-height: 1.6;">
+                <b>URL Original:</b> <span id="successOrig" style="color: var(--orange); word-break: break-all;"></span><br>
+                <b>Fecha de Creación:</b> <span id="successDate"></span><br>
+                <b>Categoría:</b> <span id="successCat" style="text-transform: capitalize;"></span>
+            </div>
+            
             <button class="btn-giant-copy" onclick="copyGiantLink()">📋 COPIAR ENLACE</button>
         </div>
     </div>
@@ -662,6 +669,10 @@ async function createLink() {
         // Show success box
         document.getElementById('successBox').style.display = 'block';
         document.getElementById('successLinkResult').textContent = window.location.origin + '/' +  data.slug;
+        const sDate = new Date(data.created_at).toLocaleDateString('es-VE', {day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute:'2-digit'});
+        document.getElementById('successOrig').textContent = data.target_url;
+        document.getElementById('successDate').textContent = sDate;
+        document.getElementById('successCat').textContent = data.category;
 
         // Limpiar formulario
         document.getElementById('fSlug').value = '';
