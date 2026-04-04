@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 from typing import Optional
 import secrets
 import os
+from pydantic import BaseModel
 
 from .database import engine, get_db, Base
 from . import models, schemas
@@ -43,13 +44,52 @@ templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 
 # ---------------------------------------------------------------------------
-# Clave admin (desde variable de entorno)
+# Clave admin (desde variable de entorno o disco persistente)
 # ---------------------------------------------------------------------------
-ADMIN_KEY = os.getenv("ADMIN_KEY", "centauro2026")
+SUPERADMIN_USER = "centauroadss@gmail.com"
+SUPERADMIN_PASS = "MERcentads2026!."
+KEY_FILE = "data/admin.key"
+
+def get_admin_password():
+    if os.path.exists(KEY_FILE):
+        with open(KEY_FILE, "r") as f:
+            pwd = f.read().strip()
+            if pwd: return pwd
+    return os.getenv("ADMIN_KEY", "centauro2026")
+
+def set_admin_password(new_pass: str):
+    import os
+    os.makedirs(os.path.dirname(KEY_FILE) or ".", exist_ok=True)
+    with open(KEY_FILE, "w") as f:
+        f.write(new_pass.strip())
 
 def verify_admin(admin_key: str):
-    if admin_key != ADMIN_KEY:
+    if admin_key != get_admin_password():
         raise HTTPException(status_code=401, detail="Clave de administración inválida")
+
+class SuperAdminLogin(BaseModel):
+    user: str
+    password: str
+
+class SuperAdminChange(BaseModel):
+    user: str
+    password: str
+    new_password: str
+
+@app.post("/api/superadmin/login")
+def superadmin_login(payload: SuperAdminLogin):
+    if payload.user == SUPERADMIN_USER and payload.password == SUPERADMIN_PASS:
+        return {"status": "ok", "current_password": get_admin_password()}
+    raise HTTPException(status_code=401, detail="Credenciales inválidas")
+
+@app.post("/api/superadmin/change")
+def superadmin_change(payload: SuperAdminChange):
+    if payload.user == SUPERADMIN_USER and payload.password == SUPERADMIN_PASS:
+        if not payload.new_password.strip():
+            raise HTTPException(status_code=400, detail="La nueva clave no puede estar vacía")
+        set_admin_password(payload.new_password)
+        return {"status": "ok", "message": "Contraseña actualizada"}
+    raise HTTPException(status_code=401, detail="Credenciales inválidas")
 
 # ---------------------------------------------------------------------------
 # HEALTH CHECK
