@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplicativo Acortar Links | Centauro ADS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --purple: #85439A;
+            --purple-dark: #6B3580;
+            --purple-light: #A667BD;
+            --orange: #F79131;
+            --bg: #0F0E13;
+            --text: #EEEDF2;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .glow {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(140px);
+            opacity: 0.45;
+            z-index: -1;
+            animation: pulse 8s infinite alternate ease-in-out;
+        }
+        .glow.purple {
+            background: var(--purple-light);
+            width: 500px;
+            height: 500px;
+            top: -150px;
+            left: -100px;
+        }
+        .glow.orange {
+            background: var(--orange);
+            width: 400px;
+            height: 400px;
+            bottom: -150px;
+            right: -50px;
+            animation-delay: -4s;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1) translate(0, 0); }
+            100% { transform: scale(1.1) translate(30px, -30px); }
+        }
+
+        .container {
+            background: rgba(26, 25, 33, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            padding: 4rem 3rem;
+            text-align: center;
+            max-width: 650px;
+            width: 90%;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+        }
+
+        .badge {
+            display: inline-block;
+            background: rgba(247, 145, 49, 0.15);
+            color: var(--orange);
+            font-weight: 700;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            padding: 0.4rem 1rem;
+            border-radius: 30px;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(247, 145, 49, 0.3);
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            line-height: 1.1;
+            letter-spacing: -0.03em;
+            margin-bottom: 0.75rem;
+        }
+        h1 span {
+            background: linear-gradient(135deg, var(--purple-light), var(--orange));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p {
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 2.5rem;
+            line-height: 1.5;
+            max-width: 480px;
+            margin-inline: auto;
+        }
+
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background: linear-gradient(135deg, var(--purple), var(--orange));
+            color: white;
+            text-decoration: none;
+            font-size: 1.05rem;
+            font-weight: 700;
+            padding: 1rem 2.5rem;
+            border-radius: 12px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 10px 25px rgba(133, 67, 154, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(1px);
+        }
+
+        @media (max-width: 600px) {
+            h1 { font-size: 2.25rem; }
+            .container { padding: 3rem 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="glow purple"></div>
+    <div class="glow orange"></div>
+
+    <div class="container">
+        <div class="badge">Herramienta Interna</div>
+        <h1>Aplicativo <br><span>Acortar Links</span></h1>
+        <p>Sistema corporativo de <strong>Centauro ADS</strong> para la gestión y configuración de enlaces acortados.</p>
+        
+        <a href="/admin" class="btn-primary">
+            Solicitar Software / Ingresar
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+        </a>
+    </div>
+
+</body>
+</html>

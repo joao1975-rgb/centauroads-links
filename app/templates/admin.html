@@ -191,6 +191,44 @@
         }
         .btn-create:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
+        
+        /* ── DUPLICATE VALIDATION ── */
+        .duplicate-warning {
+            display: none;
+            background: rgba(248, 113, 113, 0.15);
+            border: 1px solid var(--danger);
+            color: #FFB366;
+            padding: 0.75rem;
+            margin-top: 0.5rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .duplicate-row td { background: rgba(248, 113, 113, 0.08) !important; }
+
+        /* ── SUCCESS BOX ── */
+        .success-box {
+            display: none;
+            background: rgba(52, 211, 153, 0.1);
+            border: 1px dashed var(--success);
+            padding: 1.5rem;
+            border-radius: var(--radius);
+            margin-top: 1.5rem;
+            text-align: center;
+        }
+        .success-box h3 { color: var(--success); font-size: 1.1rem; margin-bottom: 0.5rem; }
+        .success-box .short-link {
+            font-size: 1.4rem; font-weight: 700; color: var(--text);
+            margin-bottom: 1rem; font-family: 'JetBrains Mono', monospace;
+        }
+        .btn-giant-copy {
+            background: var(--success); color: #000; font-weight: 800;
+            border: none; padding: 0.75rem 2rem; border-radius: 8px; font-size: 1rem;
+            cursor: pointer; transition: transform 0.2s;
+        }
+        .btn-giant-copy:hover { transform: scale(1.05); }
+
         /* ── TABLE ── */
         .table-section h2 {
             font-size: 1rem;
@@ -405,7 +443,11 @@
             </div>
             <div class="form-group full">
                 <label>URL destino (enlace largo de Canva, YouTube, etc.)</label>
-                <input type="url" id="fUrl" placeholder="https://www.canva.com/design/DAH...">
+                <input type="url" id="fUrl" placeholder="https://www.canva.com/design/DAH..." oninput="checkDuplicateUrl()">
+                <div class="duplicate-warning" id="dupWarning">
+                    <div>⚠️ <b>¡URL Repetida!</b> Ya existe acortada en <a href="#" id="dupSlugLink" target="_blank"></a>. Debes eliminarla primero.</div>
+                    <button class="btn-sm danger" id="dupDeleteBtn" type="button">Eliminar anterior</button>
+                </div>
             </div>
             <div class="form-group">
                 <label>Slug personalizado (la ruta corta)</label>
@@ -423,6 +465,12 @@
         <button class="btn-create" id="btnCreate" onclick="createLink()">
             Crear enlace
         </button>
+        
+        <div class="success-box" id="successBox">
+            <h3>✨ ¡Enlace listo para compartir!</h3>
+            <div class="short-link" id="successLinkResult"></div>
+            <button class="btn-giant-copy" onclick="copyGiantLink()">📋 COPIAR ENLACE</button>
+        </div>
     </div>
 
     <!-- Tabla -->
@@ -532,6 +580,46 @@ async function fetchLinks() {
     }
 }
 
+
+// ─────────────────────────────────────────────────────────────────
+// Duplicate Validator
+// ─────────────────────────────────────────────────────────────────
+let activeDuplicateId = null;
+let activeDuplicateName = null;
+
+function checkDuplicateUrl() {
+    const url = document.getElementById('fUrl').value.trim();
+    if (!url) {
+        document.getElementById('dupWarning').style.display = 'none';
+        return;
+    }
+    const dup = links.find(l => l.target_url === url);
+    if (dup) {
+        document.getElementById('dupWarning').style.display = 'flex';
+        document.getElementById('dupSlugLink').href = '/' + dup.slug;
+        document.getElementById('dupSlugLink').textContent = '/' + dup.slug;
+        document.getElementById('dupSlugLink').style.color = '#FFB366';
+        activeDuplicateId = dup.id;
+        activeDuplicateName = dup.name;
+        
+        document.getElementById('dupDeleteBtn').onclick = () => {
+            deleteLink(activeDuplicateId, activeDuplicateName).then(() => {
+                document.getElementById('dupWarning').style.display = 'none';
+            });
+        };
+    } else {
+        document.getElementById('dupWarning').style.display = 'none';
+        activeDuplicateId = null;
+    }
+}
+
+function copyGiantLink() {
+    const txt = document.getElementById('successLinkResult').textContent;
+    navigator.clipboard.writeText(txt).then(() => {
+        showToast('📋 Copiado exitosamente', 'success');
+    });
+}
+
 // ─────────────────────────────────────────────────────────────────
 // Create link
 // ─────────────────────────────────────────────────────────────────
@@ -563,12 +651,17 @@ async function createLink() {
             return;
         }
         showToast('✅ Enlace creado exitosamente', 'success');
+        
+        // Show success box
+        document.getElementById('successBox').style.display = 'block';
+        document.getElementById('successLinkResult').textContent = window.location.origin + '/' +  data.slug;
 
         // Limpiar formulario
         document.getElementById('fSlug').value = '';
         document.getElementById('fUrl').value = '';
         document.getElementById('fName').value = '';
         document.getElementById('fDesc').value = '';
+        document.getElementById('dupWarning').style.display = 'none';
         updatePreview();
         fetchLinks();
     } catch (e) {
@@ -583,7 +676,8 @@ async function createLink() {
 // Delete link
 // ─────────────────────────────────────────────────────────────────
 async function deleteLink(id, name) {
-    if (!confirm(`¿Eliminar el enlace "${name}"?`)) return;
+    if (!confirm(`¿Eliminar el enlace "${name}"?`)) return Promise.reject();
+    
     try {
         const res = await fetch(`${API}/links/${id}?admin_key=${encodeURIComponent(adminKey)}`, {
             method: 'DELETE',
@@ -692,13 +786,18 @@ function renderTable() {
         portafolio: '💼', 'campaña': '📢', general: '🔗',
     };
 
+    
+    // Map URL counts for duplicate coloring
+    const urlCounts = {};
+    links.forEach(l => { urlCounts[l.target_url] = (urlCounts[l.target_url] || 0) + 1; });
+
     tbody.innerHTML = links.map(l => {
         const date = new Date(l.created_at).toLocaleDateString('es-VE', {
             day: '2-digit', month: 'short', year: '2-digit'
         });
         const icon = catIcons[l.category] || '🔗';
         return `
-        <tr>
+        <tr class="${urlCounts[l.target_url] > 1 ? 'duplicate-row' : ''}">
             <td class="slug-cell">
                 <a href="/${l.slug}" target="_blank">/${l.slug}</a>
             </td>

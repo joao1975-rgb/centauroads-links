@@ -90,9 +90,17 @@ async def create_link(
     verify_admin(admin_key)
 
     # Verificar slug único
-    exists = db.query(models.Link).filter(models.Link.slug == payload.slug).first()
-    if exists:
+    exists_slug = db.query(models.Link).filter(models.Link.slug == payload.slug).first()
+    if exists_slug:
         raise HTTPException(status_code=409, detail=f"El slug '{payload.slug}' ya existe")
+
+    # Verificar URL destino único (prohibición de repetidos)
+    exists_url = db.query(models.Link).filter(models.Link.target_url == str(payload.target_url)).first()
+    if exists_url:
+        raise HTTPException(
+            status_code=409, 
+            detail=f"Prohibido: Este link ya fue acortado bajo el slug '/{exists_url.slug}'. Debes eliminarlo antes de crear uno nuevo."
+        )
 
     # Validar slug limpio
     import re
@@ -193,6 +201,13 @@ async def link_stats(
         ],
     )
 
+
+# ---------------------------------------------------------------------------
+# PORTADA / LANDING PAGE
+# ---------------------------------------------------------------------------
+@app.get("/", response_class=HTMLResponse)
+async def index_page(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
 
 # ---------------------------------------------------------------------------
 # REDIRECT PÚBLICO — Catch-all (DEBE ser la ÚLTIMA ruta)
