@@ -141,7 +141,76 @@
             h1 { font-size: 2.25rem; }
             .container { padding: 3rem 1.5rem; }
         }
-    </style>
+    
+        .super-admin-btn {
+            background: transparent;
+            border: 1px solid rgba(255,180,0,0.3);
+            color: rgba(255,180,0,0.8);
+            margin-top: 1.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.3s;
+        }
+        .super-admin-btn:hover {
+            background: rgba(255,180,0,0.1);
+            color: #FFB366;
+        }
+
+        /* Modal Base */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(5px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: rgba(25,25,35,0.95);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 2rem;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            text-align: left;
+        }
+        .modal-content h3 {
+            margin-top: 0;
+            color: #fff;
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-content .close-btn {
+            background: transparent;
+            border: none;
+            color: #aaa;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        .modal-content label {
+            display: block;
+            color: #aaa;
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+            margin-top: 1rem;
+        }
+        .modal-content input {
+            width: 100%;
+            margin-bottom: 0;
+        }
+        .modal-content .btn-primary {
+            width: 100%;
+            margin-top: 1.5rem;
+        }
+</style>
+
 </head>
 <body>
 
@@ -188,5 +257,112 @@
 
     </div>
 
+
+    <!-- Modal 1: Login Super Admin -->
+    <div class="modal-overlay" id="modalLogin">
+        <div class="modal-content">
+            <h3>Seguridad Máster <button class="close-btn" onclick="closeModals()">&times;</button></h3>
+            <label>Usuario Autorizado</label>
+            <input type="email" id="saUser" placeholder="centauroadss@gmail.com">
+            
+            <label>Contraseña Máster</label>
+            <input type="password" id="saPass" placeholder="••••••••">
+            
+            <button class="btn-primary" onclick="authSuperAdmin()" id="btnSaLogin">Verificar Identidad</button>
+        </div>
+    </div>
+
+    <!-- Modal 2: Change Password -->
+    <div class="modal-overlay" id="modalChange">
+        <div class="modal-content">
+            <h3>Generar Nueva Clave <button class="close-btn" onclick="closeModals()">&times;</button></h3>
+            <label>Clave Operativa Actual</label>
+            <input type="text" id="saCurrent" disabled style="background: rgba(0,0,0,0.5); color:#888;">
+            
+            <label>Nueva Clave de Acceso</label>
+            <input type="password" id="saNew" placeholder="Ingresa la nueva clave">
+            
+            <label>Confirmar Nueva Clave</label>
+            <input type="password" id="saNew2" placeholder="Repite la clave">
+            
+            <button class="btn-primary" onclick="changeAdminPass()" id="btnSaChange" style="background: linear-gradient(135deg, #FFB366 0%, #F79131 100%);">Actualizar Clave</button>
+        </div>
+    </div>
+
+    <script>
+        function closeModals() {
+            document.getElementById('modalLogin').style.display = 'none';
+            document.getElementById('modalChange').style.display = 'none';
+            document.getElementById('saUser').value = '';
+            document.getElementById('saPass').value = '';
+            document.getElementById('saNew').value = '';
+            document.getElementById('saNew2').value = '';
+        }
+
+        async function authSuperAdmin() {
+            const user = document.getElementById('saUser').value.trim();
+            const pass = document.getElementById('saPass').value.trim();
+            const btn = document.getElementById('btnSaLogin');
+            btn.disabled = true; btn.textContent = 'Verificando...';
+
+            try {
+                const res = await fetch('/api/superadmin/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({user: user, password: pass})
+                });
+                const data = await res.json();
+                
+                if (res.ok) {
+                    document.getElementById('modalLogin').style.display = 'none';
+                    document.getElementById('saCurrent').value = data.current_password;
+                    document.getElementById('modalChange').style.display = 'flex';
+                } else {
+                    alert(data.detail || 'Credenciales inválidas');
+                }
+            } catch (e) {
+                alert('Error de red');
+            } finally {
+                btn.disabled = false; btn.textContent = 'Verificar Identidad';
+            }
+        }
+
+        async function changeAdminPass() {
+            const user = document.getElementById('saUser').value.trim();
+            const pass = document.getElementById('saPass').value.trim();
+            const new1 = document.getElementById('saNew').value.trim();
+            const new2 = document.getElementById('saNew2').value.trim();
+
+            if (!new1 || new1 !== new2) {
+                alert('Las claves no coinciden o están vacías.');
+                return;
+            }
+
+            const btn = document.getElementById('btnSaChange');
+            btn.disabled = true; btn.textContent = 'Guardando...';
+
+            try {
+                const res = await fetch('/api/superadmin/change', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({user: user, password: pass, new_password: new1})
+                });
+                const data = await res.json();
+                
+                if (res.ok) {
+                    alert('✅ Clave actualizada correctamente en el sistema.');
+                    localStorage.setItem('centauroads_admin_key', new1); // Actualizar sesión local automática
+                    closeModals();
+                } else {
+                    alert(data.detail || 'Error al cambiar clave');
+                }
+            } catch (e) {
+                alert('Error de red');
+            } finally {
+                btn.disabled = false; btn.textContent = 'Actualizar Clave';
+            }
+        }
+    </script>
 </body>
+
 </html>
