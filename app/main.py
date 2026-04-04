@@ -265,9 +265,18 @@ async def redirect_to_target(slug: str, request: Request, db: Session = Depends(
         raise HTTPException(status_code=404, detail="Enlace no encontrado")
 
     # Registrar clic
+    # Extraer la IP real a traves del proxy Traefik o usar la Conexion Directa
+    real_ip = request.headers.get("X-Forwarded-For")
+    if real_ip:
+        real_ip = real_ip.split(",")[0].strip()
+    else:
+        real_ip = request.headers.get("X-Real-IP")
+    if not real_ip:
+        real_ip = request.client.host if request.client else "unknown"
+
     click = models.Click(
         link_id=link.id,
-        ip=request.client.host if request.client else "unknown",
+        ip=real_ip,
         user_agent=request.headers.get("user-agent", ""),
         referer=request.headers.get("referer", ""),
     )

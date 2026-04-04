@@ -296,10 +296,16 @@
             <input type="text" id="saCurrent" disabled style="background: rgba(0,0,0,0.5); color:#888;">
             
             <label>Nueva Clave de Acceso</label>
-            <input type="password" id="saNew" placeholder="Ingresa la nueva clave">
-            
+            <div style="position:relative; width: 100%;">
+                <input type="password" id="saNew" placeholder="Ingresa la nueva clave" style="padding-right: 40px;">
+                <span onclick="togglePwd('saNew', this)" style="position:absolute; right:12px; top:12px; cursor:pointer;" title="Ver Clave">👁️</span>
+            </div>
+
             <label>Confirmar Nueva Clave</label>
-            <input type="password" id="saNew2" placeholder="Repite la clave">
+            <div style="position:relative; width: 100%;">
+                <input type="password" id="saNew2" placeholder="Repite la clave" style="padding-right: 40px;">
+                <span onclick="togglePwd('saNew2', this)" style="position:absolute; right:12px; top:12px; cursor:pointer;" title="Ver Clave">👁️</span>
+            </div>
             
             <button class="btn-primary" onclick="changeAdminPass()" id="btnSaChange" style="background: linear-gradient(135deg, #FFB366 0%, #F79131 100%);">Actualizar Clave</button>
         </div>
@@ -330,7 +336,18 @@
                 const data = await res.json();
                 
                 if (res.ok) {
-                    document.getElementById('modalLogin').style.display = 'none';
+                    document.getElementById('mod        function togglePwd(id, icon) {
+            const input = document.getElementById(id);
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.innerText = '🙈';
+            } else {
+                input.type = 'password';
+                icon.innerText = '👁️';
+            }
+        }
+
+alLogin').style.display = 'none';
                     document.getElementById('saCurrent').value = data.current_password;
                     document.getElementById('modalChange').style.display = 'flex';
                 } else {

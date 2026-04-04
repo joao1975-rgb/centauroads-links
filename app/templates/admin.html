@@ -941,7 +941,7 @@ function esc(str) {
                     tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px; color:#888;">Sin clics detectados aún</td></tr>';
                 } else {
                     data.recent_clicks.forEach(c => {
-                        const date = new Date(c.clicked_at).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' });
+                        const date = new Date(c.clicked_at + 'Z').toLocaleString('es-VE', { timeZone: 'America/Caracas', dateStyle: 'short', timeStyle: 'short' });
                         const tr = document.createElement('tr');
                         tr.innerHTML = `
                             <td>${date}</td>
