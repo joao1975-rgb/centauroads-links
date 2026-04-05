@@ -225,12 +225,17 @@ async def link_stats(
         raise HTTPException(status_code=404, detail="Enlace no encontrado")
 
     clicks = db.query(models.Click).filter(models.Click.link_id == link_id).all()
-    unique_ips = set(c.ip for c in clicks if c.ip and c.ip != "unknown")
+    unique_clicks = len(set(c.ip for c in clicks if c.ip and c.ip != "unknown"))
+    
+    deliveries = db.query(models.Delivery).filter(models.Delivery.link_id == link_id).count()
+    ctr = (unique_clicks / deliveries * 100) if deliveries > 0 else 0.0
 
     return schemas.LinkStats(
         link=link,
         total_clicks=len(clicks),
-        unique_clicks=len(unique_ips),
+        unique_clicks=unique_clicks,
+        deliveries_count=deliveries,
+        ctr=round(ctr, 2),
         recent_clicks=[
             schemas.ClickOut(
                 id=c.id,
@@ -242,6 +247,26 @@ async def link_stats(
             for c in sorted(clicks, key=lambda x: x.clicked_at, reverse=True)[:50]
         ],
     )
+
+@app.post("/api/links/{slug}/deliver")
+async def register_delivery(
+    slug: str,
+    payload: schemas.DeliveryCreate,
+    admin_key: str = Query(...),
+    db: Session = Depends(get_db),
+):
+    verify_admin(admin_key)
+    link = db.query(models.Link).filter(models.Link.slug == slug).first()
+    if not link:
+        raise HTTPException(status_code=404, detail="Enlace no encontrado")
+    
+    delivery = models.Delivery(
+        link_id=link.id,
+        channel=payload.channel
+    )
+    db.add(delivery)
+    db.commit()
+    return {"status": "ok", "detail": "Entrega registrada exitosamente", "channel": payload.channel}
 
 
 # ---------------------------------------------------------------------------

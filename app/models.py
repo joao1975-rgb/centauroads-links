@@ -24,6 +24,17 @@ class Link(Base):
     last_clicked_at = Column(DateTime, nullable=True)
 
     clicks = relationship("Click", back_populates="link", cascade="all, delete-orphan")
+    deliveries = relationship("Delivery", back_populates="link", cascade="all, delete-orphan")
+
+class Delivery(Base):
+    __tablename__ = "deliveries"
+
+    id = Column(Integer, primary_key=True, index=True)
+    link_id = Column(Integer, ForeignKey("links.id"), nullable=False)
+    channel = Column(String(50), default="whatsapp") # 'whatsapp', 'instagram', 'email', 'tiktok', etc.
+    delivered_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    link = relationship("Link", back_populates="deliveries")
 
 
 class Click(Base):

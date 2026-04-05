@@ -58,9 +58,13 @@ class ClickOut(BaseModel):
         from_attributes = True
 
 
+class DeliveryCreate(BaseModel):
+    channel: str = "whatsapp" # 'whatsapp', 'instagram', 'email', 'tiktok'
+
 class LinkStats(BaseModel):
     link: LinkOut
     total_clicks: int
     unique_clicks: int
-    unique_clicks: int
+    deliveries_count: int
+    ctr: float
     recent_clicks: list[ClickOut]
