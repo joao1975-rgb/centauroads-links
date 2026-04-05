@@ -41,7 +41,19 @@
 </head>
 <body>
     <div class="loader-container">
-        <div class="spinner"></div>
+        
+<div style="margin-bottom: 25px;">
+    <img src="/static/logo.jpg" alt="Centauro ADS" style="height: 80px; border-radius: 50%; box-shadow: 0 4px 15px rgba(255, 179, 102, 0.4); animation: pulse 2s infinite;">
+</div>
+<div class="spinner"></div>
+<style>
+@keyframes pulse {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 179, 102, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(255, 179, 102, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 179, 102, 0); }
+}
+</style>
+
         <div class="text">Abriendo Destino...</div>
     </div>
     <script>
