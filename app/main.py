@@ -225,10 +225,12 @@ async def link_stats(
         raise HTTPException(status_code=404, detail="Enlace no encontrado")
 
     clicks = db.query(models.Click).filter(models.Click.link_id == link_id).all()
+    unique_ips = set(c.ip for c in clicks if c.ip and c.ip != "unknown")
 
     return schemas.LinkStats(
         link=link,
         total_clicks=len(clicks),
+        unique_clicks=len(unique_ips),
         recent_clicks=[
             schemas.ClickOut(
                 id=c.id,
@@ -287,4 +289,5 @@ async def redirect_to_target(slug: str, request: Request, db: Session = Depends(
     link.last_clicked_at = datetime.now(timezone.utc)
     db.commit()
 
-    return RedirectResponse(url=link.target_url, status_code=302)
+    # Devolver puente intersticial silencioso en lugar de redirect bruto 307
+    return templates.TemplateResponse("redirect.html", {"request": request, "target_url": link.target_url})

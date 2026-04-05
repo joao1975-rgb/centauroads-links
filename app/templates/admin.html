@@ -933,7 +933,7 @@ function esc(str) {
                 }
                 const data = await res.json();
                 
-                document.getElementById('statsTotal').innerText = `🏆 Total de Visitas Registradas: ${data.total_clicks}`;
+                document.getElementById('statsTotal').innerHTML = `🏆 Clics Totales Registrados: ${data.total_clicks} &nbsp;&nbsp;|&nbsp;&nbsp; <span style="color:#fff; background:#2980b9; padding:2px 8px; border-radius:12px; font-size:0.9em;">👤 Visitantes Únicos: ${data.unique_clicks}</span>`;
                 const tbody = document.querySelector('#statsTable tbody');
                 tbody.innerHTML = '';
                 

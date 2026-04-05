@@ -61,4 +61,6 @@ class ClickOut(BaseModel):
 class LinkStats(BaseModel):
     link: LinkOut
     total_clicks: int
+    unique_clicks: int
+    unique_clicks: int
     recent_clicks: list[ClickOut]
