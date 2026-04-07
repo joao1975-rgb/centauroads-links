@@ -228,7 +228,7 @@ async def link_stats(
     unique_clicks = len(set(c.ip for c in clicks if c.ip and c.ip != "unknown"))
     
     deliveries = db.query(models.Delivery).filter(models.Delivery.link_id == link_id).count()
-    ctr = (unique_clicks / deliveries * 100) if deliveries > 0 else 0.0
+    ctr = round((float(unique_clicks) / float(deliveries) * 100.0), 2) if deliveries > 0 else 0.0
 
     return schemas.LinkStats(
         link=link,
