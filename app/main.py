@@ -249,10 +249,12 @@ async def link_stats(
     )
 
 @app.post("/api/links/{slug}/deliver")
+@app.get("/api/links/{slug}/deliver")
 async def register_delivery(
     slug: str,
-    payload: schemas.DeliveryCreate,
+    request: Request,
     admin_key: str = Query(...),
+    channel: str = Query("facebook"),
     db: Session = Depends(get_db),
 ):
     verify_admin(admin_key)
@@ -262,7 +264,7 @@ async def register_delivery(
     
     delivery = models.Delivery(
         link_id=link.id,
-        channel=payload.channel
+        channel=channel
     )
     db.add(delivery)
     db.commit()
