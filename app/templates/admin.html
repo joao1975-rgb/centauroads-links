@@ -369,7 +369,7 @@
             border-radius: var(--radius);
             padding: 1.5rem;
             width: 90%;
-            max-width: 900px; width: 95%;
+            max-width: 1200px; width: 95%;
             max-height: 80vh;
             overflow-y: auto;
         }
@@ -396,7 +396,7 @@
             background: rgba(25,25,35,0.95);
             border: 1px solid rgba(255,255,255,0.1);
             border-radius: 12px; padding: 2rem;
-            width: 90%; max-width: 800px; max-height: 85vh; overflow-y: auto;
+            width: 90%; max-width: 1200px; max-height: 85vh; overflow-y: auto;
             box-shadow: 0 10px 40px rgba(0,0,0,0.6);
         }
         .stats-modal h3 { margin-top: 0; color: #fff; display: flex; justify-content: space-between; align-items: center; }
@@ -943,7 +943,7 @@ function esc(str) {
     &nbsp;&nbsp;|&nbsp;&nbsp;
     🏆 Clics: ${data.total_clicks} 
     &nbsp;&nbsp;|&nbsp;&nbsp;
-    <span style="color:#fff; background:#2980b9; padding:2px 8px; border-radius:12px; font-size:0.9em;">👤 Únicos: ${data.unique_clicks}</span>
+    <span style="color:#fff; background:#2980b9; padding:2px 8px; border-radius:12px; font-size:0.9em; font-weight:bold;">👤 Únicos: ${data.unique_clicks}</span>
     &nbsp;&nbsp;|&nbsp;&nbsp;
     <span style="color:#fff; background:#e67e22; padding:2px 8px; border-radius:12px; font-size:0.9em; font-weight:bold;">🔥 Tasa de CTR: ${parseFloat(data.ctr).toFixed(1)}%</span>
 `;
