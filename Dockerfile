@@ -16,6 +16,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Código
 COPY app/ ./app/
+COPY run.py .
 
 # Directorio para SQLite
 RUN mkdir -p /app/data
