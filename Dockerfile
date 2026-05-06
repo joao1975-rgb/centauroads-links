@@ -25,6 +25,7 @@ ENV ADMIN_KEY=centauro2026
 ENV DATABASE_URL=sqlite:///./data/centaurads_links.db
 
 # Puerto (Easypanel usa 80 por defecto)
+EXPOSE 8000
 EXPOSE 8005
 
 # Health check
@@ -32,4 +33,4 @@ HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
     CMD curl -f http://localhost:8005/health || exit 1
 
 # Iniciar
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8005"]
+CMD ["python", "run.py"]

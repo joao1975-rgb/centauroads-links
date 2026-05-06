@@ -268,7 +268,7 @@ async def register_delivery(
     )
     db.add(delivery)
     db.commit()
-    return {"status": "ok", "detail": "Entrega registrada exitosamente", "channel": payload.channel}
+    return {"status": "ok", "detail": "Entrega registrada exitosamente", "channel": channel}
 
 
 # ---------------------------------------------------------------------------

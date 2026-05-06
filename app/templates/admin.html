@@ -693,7 +693,7 @@ async function createLink() {
         
         // Show success box
         document.getElementById('successBox').style.display = 'block';
-        document.getElementById('successLinkResult').textContent = window.location.origin + '/' +  data.slug;
+        document.getElementById('successLinkResult').textContent = 'https://links.centauroads.com/' + data.slug;
         const sDate = new Date(data.created_at).toLocaleDateString('es-VE', {day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute:'2-digit'});
         document.getElementById('successOrig').textContent = data.target_url;
         document.getElementById('successDate').textContent = sDate;
@@ -795,7 +795,7 @@ async function saveEdit() {
 // Copy link
 // ─────────────────────────────────────────────────────────────────
 function copyLink(slug) {
-    const url = `${window.location.origin}/${slug}`;
+    const url = `https://links.centauroads.com/${slug}`;
     navigator.clipboard.writeText(url).then(() => {
         showToast('📋 Enlace copiado: ' + url, 'success');
     });
@@ -875,8 +875,8 @@ function updatePreview() {
     const slug = document.getElementById('fSlug').value.trim().toLowerCase();
     const preview = document.getElementById('slugPreview');
     preview.textContent = slug
-        ? `${window.location.origin}/${slug}`
-        : `${window.location.origin}/…`;
+        ? `https://links.centauroads.com/${slug}`
+        : `https://links.centauroads.com/…`;
 }
 
 
