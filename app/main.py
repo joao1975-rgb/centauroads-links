@@ -316,5 +316,5 @@ async def redirect_to_target(slug: str, request: Request, db: Session = Depends(
     link.last_clicked_at = datetime.now(timezone.utc)
     db.commit()
 
-    # Devolver puente intersticial silencioso en lugar de redirect bruto 307
-    return templates.TemplateResponse("redirect.html", {"request": request, "target_url": link.target_url})
+    # Devolver redirect bruto 307 en lugar de puente intersticial para evitar bloqueos en Google Ads
+    return RedirectResponse(url=link.target_url, status_code=307)
