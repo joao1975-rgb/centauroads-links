@@ -10,7 +10,9 @@ services:
     ports:
       - "8005:8005"
     environment:
-      - ADMIN_KEY=${ADMIN_KEY:-centauro2026}
+      - ADMIN_KEY=${ADMIN_KEY}
+      - SUPERADMIN_USER=${SUPERADMIN_USER}
+      - SUPERADMIN_PASS=${SUPERADMIN_PASS}
       - DATABASE_URL=sqlite:///./data/centaurads_links.db
     volumes:
       # Persistir la base de datos SQLite entre reinicios

@@ -580,6 +580,7 @@ if (!adminKey) { window.location.href = '/'; }
 
 let links = [];
 const API = '/api';
+const authHeaders = () => ({ 'X-Admin-Key': adminKey });
 
 // ─────────────────────────────────────────────────────────────────
 // Auth / Init
@@ -599,7 +600,7 @@ if (adminKey) {
 // ─────────────────────────────────────────────────────────────────
 async function fetchLinks() {
     try {
-        const res = await fetch(`${API}/links?admin_key=${encodeURIComponent(adminKey)}`);
+        const res = await fetch(`${API}/links`, { headers: authHeaders() });
         if (!res.ok) {
             if (res.status === 401) {
                 // Clave errónea o caducada, redirigir a inicio
@@ -679,9 +680,9 @@ async function createLink() {
     btn.textContent = 'Creando…';
 
     try {
-        const res = await fetch(`${API}/links?admin_key=${encodeURIComponent(adminKey)}`, {
+        const res = await fetch(`${API}/links`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...authHeaders() },
             body: JSON.stringify({ slug, target_url, name, description, category }),
         });
         const data = await res.json();
@@ -722,8 +723,9 @@ async function deleteLink(id, name) {
     if (!confirm(`¿Eliminar el enlace "${name}"?`)) return Promise.reject();
     
     try {
-        const res = await fetch(`${API}/links/${id}?admin_key=${encodeURIComponent(adminKey)}`, {
+        const res = await fetch(`${API}/links/${id}`, {
             method: 'DELETE',
+            headers: authHeaders(),
         });
         if (res.ok) {
             showToast('Enlace eliminado', 'success');
@@ -739,9 +741,9 @@ async function deleteLink(id, name) {
 // ─────────────────────────────────────────────────────────────────
 async function toggleActive(id, currentState) {
     try {
-        const res = await fetch(`${API}/links/${id}?admin_key=${encodeURIComponent(adminKey)}`, {
+        const res = await fetch(`${API}/links/${id}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...authHeaders() },
             body: JSON.stringify({ is_active: !currentState }),
         });
         if (res.ok) {
@@ -776,9 +778,9 @@ async function saveEdit() {
         category: document.getElementById('editCategory').value,
     };
     try {
-        const res = await fetch(`${API}/links/${id}?admin_key=${encodeURIComponent(adminKey)}`, {
+        const res = await fetch(`${API}/links/${id}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...authHeaders() },
             body: JSON.stringify(payload),
         });
         if (res.ok) {
@@ -931,7 +933,7 @@ function esc(str) {
                 const adminKey = localStorage.getItem('centauroads_admin_key');
                 if (!adminKey) return;
                 
-                const res = await fetch(`/api/links/${id}/stats?admin_key=${adminKey}`);
+                const res = await fetch(`/api/links/${id}/stats`, { headers: { 'X-Admin-Key': adminKey } });
                 if (!res.ok) {
                     alert('Error al obtener estadísticas del backend');
                     return;

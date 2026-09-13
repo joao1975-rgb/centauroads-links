@@ -104,7 +104,7 @@ docker compose up --build
 
 # Sin Docker
 pip install -r requirements.txt
-ADMIN_KEY=centauro2026 uvicorn app.main:app --reload --port 8000
+ADMIN_KEY=<clave-segura> uvicorn app.main:app --reload --port 8000
 ```
 
 Abrir: `http://localhost:8000/admin`
@@ -113,7 +113,9 @@ Abrir: `http://localhost:8000/admin`
 
 ## API Reference
 
-Todos los endpoints de API requieren `?admin_key=<clave>` como query parameter.
+Todos los endpoints de API requieren la clave de administración en la cabecera `X-Admin-Key: <clave>` (el query parameter `?admin_key=` se acepta por compatibilidad, pero está obsoleto porque queda en logs y en el historial del navegador).
+
+Variables de entorno (ver `.env.example`): `ADMIN_KEY` (si no se define, el servicio genera una aleatoria al arrancar, la guarda en `data/admin.key` y la muestra una sola vez en el log), `SUPERADMIN_USER` y `SUPERADMIN_PASS` (obligatorias para el cambio de clave desde la portada; sin ellas esos endpoints responden 503). Nunca escribir credenciales en el código ni en el repositorio.
 
 ### Endpoints públicos
 
@@ -136,7 +138,7 @@ Todos los endpoints de API requieren `?admin_key=<clave>` como query parameter.
 ### Ejemplo: Crear enlace
 
 ```bash
-curl -X POST "http://localhost:8000/api/links?admin_key=centauro2026" \
+curl -X POST "http://localhost:8000/api/links" -H "X-Admin-Key: $ADMIN_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "slug": "propuesta-fifa-2026",

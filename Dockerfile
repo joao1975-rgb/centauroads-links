@@ -21,8 +21,7 @@ COPY run.py .
 # Directorio para SQLite
 RUN mkdir -p /app/data
 
-# Variables de entorno por defecto
-ENV ADMIN_KEY=centauro2026
+# Variables de entorno por defecto (ADMIN_KEY, SUPERADMIN_USER y SUPERADMIN_PASS se definen en Easypanel)
 ENV DATABASE_URL=sqlite:///./data/centaurads_links.db
 
 # Puerto (Easypanel usa 80 por defecto)

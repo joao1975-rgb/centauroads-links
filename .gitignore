@@ -1,0 +1,34 @@
+# Secretos y datos locales
+.env
+.env.*
+!.env.example
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Node / HyperFrames (prototipos de mail)
+node_modules/
+prototipos/mail/*/renders/
+prototipos/mail/*/snapshots/
+prototipos/mail/*/.hyperframes/
+prototipos/mail/compositor.standalone.html
+prototipos/mail/_*.png
+
+# Herramientas de análisis (regenerables)
+graphify-out/
+.codegraph/
+.playwright-mcp/
+
+# SO / editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

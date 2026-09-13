@@ -3,7 +3,7 @@ CentauroADS Links — Acortador de URLs corporativo
 Proyecto standalone para Easypanel / DigitalOcean
 """
 
-from fastapi import FastAPI, Request, Depends, HTTPException, Form, Query
+from fastapi import FastAPI, Request, Depends, HTTPException, Form, Query, Header
 from fastapi.responses import RedirectResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 from typing import Optional
 import secrets
 import os
+import logging
 from pydantic import BaseModel
 
 from .database import engine, get_db, Base
@@ -44,28 +45,56 @@ templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 
 # ---------------------------------------------------------------------------
-# Clave admin (desde variable de entorno o disco persistente)
+# Autenticación de administración
+#   - ADMIN_KEY: clave operativa del panel. Origen: data/admin.key (persistente) > variable ADMIN_KEY >
+#     si no hay ninguna, se genera una aleatoria al arrancar, se guarda en data/admin.key y se avisa por log.
+#   - SUPERADMIN_USER / SUPERADMIN_PASS: solo por variables de entorno (nunca en el código). Si faltan, los
+#     endpoints de superadmin responden 503.
+#   - La clave viaja en la cabecera X-Admin-Key (recomendado); ?admin_key= se acepta por compatibilidad.
 # ---------------------------------------------------------------------------
-SUPERADMIN_USER = "centauroadss@gmail.com"
-SUPERADMIN_PASS = "MERcentads2026!."
-KEY_FILE = "data/admin.key"
+log = logging.getLogger("centaurads")
+KEY_FILE = os.getenv("ADMIN_KEY_FILE", "data/admin.key")
+SUPERADMIN_USER = os.getenv("SUPERADMIN_USER", "").strip()
+SUPERADMIN_PASS = os.getenv("SUPERADMIN_PASS", "").strip()
 
 def get_admin_password():
     if os.path.exists(KEY_FILE):
         with open(KEY_FILE, "r") as f:
             pwd = f.read().strip()
-            if pwd: return pwd
-    return os.getenv("ADMIN_KEY", "centauro2026")
+            if pwd:
+                return pwd
+    env_key = os.getenv("ADMIN_KEY", "").strip()
+    if env_key:
+        return env_key
+    generated = secrets.token_urlsafe(24)
+    set_admin_password(generated)
+    log.warning("ADMIN_KEY no configurada: se generó una clave aleatoria y se guardó en %s. Clave inicial: %s",
+                KEY_FILE, generated)
+    return generated
 
 def set_admin_password(new_pass: str):
-    import os
     os.makedirs(os.path.dirname(KEY_FILE) or ".", exist_ok=True)
     with open(KEY_FILE, "w") as f:
         f.write(new_pass.strip())
 
-def verify_admin(admin_key: str):
-    if admin_key != get_admin_password():
+def verify_admin(admin_key: Optional[str]):
+    if not admin_key or not secrets.compare_digest(admin_key, get_admin_password()):
         raise HTTPException(status_code=401, detail="Clave de administración inválida")
+
+def require_admin(
+    x_admin_key: Optional[str] = Header(None, alias="X-Admin-Key"),
+    admin_key: Optional[str] = Query(None, description="Obsoleto: usar la cabecera X-Admin-Key"),
+):
+    verify_admin(x_admin_key or admin_key)
+
+def check_superadmin(user: str, password: str):
+    if not SUPERADMIN_USER or not SUPERADMIN_PASS:
+        raise HTTPException(status_code=503, detail="Superadmin no configurado (SUPERADMIN_USER / SUPERADMIN_PASS)")
+    if not (secrets.compare_digest(user, SUPERADMIN_USER) and secrets.compare_digest(password, SUPERADMIN_PASS)):
+        raise HTTPException(status_code=401, detail="Credenciales inválidas")
+
+# Resolver la clave al arrancar: si no existe, se genera y se avisa por log una sola vez.
+get_admin_password()
 
 class SuperAdminLogin(BaseModel):
     user: str
@@ -78,18 +107,16 @@ class SuperAdminChange(BaseModel):
 
 @app.post("/api/superadmin/login")
 def superadmin_login(payload: SuperAdminLogin):
-    if payload.user == SUPERADMIN_USER and payload.password == SUPERADMIN_PASS:
-        return {"status": "ok", "current_password": get_admin_password()}
-    raise HTTPException(status_code=401, detail="Credenciales inválidas")
+    check_superadmin(payload.user, payload.password)
+    return {"status": "ok", "current_password": get_admin_password()}
 
 @app.post("/api/superadmin/change")
 def superadmin_change(payload: SuperAdminChange):
-    if payload.user == SUPERADMIN_USER and payload.password == SUPERADMIN_PASS:
-        if not payload.new_password.strip():
-            raise HTTPException(status_code=400, detail="La nueva clave no puede estar vacía")
-        set_admin_password(payload.new_password)
-        return {"status": "ok", "message": "Contraseña actualizada"}
-    raise HTTPException(status_code=401, detail="Credenciales inválidas")
+    check_superadmin(payload.user, payload.password)
+    if not payload.new_password.strip():
+        raise HTTPException(status_code=400, detail="La nueva clave no puede estar vacía")
+    set_admin_password(payload.new_password)
+    return {"status": "ok", "message": "Contraseña actualizada"}
 
 # ---------------------------------------------------------------------------
 # HEALTH CHECK
@@ -113,10 +140,9 @@ async def admin_panel(request: Request):
 
 @app.get("/api/links", response_model=list[schemas.LinkOut])
 async def list_links(
-    admin_key: str = Query(...),
+    _auth: None = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    verify_admin(admin_key)
     links = db.query(models.Link).order_by(models.Link.created_at.desc()).all()
     return links
 
@@ -124,10 +150,9 @@ async def list_links(
 @app.post("/api/links", response_model=schemas.LinkOut)
 async def create_link(
     payload: schemas.LinkCreate,
-    admin_key: str = Query(...),
+    _auth: None = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    verify_admin(admin_key)
 
     # Verificar slug único
     exists_slug = db.query(models.Link).filter(models.Link.slug == payload.slug).first()
@@ -171,10 +196,9 @@ async def create_link(
 async def update_link(
     link_id: int,
     payload: schemas.LinkUpdate,
-    admin_key: str = Query(...),
+    _auth: None = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    verify_admin(admin_key)
     link = db.query(models.Link).filter(models.Link.id == link_id).first()
     if not link:
         raise HTTPException(status_code=404, detail="Enlace no encontrado")
@@ -198,10 +222,9 @@ async def update_link(
 @app.delete("/api/links/{link_id}")
 async def delete_link(
     link_id: int,
-    admin_key: str = Query(...),
+    _auth: None = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    verify_admin(admin_key)
     link = db.query(models.Link).filter(models.Link.id == link_id).first()
     if not link:
         raise HTTPException(status_code=404, detail="Enlace no encontrado")
@@ -216,10 +239,9 @@ async def delete_link(
 @app.get("/api/links/{link_id}/stats", response_model=schemas.LinkStats)
 async def link_stats(
     link_id: int,
-    admin_key: str = Query(...),
+    _auth: None = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    verify_admin(admin_key)
     link = db.query(models.Link).filter(models.Link.id == link_id).first()
     if not link:
         raise HTTPException(status_code=404, detail="Enlace no encontrado")
@@ -253,11 +275,10 @@ async def link_stats(
 async def register_delivery(
     slug: str,
     request: Request,
-    admin_key: str = Query(...),
+    _auth: None = Depends(require_admin),
     channel: str = Query("facebook"),
     db: Session = Depends(get_db),
 ):
-    verify_admin(admin_key)
     link = db.query(models.Link).filter(models.Link.slug == slug).first()
     if not link:
         raise HTTPException(status_code=404, detail="Enlace no encontrado")
