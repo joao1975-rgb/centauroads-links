@@ -32,3 +32,7 @@ graphify-out/
 Thumbs.db
 .vscode/
 .idea/
+prototipos/mail/muestrario/
+prototipos/mail/compositor.artifact.html
+# Diapositivas completas de Canva (incluyen precios) y fotogramas de video de terceros: no publicar
+prototipos/mail/img/src/
