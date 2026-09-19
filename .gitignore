@@ -36,3 +36,12 @@ prototipos/mail/muestrario/
 prototipos/mail/compositor.artifact.html
 # Diapositivas completas de Canva (incluyen precios) y fotogramas de video de terceros: no publicar
 prototipos/mail/img/src/
+
+# Material pesado de los prototipos. Las imagenes que usan los mails viven versionadas en
+# app/static/email/ (esa es la copia que sirve produccion); estas son las de trabajo.
+prototipos/mail/img/
+prototipos/mail/hero/
+prototipos/mail/cards/assets/
+prototipos/mail/cards/node_modules/
+prototipos/mail/*.bak
+prototipos/mail/_v-*.html

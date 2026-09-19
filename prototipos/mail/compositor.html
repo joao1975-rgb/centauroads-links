@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Compositor de Mails Centauro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg:#0F0E13; --card:#1A1921; --hover:#232130; --border:#2D2B3A; --line:#3A3748;
+    --text:#EEEDF2; --dim:#9895A7; --faint:#6A6778;
+    --purple:#85439A; --purple-l:#A667BD; --orange:#F79131; --orange-d:#E07A1A;
+    --ok:#34D399; --radius:10px;
+    --font:'DM Sans',system-ui,sans-serif; --mono:'JetBrains Mono',ui-monospace,monospace;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html,body { height:100%; }
+  body { background:var(--bg); color:var(--text); font:14px/1.45 var(--font); display:flex; flex-direction:column; overflow:hidden; }
+  button, input, textarea { font:inherit; color:inherit; }
+  button { cursor:pointer; background:none; border:0; }
+  :focus-visible { outline:2px solid var(--orange); outline-offset:2px; }
+
+  /* ── Barra superior ── */
+  .bar { display:flex; align-items:center; gap:18px; padding:10px 18px; border-bottom:1px solid var(--border);
+         background:linear-gradient(90deg,#1A1524 0%,var(--card) 40%,var(--card) 100%); flex-wrap:wrap; }
+  .brand { display:flex; align-items:center; gap:10px; }
+  .brand img { width:30px; height:30px; border-radius:50%; }
+  .brand b { font-size:15px; letter-spacing:-.01em; }
+  .brand .tag { font:500 10px/1 var(--mono); letter-spacing:.14em; color:var(--orange); border:1px solid var(--orange-d); padding:4px 7px; border-radius:20px; }
+  .seg { display:flex; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:3px; gap:2px; }
+  .seg button { padding:6px 12px; border-radius:6px; color:var(--dim); font-weight:600; font-size:13px; }
+  .seg button[aria-pressed="true"] { background:var(--purple); color:#fff; }
+  .seg button.dice { color:var(--orange); }
+  .seg button:hover:not([aria-pressed="true"]) { background:var(--hover); color:var(--text); }
+  .grow { flex:1; }
+  .acts { display:flex; gap:8px; }
+  .btn { padding:8px 14px; border-radius:7px; font-weight:600; font-size:13px; border:1px solid var(--border); background:var(--card); color:var(--text); }
+  .btn:hover { background:var(--hover); }
+  .btn.primary { background:var(--orange); border-color:var(--orange); color:#141016; }
+  .btn.primary:hover { background:var(--orange-d); }
+
+  /* ── Cuerpo ── */
+  main { flex:1; display:grid; grid-template-columns:380px 1fr; min-height:0; }
+  aside { border-right:1px solid var(--border); overflow-y:auto; background:var(--bg); }
+  .grp { padding:14px 16px 6px; }
+  .grp h2 { font:600 11px/1 var(--mono); letter-spacing:.16em; color:var(--faint); text-transform:uppercase; margin:0 0 10px; }
+  .fld { display:block; margin:0 0 10px; }
+  .fld-l { display:block; font-size:12px; color:var(--dim); margin-bottom:4px; }
+  .fld select { width:100%; background:var(--card); border:1px solid var(--border); border-radius:6px; padding:7px 9px; font-size:13px; color:var(--text); }
+  .fld input, .fld textarea { width:100%; background:var(--card); border:1px solid var(--border); border-radius:6px; padding:7px 9px; font-size:13px; line-height:1.4; resize:vertical; }
+  .fld input:focus, .fld textarea:focus { border-color:var(--purple-l); outline:none; }
+  .hint { font-size:12px; color:var(--orange); margin:0 0 10px; }
+
+  /* perfil del destinatario: la decisión que más cambia el mensaje, arriba del todo */
+  .pf { display:block; width:100%; text-align:left; border:1px solid var(--border); background:var(--card);
+        border-radius:var(--radius); padding:10px 12px; margin:0 0 6px; transition:border-color .12s, background .12s; }
+  .pf:hover { background:var(--hover); }
+  .pf b { display:block; font-size:13px; font-weight:600; }
+  .pf span { display:block; font-size:12px; line-height:1.45; color:var(--dim); margin-top:2px; }
+  .pf[aria-pressed="true"] { border-color:var(--purple-l); background:linear-gradient(90deg,rgba(133,67,154,.22),transparent 70%); }
+  .pf[aria-pressed="true"] b::before { content:'▸ '; color:var(--orange); }
+  .row { display:flex; align-items:center; gap:10px; padding:10px 2px 2px; }
+  .row-t { flex:1; font-size:13px; }
+  .row-t i { display:block; font-style:normal; font-size:12px; color:var(--dim); }
+
+  .blk { border:1px solid var(--border); border-radius:var(--radius); background:var(--card); margin:0 0 8px; overflow:hidden; }
+  .blk-h { display:flex; align-items:center; gap:10px; padding:9px 12px; }
+  .blk-t { flex:1; text-align:left; font-weight:600; font-size:13px; padding:2px 0; display:flex; justify-content:space-between; align-items:center; }
+  .blk-t::after { content:'›'; color:var(--faint); font-size:16px; transform:rotate(90deg); transition:transform .15s; }
+  .blk.open .blk-t::after { transform:rotate(-90deg); }
+  .blk-b { display:none; padding:4px 12px 8px; border-top:1px solid var(--border); }
+  .blk.open .blk-b { display:block; }
+  .blk.off { opacity:.55; }
+  .blk.off .blk-t { text-decoration:line-through; text-decoration-color:var(--faint); }
+
+  .svc { border-left:2px solid var(--line); margin:8px 0 8px 4px; padding-left:10px; }
+  .svc-h { display:flex; align-items:center; gap:8px; }
+  .svc-t { flex:1; text-align:left; font-size:13px; padding:4px 0; color:var(--text); }
+  .svc-b { display:none; padding-top:6px; }
+  .svc.open .svc-b { display:block; }
+  .svc.off .svc-t { color:var(--faint); text-decoration:line-through; }
+
+  /* interruptor */
+  .sw { position:relative; width:34px; height:20px; flex:none; }
+  .sw input { position:absolute; inset:0; opacity:0; margin:0; cursor:pointer; }
+  .sw-k { position:absolute; inset:0; background:var(--line); border-radius:20px; transition:background .15s; }
+  .sw-k::after { content:''; position:absolute; top:3px; left:3px; width:14px; height:14px; border-radius:50%; background:#fff; transition:transform .15s; }
+  .sw input:checked + .sw-k { background:var(--orange); }
+  .sw input:checked + .sw-k::after { transform:translateX(14px); }
+  .sw input:focus-visible + .sw-k { outline:2px solid var(--orange); outline-offset:2px; }
+
+  .reset { margin:6px 16px 20px; font-size:12px; color:var(--dim); text-decoration:underline; }
+
+  /* ── Escenario de vista previa ── */
+  #stage { display:flex; flex-direction:column; min-height:0; background:radial-gradient(1200px 600px at 70% -10%,rgba(133,67,154,.18),transparent 60%),radial-gradient(800px 400px at 0% 100%,rgba(247,145,49,.10),transparent 60%),var(--bg); }
+  .stage-top { display:flex; align-items:center; gap:14px; padding:10px 18px; font-size:12px; color:var(--dim); border-bottom:1px solid var(--border); }
+  .stage-top .seg { margin-left:auto; }
+  .stage-top .seg button { padding:5px 10px; font-size:12px; }
+  .stage-top .seg button[aria-pressed="true"] { background:var(--hover); color:var(--text); }
+  .subj { color:var(--text); font-weight:600; }
+  .meta { font:500 11px var(--mono); color:var(--faint); }
+  .frame-wrap { flex:1; overflow:auto; display:flex; justify-content:center; padding:22px; }
+  .frame { width:640px; max-width:100%; height:100%; background:#fff; border-radius:8px; box-shadow:0 30px 60px -20px rgba(0,0,0,.7),0 0 0 1px var(--border); overflow:hidden; transition:width .2s; }
+  #stage.mobile .frame { width:375px; }
+  iframe { width:100%; height:100%; border:0; display:block; background:#fff; }
+
+  .toast { position:fixed; left:50%; bottom:22px; transform:translate(-50%,20px); background:var(--card); border:1px solid var(--ok); color:var(--text); padding:9px 16px; border-radius:8px; font-size:13px; opacity:0; transition:.2s; pointer-events:none; }
+  .toast.show { opacity:1; transform:translate(-50%,0); }
+
+  @media (max-width:900px) { main { grid-template-columns:1fr; } aside { max-height:45vh; border-right:0; border-bottom:1px solid var(--border); } }
+  @media (prefers-reduced-motion:reduce) { * { transition:none !important; } }
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="brand"><img src="img/logo.jpg" alt=""><b>Compositor de mails</b><span class="tag">PROTOTIPO</span></div>
+  <div class="seg" id="tpl" role="group" aria-label="Plantilla"></div>
+  <div class="grow"></div>
+  <div class="acts">
+    <button class="btn" id="copyText" type="button">Copiar texto</button>
+    <button class="btn" id="copyHtml" type="button">Copiar HTML</button>
+    <button class="btn primary" id="copyGmail" type="button">Copiar para pegar en Gmail</button>
+  </div>
+</header>
+<main>
+  <aside id="panel"></aside>
+  <section id="stage">
+    <div class="stage-top">
+      <span class="subj" id="meta-subj"></span>
+      <span class="meta" id="meta-tpl"></span>
+      <span class="meta" id="meta-size"></span>
+      <div class="seg">
+        <button type="button" id="vDesk" aria-pressed="true">Escritorio</button>
+        <button type="button" id="vMob" aria-pressed="false">Móvil</button>
+        <button type="button" id="vImg" aria-pressed="false">Sin imágenes</button>
+      </div>
+    </div>
+    <div class="frame-wrap"><div class="frame"><iframe id="preview" title="Vista previa del correo"></iframe></div></div>
+  </section>
+</main>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="render.js"></script>
+<script>
+(function () {
+  'use strict';
+  const M = window.CentauroMail;
+  // La clave incluye la version de contenido de render.js: si cambian los valores por defecto, lo guardado
+  // en el navegador con datos viejos se ignora (evita que reaparezcan telefono/web/correo antiguos).
+  const KEY = 'centauro-mail-proto-c' + (M.CONTENT_VERSION || 0);
+  try { Object.keys(localStorage).filter(k => k.indexOf('centauro-mail-proto-') === 0 && k !== KEY).forEach(k => localStorage.removeItem(k)); } catch (e) { /* sin almacenamiento */ }
+  // Segunda red: aunque la version coincida, lo guardado puede arrastrar datos de contacto YA RETIRADOS
+  // (paso por aqui porque al usuario le reaparecieron el telefono y la web viejos). Si aparece cualquiera de
+  // estos valores, el contenido guardado se descarta entero y se cargan los valores por defecto actuales.
+  const RETIRADOS = ['412 000 0000', '412 1003559', 'www.centauroads.com', 'contacto@centauroads', 'publicitarios OOH + DOOH'];
+  // Ademas: si lo guardado no trae el slogan (contenido anterior al bloque de marca), tambien se descarta.
+  try { const r0 = localStorage.getItem(KEY); if (r0 && r0.indexOf('\"slogan\"') < 0) { localStorage.removeItem(KEY); } } catch (e) { /* sin almacenamiento */ }
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw && RETIRADOS.some(v => raw.indexOf(v) >= 0)) { localStorage.removeItem(KEY); }
+  } catch (e) { /* sin almacenamiento */ }
+  const $ = s => document.querySelector(s);
+  const get = (o, p) => p.split('.').reduce((a, k) => a == null ? a : a[k], o);
+  const set = (o, p, v) => { const ks = p.split('.'); const last = ks.pop(); ks.reduce((a, k) => a[k], o)[last] = v; };
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+
+  function load() { try { const raw = localStorage.getItem(KEY); return raw ? JSON.parse(raw) : null; } catch (e) { return null; } }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) { /* sin almacenamiento: seguimos en memoria */ } }
+  let st = load() || M.defaultState();
+  let noImg = false;
+
+  const ENVIO = [
+    ['asunto', 'Asunto'],
+    ['preheader', 'Preheader (texto de vista previa en la bandeja)', 'textarea'],
+    ['destinatario', 'Destinatario (rellena {destinatario})'],
+    ['imgSet', 'Imágenes de los servicios', 'select'],
+    ['assetBaseProd', 'URL pública de las imágenes (se usa al copiar)'],
+    ['linkBase', 'Base de links cortos (vacío = canva.link actuales)'],
+    ['token', 'Token por destinatario (?c=)'],
+  ];
+  const BLOQUES = [
+    { k: 'hero', label: 'Foto de cabecera (solo D)', hint: 'Archivo de img/. Solo la usa la plantilla D Cartelera móvil.',
+      f: [['img', 'Foto real'], ['imgPortada', 'Portada Canva (cuando se elige ese juego)'], ['alt', 'Texto alternativo']] },
+    { k: 'saludo', label: 'Saludo', f: [['texto', 'Texto', 'textarea']] },
+    { k: 'intro', label: 'Introducción', f: [['texto', 'Párrafo', 'textarea']] },
+    { k: 'titulo', label: 'Título de sección', f: [['texto', 'Título'], ['sub', 'Subtítulo']] },
+    { k: 'servicios', label: 'Servicios (catálogo)', servicios: true },
+    { k: 'clientes', label: 'Marcas que ya son clientes (solo perfil Cliente nuevo)',
+      hint: 'APAGADO hasta que Elizabeth confirme que podemos nombrar a esas marcas.',
+      f: [['titulo', 'Título'], ['lista', 'Marcas (separadas por ·)']] },
+    { k: 'branding', label: 'Branding y esculturas (solo D)', hint: 'Sin foto todavía: pedir al equipo una imagen real de corpóreos o cajas de luz.',
+      f: [['titulo', 'Título'], ['texto', 'Texto', 'textarea'], ['cta', 'Texto del botón'], ['url', 'Enlace']] },
+    { k: 'suministro', label: 'Suministro e instalación', hint: 'En la plantilla D solo se muestran sus requisitos, dentro del bloque final.',
+      f: [['titulo', 'Título'], ['texto', 'Texto', 'textarea'], ['requisitos', 'Requisitos (uno por línea)', 'lines']] },
+    { k: 'pasos', label: 'Próximos pasos', f: [['titulo', 'Título'], ['texto', 'Texto', 'textarea']] },
+    { k: 'presupuesto', label: 'Datos para presupuesto', f: [['titulo', 'Título'], ['items', 'Datos (uno por línea)', 'lines']] },
+    { k: 'cta', label: 'Botón de acción', f: [['texto', 'Texto del botón'], ['url', 'Enlace']] },
+    { k: 'cierre', label: 'Cierre', f: [['texto', 'Texto']] },
+    { k: 'firma', label: 'Firma', hint: 'Teléfono y dirección son valores de ejemplo: confirmar con Elizabeth.',
+      f: [['nombre', 'Nombre'], ['cargo', 'Cargo'], ['slogan', 'Slogan (bajo el logo)'], ['linea', 'Línea de servicios (bajo el slogan)'], ['email', 'Correo'], ['telefono', 'Teléfono'], ['ig', 'Instagram'], ['web', 'Web'], ['contacto', 'Correo general (pie)'], ['direccion', 'Dirección']] },
+    { k: 'pie', label: 'Pie legal', f: [['texto', 'Texto', 'textarea']] },
+  ];
+
+  function inputEl(path, label, type, onInput) {
+    const wrap = el('label', 'fld'); wrap.appendChild(el('span', 'fld-l', label));
+    if (type === 'select') {
+      const sel = document.createElement('select');
+      Object.entries(M.IMG_SETS).forEach(([k, l]) => { const o = el('option', null, l); o.value = k; sel.appendChild(o); });
+      sel.value = get(st, path) || 'fotos';
+      sel.addEventListener('change', () => { set(st, path, sel.value); touch(); });
+      wrap.appendChild(sel); return wrap;
+    }
+    const ta = type === 'textarea' || type === 'lines';
+    const inp = document.createElement(ta ? 'textarea' : 'input'); if (!ta) inp.type = 'text'; else inp.rows = 3;
+    const v = get(st, path); inp.value = type === 'lines' ? (Array.isArray(v) ? v.join('\n') : (v || '')) : (v == null ? '' : v);
+    inp.addEventListener('input', () => { set(st, path, type === 'lines' ? inp.value.split('\n') : inp.value); if (onInput) onInput(inp.value); touch(); });
+    wrap.appendChild(inp); return wrap;
+  }
+  function switchEl(path, onChange) {
+    const l = el('label', 'sw'); const c = document.createElement('input'); c.type = 'checkbox'; c.checked = !!get(st, path);
+    c.setAttribute('aria-label', 'Mostrar u ocultar');
+    c.addEventListener('change', () => { set(st, path, c.checked); onChange(c.checked); touch(); });
+    l.appendChild(c); l.appendChild(el('i', 'sw-k')); return l;
+  }
+  function servicioEl(s, i) {
+    const w = el('div', 'svc'); w.classList.toggle('off', !s.on);
+    const h = el('div', 'svc-h'); h.appendChild(switchEl('servicios.' + i + '.on', on => w.classList.toggle('off', !on)));
+    const t = el('button', 'svc-t', s.nombre); t.type = 'button'; t.addEventListener('click', () => w.classList.toggle('open')); h.appendChild(t); w.appendChild(h);
+    const b = el('div', 'svc-b');
+    b.appendChild(inputEl('servicios.' + i + '.nombre', 'Nombre', null, v => { t.textContent = v; }));
+    b.appendChild(inputEl('servicios.' + i + '.cobertura', 'Cobertura / ubicación'));
+    b.appendChild(inputEl('servicios.' + i + '.nota', 'Nota (opcional)'));
+    b.appendChild(inputEl('servicios.' + i + '.cta', 'Texto del botón (plantilla D)'));
+    w.appendChild(b); return w;
+  }
+  function blockEl(def) {
+    const b = el('section', 'blk'); b.classList.toggle('off', !get(st, 'bloques.' + def.k + '.on'));
+    const head = el('header', 'blk-h');
+    head.appendChild(switchEl('bloques.' + def.k + '.on', on => b.classList.toggle('off', !on)));
+    const t = el('button', 'blk-t', def.label); t.type = 'button'; t.addEventListener('click', () => b.classList.toggle('open'));
+    head.appendChild(t); b.appendChild(head);
+    const body = el('div', 'blk-b');
+    if (def.hint) body.appendChild(el('p', 'hint', def.hint));
+    if (def.servicios) st.servicios.forEach((s, i) => body.appendChild(servicioEl(s, i)));
+    else def.f.forEach(([k, l, ty]) => body.appendChild(inputEl('bloques.' + def.k + '.' + k, l, ty)));
+    b.appendChild(body); return b;
+  }
+  // Perfil del destinatario: reescribe asunto, textos y orden de servicios, y añade su bloque propio.
+  function buildPerfil() {
+    const g = el('div', 'grp'); g.appendChild(el('h2', null, 'Perfil del destinatario'));
+    const btns = [];
+    Object.entries(M.PERFILES).forEach(([k, pf]) => {
+      const b = el('button', 'pf'); b.type = 'button';
+      b.appendChild(el('b', null, pf.nombre)); b.appendChild(el('span', null, pf.desc));
+      b.setAttribute('aria-pressed', String(st.perfil === k));
+      b.addEventListener('click', () => {
+        st.perfil = k;
+        btns.forEach(([bb, kk]) => bb.setAttribute('aria-pressed', String(kk === k)));
+        touch();
+      });
+      btns.push([b, k]); g.appendChild(b);
+    });
+    g.appendChild(el('p', 'hint', 'El perfil reescribe asunto, título, introducción, cierre y botón sobre la marcha: los campos de abajo siguen intactos y son los que se usan en el perfil General.'));
+    const r = el('div', 'row');
+    const sw = el('label', 'sw'); const c = document.createElement('input'); c.type = 'checkbox';
+    c.checked = st.precios === 'desde'; c.setAttribute('aria-label', 'Mostrar precios desde');
+    c.addEventListener('change', () => { st.precios = c.checked ? 'desde' : 'no'; touch(); });
+    sw.appendChild(c); sw.appendChild(el('i', 'sw-k'));
+    const t = el('div', 'row-t'); t.appendChild(document.createTextNode('Mostrar precios «desde»'));
+    t.appendChild(el('i', null, 'Apagado: ningún importe. Encendido: precio de entrada por espacio.'));
+    r.appendChild(sw); r.appendChild(t); g.appendChild(r);
+    return g;
+  }
+  function buildPanel() {
+    const p = $('#panel'); p.innerHTML = '';
+    p.appendChild(buildPerfil());
+    const g1 = el('div', 'grp'); g1.appendChild(el('h2', null, 'Envío'));
+    ENVIO.forEach(([k, l, ty]) => g1.appendChild(inputEl(k, l, ty))); p.appendChild(g1);
+    const g2 = el('div', 'grp'); g2.appendChild(el('h2', null, 'Bloques del mensaje · interruptor = mostrar / inhibir'));
+    BLOQUES.forEach(d => g2.appendChild(blockEl(d))); p.appendChild(g2);
+    const r = el('button', 'reset', 'Restablecer todo el contenido'); r.type = 'button';
+    r.addEventListener('click', () => { st = M.defaultState(); save(); buildPanel(); buildSeg(); renderPreview(); toast('Contenido restablecido'); });
+    p.appendChild(r);
+  }
+  function buildSeg() {
+    const seg = $('#tpl'); seg.innerHTML = '';
+    Object.keys(M.TEMPLATES).forEach(k => {
+      const b = el('button', null, k + ' · ' + M.TEMPLATES[k].nombre); b.type = 'button'; b.title = M.TEMPLATES[k].desc;
+      b.setAttribute('aria-pressed', String(st.plantilla === k));
+      b.addEventListener('click', () => { st.plantilla = k; buildSeg(); touch(); });
+      seg.appendChild(b);
+    });
+    const d = el('button', 'dice', '⚄ Aleatoria'); d.type = 'button'; d.title = 'Elige otra plantilla al azar (rotación)';
+    d.addEventListener('click', () => { const ks = Object.keys(M.TEMPLATES).filter(k => k !== st.plantilla); st.plantilla = ks[Math.floor(Math.random() * ks.length)]; buildSeg(); touch(); });
+    seg.appendChild(d);
+  }
+
+  const prod = () => { const p = JSON.parse(JSON.stringify(st)); p.assetBase = st.assetBaseProd || 'img'; return p; };
+  let timer;
+  function touch() { save(); clearTimeout(timer); timer = setTimeout(renderPreview, 120); }
+  function renderPreview() {
+    const key = M.pick(st);
+    let html = M.render(st, key);
+    html = html.replace(/src="img\/([^"]+)"/g, (m, n) => (window.IMG_DATA && window.IMG_DATA[n]) ? 'src="' + window.IMG_DATA[n] + '"' : m);
+    const extra = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&display=swap"><base target="_blank">' +
+      (noImg ? '<style>img{display:none!important}</style>' : '');
+    $('#preview').srcdoc = html.replace('</head>', extra + '</head>');
+    $('#meta-tpl').textContent = 'Plantilla ' + key + ' · ' + M.TEMPLATES[key].nombre + ' · ' + M.PERFILES[st.perfil].nombre + ' · ' + (st.imgSet === 'portadas' ? 'portadas Canva' : 'fotos reales');
+    $('#meta-size').textContent = Math.round(M.render(prod(), key).length / 1024) + ' KB HTML';
+    $('#meta-subj').textContent = M.aplicaPerfil(st).asunto;
+  }
+
+  function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 1800); }
+  async function copyRich(html, text) {
+    try {
+      if (navigator.clipboard && window.ClipboardItem) {
+        await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([text], { type: 'text/plain' }) })]);
+        return true;
+      }
+    } catch (e) { /* cae al método clásico */ }
+    const d = document.createElement('div'); d.contentEditable = 'true'; d.style.cssText = 'position:fixed;left:-9999px;top:0;'; d.innerHTML = html;
+    document.body.appendChild(d); const r = document.createRange(); r.selectNodeContents(d);
+    const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+    let ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    sel.removeAllRanges(); d.remove(); return ok;
+  }
+  $('#copyGmail').addEventListener('click', async () => {
+    const full = M.render(prod()); const body = (full.match(/<body[^>]*>([\s\S]*)<\/body>/) || [0, full])[1];
+    toast((await copyRich(body, M.renderText(prod()))) ? 'Copiado: pega en un correo nuevo de Gmail (Ctrl+V)' : 'No se pudo copiar: el navegador bloqueó el portapapeles');
+  });
+  $('#copyHtml').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(M.render(prod())); toast('HTML completo copiado'); } catch (e) { toast('No se pudo copiar el HTML'); }
+  });
+  $('#copyText').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(M.renderText(prod())); toast('Versión en texto plano copiada'); } catch (e) { toast('No se pudo copiar el texto'); }
+  });
+  $('#vDesk').addEventListener('click', () => { $('#stage').classList.remove('mobile'); $('#vDesk').setAttribute('aria-pressed', 'true'); $('#vMob').setAttribute('aria-pressed', 'false'); });
+  $('#vMob').addEventListener('click', () => { $('#stage').classList.add('mobile'); $('#vDesk').setAttribute('aria-pressed', 'false'); $('#vMob').setAttribute('aria-pressed', 'true'); });
+  $('#vImg').addEventListener('click', () => { noImg = !noImg; $('#vImg').setAttribute('aria-pressed', String(noImg)); renderPreview(); });
+
+  if (window.IMG_DATA && window.IMG_DATA['logo.jpg']) document.querySelector('.brand img').src = window.IMG_DATA['logo.jpg'];
+  buildPanel(); buildSeg(); renderPreview();
+})();
+</script>
+</body>
+</html>

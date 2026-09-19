@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1200, height=800" />
+    <title>Cabecera D — la pantalla de Chacao en vivo (alineada por homografía)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&display=swap" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1200px; height: 800px; overflow: hidden; background: #0F0E13; }
+      body { font-family: Montserrat, "Trebuchet MS", Arial, sans-serif; color: #fff; }
+      #root { position: relative; width: 1200px; height: 800px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      #photo { display: block; width: 100%; height: 100%; object-fit: cover; }
+      /* Área encendida REAL de la pantalla, medida por color en la foto:
+         TL(591.5,62.5) TR(770.5,72) BR(767.5,428) BL(586,421.5) (área encendida + 1,5 px sobre el marco oscuro para tapar el filo antialiasado). El rectángulo fuente de 176x356 se proyecta
+         a ese cuadrilátero con una homografía (matrix3d), así respeta la perspectiva y no pisa ni el marco ni la pared. */
+      #screen { position: absolute; left: 0; top: 0; width: 176px; height: 356px; overflow: hidden; display: block;
+                transform-origin: 0 0; transform: matrix3d(1.055026908,0.0575264806,0,4.929455384e-05,-0.03788649319,0.9922883679,0,-3.828848973e-05,0,0,1,0,591.5,62.5,0,1); filter: blur(0.5px) saturate(.92); }
+      .ad { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 12px; text-align: center; opacity: 0; }
+      .ad.a1 { background: linear-gradient(165deg, #9440AE 0%, #7A2F93 55%, #B11BD2 100%); }
+      .ad.a2 { background: linear-gradient(165deg, #F79131 0%, #D96E12 100%); }
+      .ad.a3 { background: linear-gradient(180deg, #1B1824 0%, #0F0E13 100%); }
+      .ad .big { font-size: 30px; line-height: 1.06; font-weight: 800; letter-spacing: -.01em; padding: 0 10px; }
+      .ad .small { font-size: 11.5px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; opacity: .9; }
+      .ad img { width: 78px; height: 78px; border-radius: 39px; display: block; border: 3px solid rgba(255,255,255,.5); }
+      /* Integración con la foto: sombra interior del marco y el mismo degradado de luz que tiene la pieza original. */
+      #lum { position: absolute; inset: 0; display: block; width: 100%; height: 100%; opacity: 0;
+             background: linear-gradient(160deg, rgba(255,255,255,.10) 0%, rgba(255,255,255,0) 45%, rgba(0,0,0,.10) 100%);
+             box-shadow: inset 0 0 6px 1px rgba(20,16,30,.55); }
+      #tag { position: absolute; left: 36px; bottom: 34px; background: rgba(15,14,19,.72); border-radius: 30px;
+             padding: 12px 22px; font-size: 24px; font-weight: 700; }
+      #tag b { color: #F79131; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="11.2" data-fps="24" data-width="1200" data-height="800">
+      <section id="shot" class="clip" data-start="0" data-duration="11.2" data-track-index="1">
+        <img id="photo" src="assets/svc_led.jpg" alt="" />
+        <div id="screen">
+          <div class="ad a1" id="a1"><img src="assets/logo.jpg" alt="" /><div class="big">Tu marca<br>aquí</div><div class="small">4 × 8 m · Chacao</div></div>
+          <div class="ad a2" id="a2"><div class="small">Spot de 15 s</div><div class="big">390<br>salidas<br>al día</div></div>
+          <div class="ad a3" id="a3"><div class="small">Disponible</div><div class="big">+120.000</div><div class="small">impactos diarios</div></div>
+          <div id="lum"></div>
+        </div>
+        <div id="tag">Pantalla LED · <b>Chacao</b> · Edificio Valmy</div>
+      </section>
+    </div>
+    <script>
+      function build() {
+        const tl = gsap.timeline({ paused: true });
+        const H = 1.9, F = 0.9;
+        // Estado 0 = la FOTO REAL sin nada encima (frame 0 de Outlook y punto de costura del bucle).
+        // Cada pieza entra con un fundido lento sobre la anterior; al final la última se desvanece y vuelve la foto real.
+        let t = H;
+        ["#a1", "#a2", "#a3"].forEach(function (id, i) {
+          tl.fromTo(id, { opacity: 0 }, { opacity: 1, duration: F, ease: "sine.inOut" }, t);
+          tl.fromTo(id + " .big", { y: 6 }, { y: 0, duration: F, ease: "sine.out" }, t);
+          if (i === 0) tl.fromTo("#lum", { opacity: 0 }, { opacity: 1, duration: F, ease: "sine.inOut" }, t);
+          t += F + H;
+        });
+        const out = t - H + H;            // fin del último hold
+        tl.set(["#a1", "#a2"], { opacity: 0 }, out);
+        tl.to(["#a3", "#lum"], { opacity: 0, duration: F, ease: "sine.inOut" }, out);
+        tl.seek(0);
+        window.__timelines["main"] = tl;
+        if (window.__hfForceTimelineRebind) window.__hfForceTimelineRebind();
+      }
+      if (document.fonts && document.fonts.ready) { document.fonts.ready.then(build); } else { build(); }
+    </script>
+  </body>
+</html>

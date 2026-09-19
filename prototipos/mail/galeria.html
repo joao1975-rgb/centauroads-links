@@ -1,0 +1,29 @@
+<!doctype html><meta charset="utf-8"><title>Plantillas de email Centauro ADS</title>
+<style>
+body{margin:0;background:#1c1b22;color:#eee;font-family:Segoe UI,Roboto,Arial,sans-serif}
+header{padding:14px 20px;background:#0F0E13;border-bottom:1px solid #333;font-size:14px}
+header b{color:#F79131}
+.row{display:flex;gap:18px;padding:18px;overflow-x:auto;align-items:flex-start}
+.col{flex:0 0 auto}
+.col h2{font-size:14px;margin:0 0 6px;font-weight:700}
+.col h2 span{color:#B98BCB;font-weight:400;margin-left:8px}
+iframe{border:0;background:#fff;border-radius:6px;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+nav{position:sticky;top:0;z-index:5;display:flex;gap:6px;padding:8px 12px;background:#0F0E13;border-bottom:1px solid #333;overflow-x:auto}
+nav a{color:#eee;text-decoration:none;font-size:13px;font-weight:700;padding:6px 12px;border:1px solid #F79131;border-radius:20px;white-space:nowrap}
+nav a:hover{background:#F79131;color:#0F0E13}
+@media (max-width: 1000px){ .row{flex-direction:column;padding:12px} .col{width:100%} iframe{width:100% !important;height:1500px} }
+</style>
+<header><b>Centauro ADS · Mails de servicios</b> — los 4 modelos con el contenido por defecto (fotos reales del inventario). Cada uno a 600 px de ancho; <b>C Nota</b> es la plantilla para <b>respuestas en hilo (N1)</b>.</header>
+<nav id="nav"><a href="#c">C · Nota</a><a href="#d">D · Móvil</a><a href="#a">A · Cartelera</a><a href="#b">B · Catálogo</a><a href="muestrario/index.html">Muestrario</a></nav>
+<div class="row">
+<div class="col" id="c"><h2>C · Nota<span>respuesta en hilo · sin animación · 9 KB</span></h2><iframe src="plantilla-C-nota.html" width="620" height="1500" loading="lazy"></iframe></div>
+<div class="col" id="d"><h2>D · Cartelera móvil<span>pantalla de Chacao en vivo · 242 KB</span></h2><iframe src="plantilla-D-movil.html" width="620" height="1500" loading="lazy"></iframe></div>
+<div class="col" id="a"><h2>A · Cartelera<span>carrusel de 3 fotos por servicio</span></h2><iframe src="plantilla-A-cartelera.html" width="620" height="1500" loading="lazy"></iframe></div>
+<div class="col" id="b"><h2>B · Catálogo<span>2 columnas · carrusel por tarjeta</span></h2><iframe src="plantilla-B-catalogo.html" width="620" height="1500" loading="lazy"></iframe></div>
+</div>
+<script>
+// Los correos abren enlaces en pestaña nueva; dentro de un iframe Canva bloquea el embebido (X-Frame-Options).
+document.querySelectorAll('iframe').forEach(f => f.addEventListener('load', () => {
+  try { const d = f.contentDocument; const b = d.createElement('base'); b.target = '_blank'; d.head.prepend(b); } catch (e) {}
+}));
+</script>

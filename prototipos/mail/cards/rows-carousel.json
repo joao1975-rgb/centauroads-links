@@ -1,0 +1,49 @@
+{
+  "rows": [
+    {
+      "name": "vallas",
+      "p1": "assets/svc_vallas.jpg",
+      "p2": "assets/svc_vallas_alt.jpg",
+      "p3": "assets/svc_vallas_alt2.jpg",
+      "c1": "Las Mercedes · bajo el elevado",
+      "c2": "Torres Galería Victoria",
+      "c3": "Caracas · valla disponible"
+    },
+    {
+      "name": "led",
+      "p1": "assets/svc_led_vid1.jpg",
+      "p2": "assets/svc_led_vid2.jpg",
+      "p3": "assets/svc_led_alt.jpg",
+      "c1": "Chacao · Av. Francisco de Miranda",
+      "c2": "Tu marca junto a la tasa del día",
+      "c3": "Chacao · de noche"
+    },
+    {
+      "name": "totem",
+      "p1": "assets/svc_totem.jpg",
+      "p2": "assets/svc_totem_alt.jpg",
+      "p3": "assets/svc_totem_alt2.jpg",
+      "c1": "C.C. San Ignacio · La Castellana",
+      "c2": "Tótem digital · 1440 × 2560 px",
+      "c3": "Acceso principal · alto tránsito"
+    },
+    {
+      "name": "rider",
+      "p1": "assets/svc_rider.jpg",
+      "p2": "assets/svc_rider_alt.jpg",
+      "p3": "assets/svc_rider_alt2.jpg",
+      "c1": "Tu marca aquí",
+      "c2": "Flota de 250 motos",
+      "c3": "Cobertura de día y de noche"
+    },
+    {
+      "name": "paradas",
+      "p1": "assets/svc_paradas.jpg",
+      "p2": "assets/svc_paradas_alt2.jpg",
+      "p3": "assets/svc_paradas_alt3.jpg",
+      "c1": "Parada 4 · Las Mercedes",
+      "c2": "Paseo Las Mercedes",
+      "c3": "Av. Libertador · Los Símbolos"
+    }
+  ]
+}

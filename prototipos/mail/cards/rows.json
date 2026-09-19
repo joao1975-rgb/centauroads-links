@@ -1,0 +1,9 @@
+{
+  "rows": [
+    { "name": "vallas",  "photo": "assets/svc_vallas.jpg",  "label": "DISPONIBLE" },
+    { "name": "led",     "photo": "assets/svc_led.jpg",     "label": "DISPONIBLE" },
+    { "name": "totem",   "photo": "assets/svc_totem.jpg",   "label": "DISPONIBLE" },
+    { "name": "rider",   "photo": "assets/svc_rider.jpg",   "label": "DISPONIBLE" },
+    { "name": "paradas", "photo": "assets/svc_paradas.jpg", "label": "DISPONIBLE" }
+  ]
+}

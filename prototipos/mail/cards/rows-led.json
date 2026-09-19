@@ -1,0 +1,13 @@
+{
+  "rows": [
+    {
+      "name": "led",
+      "p1": "assets/svc_led_vid1.jpg",
+      "p2": "assets/svc_led_vid2.jpg",
+      "p3": "assets/svc_led_alt.jpg",
+      "c1": "Chacao · Av. Francisco de Miranda",
+      "c2": "Tu marca junto a la tasa del día",
+      "c3": "Chacao · de noche"
+    }
+  ]
+}
