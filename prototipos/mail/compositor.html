@@ -314,10 +314,55 @@
     return g;
   }
 
+  // Banco de efectos. Cada boton ensena el peso MEDIDO del GIF, no una promesa: el que
+  // elige tiene que ver lo que le cuesta a quien abre el correo con datos moviles. Los
+  // que no estan servidos se marcan, porque hay que generarlos antes de enviar.
+  function buildEfectos() {
+    const g = el('div', 'grp');
+    g.appendChild(el('h2', null, 'Animacion de las fotos \u00b7 ' + M.EFECTOS.length + ' efectos'));
+
+    const botones = [];
+    const pinta = () => botones.forEach(([b, k]) => b.setAttribute('aria-pressed', String(k === st.efecto)));
+    M.EFECTOS.forEach(e => {
+      const b = el('button', 'pf'); b.type = 'button';
+      b.appendChild(el('b', null, e.etiqueta + ' \u00b7 ' + e.kb + ' KB' + (e.servido ? '' : ' \u00b7 hay que generarlo')));
+      b.appendChild(el('span', null, e.idea));
+      b.addEventListener('click', () => { st.efecto = e.clave; pinta(); touch(); });
+      botones.push([b, e.clave]); g.appendChild(b);
+    });
+    pinta();
+
+    // Excepciones por servicio. El encargo pedia poder elegir POR servicio, no solo uno
+    // para todo: una parada de autobus y una pantalla LED no se lucen con lo mismo.
+    g.appendChild(el('p', 'hint', 'Abajo, si un servicio concreto se luce con otro efecto, se le pone el suyo.'));
+    M.SERVICIOS.forEach(sv => {
+      const fila = el('div', 'row-t');
+      fila.appendChild(el('label', null, sv.nombre));
+      const sel = el('select');
+      const opGlobal = el('option', null, 'El de todos'); opGlobal.value = ''; sel.appendChild(opGlobal);
+      M.EFECTOS.forEach(e => {
+        const o = el('option', null, e.etiqueta + ' \u00b7 ' + e.kb + ' KB');
+        o.value = e.clave; sel.appendChild(o);
+      });
+      sel.value = st.efectosPorServicio[sv.id] || '';
+      sel.addEventListener('change', () => {
+        if (sel.value) st.efectosPorServicio[sv.id] = sel.value;
+        else delete st.efectosPorServicio[sv.id];
+        touch();
+      });
+      fila.appendChild(sel); g.appendChild(fila);
+    });
+
+    g.appendChild(el('p', 'hint',
+      'Para generar uno que no este servido: python carrusel_gif.py --todos --efecto <nombre>'));
+    return g;
+  }
+
   function buildPanel() {
     const p = $('#panel'); p.innerHTML = '';
     p.appendChild(buildPerfil());
     p.appendChild(buildAsuntos());
+    p.appendChild(buildEfectos());
     const g1 = el('div', 'grp'); g1.appendChild(el('h2', null, 'Envío'));
     ENVIO.forEach(([k, l, ty]) => g1.appendChild(inputEl(k, l, ty))); p.appendChild(g1);
     const g2 = el('div', 'grp'); g2.appendChild(el('h2', null, 'Bloques del mensaje · interruptor = mostrar / inhibir'));

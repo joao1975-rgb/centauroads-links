@@ -80,6 +80,46 @@
   //   directo    - dice que hay dentro, sin adornos. El que menos falla.
   //   beneficio  - nombra lo que el lector gana.
   //   curiosidad - abre un hueco que solo se cierra abriendo. El que mas arriesga.
+  // Banco de efectos de animacion para el carrusel de cada servicio.
+  //
+  // El correo no ejecuta JavaScript y las animaciones CSS no llegan a Gmail ni a Outlook:
+  // el GIF es lo unico que se mueve en todos los clientes. Cada efecto se genera con
+  // carrusel_gif.py y se guarda como carousel_<servicio>_<efecto>.gif.
+  //
+  // El campo "kb" es el peso MEDIDO, no una estimacion, y esta aqui a proposito: quien
+  // elige un efecto tiene que ver lo que le cuesta a quien abre el correo con datos
+  // moviles. Los tres primeros estan ya servidos; los otros se generan al elegirlos.
+  const EFECTOS = [
+    { clave: 'corte',    etiqueta: 'Corte',    kb: 246, servido: true,
+      idea: 'Cambio seco, sin transicion. El mas ligero y el que mejor aguanta conexiones lentas.' },
+    { clave: 'barrido',  etiqueta: 'Barrido',  kb: 355, servido: true,
+      idea: 'Una linea vertical descubre la foto siguiente, como el giro de una valla rotativa.' },
+    { clave: 'persiana', etiqueta: 'Persiana', kb: 405, servido: true,
+      idea: 'La foto nueva entra en franjas horizontales. El mas llamativo de los ligeros.' },
+    { clave: 'fundido',  etiqueta: 'Fundido',  kb: 667, servido: false,
+      idea: 'Una foto se disuelve en la siguiente. El mas neutro: no compite con el texto.' },
+    { clave: 'deslizar', etiqueta: 'Deslizar', kb: 669, servido: false,
+      idea: 'La foto nueva empuja a la anterior. Sensacion de recorrido entre soportes.' },
+    { clave: 'destello', etiqueta: 'Destello', kb: 672, servido: false,
+      idea: 'Un brillo diagonal cruza la foto antes del cambio. Lee metalico, va con promociones.' },
+    { clave: 'zoom',     etiqueta: 'Zoom',     kb: 1784, servido: false,
+      idea: 'Acercamiento lento sobre cada foto. PESA: el acercamiento cambia la imagen entera ' +
+            'en cada paso y la compresion no puede reutilizar nada. El zoom de las etiquetas ' +
+            'de oferta es otra animacion distinta y si es ligera (25 KB).' },
+  ];
+
+  // El efecto que toca a un servicio: el suyo propio si se le ha puesto uno, si no el global.
+  function efectoDe(st, s) {
+    const propio = st.efectosPorServicio && st.efectosPorServicio[s.id];
+    return propio || st.efecto || 'barrido';
+  }
+
+  // El GIF del carrusel de un servicio. Estaba escrito a mano en tres sitios; ahora el
+  // nombre se arma en uno solo, que es donde hay que tocar si cambia el esquema.
+  function carruselSrc(st, s) {
+    return imgFor(st, 'carousel_' + s.id + '_' + efectoDe(st, s) + '.gif');
+  }
+
   const ASUNTOS = {
     general: [
       { clave: 'directo',    etiqueta: 'Directo',    texto: 'Centauro ADS \u00b7 Espacios publicitarios disponibles' },
@@ -166,6 +206,11 @@
       // Cual de los tres asuntos se usa. 'propio' respeta el que se escriba a mano en el
       // campo Asunto: la ultima palabra la tiene quien redacta, no el catalogo.
       asunto3: 'directo',
+      // Efecto de animacion del carrusel. Por defecto uno de los ligeros: un correo que
+      // tarda en cargar no lo lee nadie, por muy bonita que sea la transicion.
+      efecto: 'barrido',
+      // Excepciones por servicio: { led: 'persiana' }. Vacio = todos usan el global.
+      efectosPorServicio: {},
 
 
       // Precios: 'no' = ninguno (el precio va en la cotización formal) · 'desde' = precio de entrada.
@@ -508,7 +553,7 @@
   // La foto de un servicio, siempre con mi carrusel animado cuando existe: el cliente
   // pidio conservar las varias imagenes por servicio con sus transiciones.
   function fotoServicio(st, s, ancho, alto) {
-    const src = (st.cardAnim && !usaPortadas(st)) ? imgFor(st, 'carousel_' + s.id + '.gif') : svcImg(st, s);
+    const src = (st.cardAnim && !usaPortadas(st)) ? carruselSrc(st, s) : svcImg(st, s);
     const k = paleta(esOscuro(st));
     return '<a href="' + esc(linkFor(st, s)) + '"><img src="' + esc(src) + '" width="' + ancho + '"' +
       (alto ? ' height="' + alto + '"' : '') + ' alt="' + esc(svcAlt(st, s)) + '"' +
@@ -549,6 +594,8 @@
     const base = defaultState();
     if (st.tema === undefined) st.tema = base.tema;
     if (st.asunto3 === undefined) st.asunto3 = base.asunto3;
+    if (st.efecto === undefined) st.efecto = base.efecto;
+    if (!st.efectosPorServicio) st.efectosPorServicio = {};
     if (!st.bloques) st.bloques = base.bloques;
     Object.keys(base.bloques).forEach(function (k) {
       if (!st.bloques[k]) { st.bloques[k] = base.bloques[k]; return; }
@@ -595,7 +642,7 @@
     activos(st).forEach(s => {
       P.push(row(
         '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
-        '<td width="200" valign="top" style="padding:0 18px 0 0;"><a href="' + esc(linkFor(st, s)) + '"><img src="' + esc(st.cardAnim && !usaPortadas(st) ? imgFor(st, 'carousel_' + s.id + '.gif') : svcImg(st, s)) + '" width="200" alt="' + esc(svcAlt(st, s)) + '" style="display:block;width:200px;height:auto;border-radius:6px;border:1px solid ' + C.line + ';color:#EEEDF2;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:18px;"></a></td>' +
+        '<td width="200" valign="top" style="padding:0 18px 0 0;"><a href="' + esc(linkFor(st, s)) + '"><img src="' + esc(st.cardAnim && !usaPortadas(st) ? carruselSrc(st, s) : svcImg(st, s)) + '" width="200" alt="' + esc(svcAlt(st, s)) + '" style="display:block;width:200px;height:auto;border-radius:6px;border:1px solid ' + C.line + ';color:#EEEDF2;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:18px;"></a></td>' +
         '<td valign="top">' +
         '<div style="font-family:' + FH + ';font-size:10px;font-weight:700;letter-spacing:.16em;color:' + C.orange + ';text-transform:uppercase;">' + esc(s.eyebrow) + '</div>' +
         '<div style="font-family:' + FH + ';font-size:17px;line-height:22px;font-weight:800;color:#FFFFFF;padding:4px 0 4px 0;">' + esc(s.nombre) + '</div>' +
@@ -658,7 +705,7 @@
     const act = activos(st);
     if (act.length) {
       const card = (s, w) => '<table role="presentation" width="' + w + '" align="left" cellpadding="0" cellspacing="0" border="0" style="width:' + w + 'px;max-width:100%;margin:0 0 16px 0;"><tr><td style="border:1px solid ' + C.rule + ';border-radius:8px;overflow:hidden;background:' + C.paper + ';">' +
-        '<a href="' + esc(linkFor(st, s)) + '"><img src="' + esc(st.cardAnim && !usaPortadas(st) ? imgFor(st, 'carousel_' + s.id + '.gif') : svcImg(st, s)) + '" width="' + w + '" alt="' + esc(svcAlt(st, s)) + '" style="display:block;width:100%;height:auto;border-radius:8px 8px 0 0;color:#1F1B24;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:18px;"></a>' +
+        '<a href="' + esc(linkFor(st, s)) + '"><img src="' + esc(st.cardAnim && !usaPortadas(st) ? carruselSrc(st, s) : svcImg(st, s)) + '" width="' + w + '" alt="' + esc(svcAlt(st, s)) + '" style="display:block;width:100%;height:auto;border-radius:8px 8px 0 0;color:#1F1B24;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:18px;"></a>' +
         '<div style="padding:12px 14px 14px 14px;">' +
         '<div style="font-family:' + FH + ';font-size:10px;font-weight:700;letter-spacing:.14em;color:' + C.orangeDark + ';text-transform:uppercase;">' + esc(s.eyebrow) + '</div>' +
         '<div style="font-family:' + FH + ';font-size:15px;line-height:20px;font-weight:800;color:' + C.text + ';padding:3px 0 3px 0;">' + esc(s.nombre) + '</div>' +
@@ -1201,5 +1248,5 @@
   }
   const render = (st, key) => TEMPLATES[key || pick(st)].fn(aplicaAsunto(aplicaPerfil(normaliza(st))));
 
-  return { C, SERVICIOS, GRUPOS, TEMPLATES, IMG_SETS, PERFILES, ASUNTOS, asuntosDe, FICHA, CONTENT_VERSION, defaultState, render, renderText, pick, aplicaPerfil, aplicaAsunto, normaliza };
+  return { C, SERVICIOS, GRUPOS, TEMPLATES, IMG_SETS, PERFILES, ASUNTOS, asuntosDe, EFECTOS, efectoDe, FICHA, CONTENT_VERSION, defaultState, render, renderText, pick, aplicaPerfil, aplicaAsunto, normaliza };
 });
