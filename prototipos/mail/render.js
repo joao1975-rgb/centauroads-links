@@ -129,6 +129,10 @@
       plantilla: 'A', seed: 1, imgSet: 'fotos', heroAnim: true, cardAnim: true,
       // Eje de perfil: cambia el mensaje sin cambiar el formato. 'general' = comportamiento de siempre.
       perfil: 'general',
+      // Claro u oscuro. Los formatos del asesor (E, F, G) existen en los dos; los mios
+      // (A-D) llevan su tema fijo por diseno y este campo no les afecta.
+      tema: 'claro',
+
       // Precios: 'no' = ninguno (el precio va en la cotización formal) · 'desde' = precio de entrada.
       precios: 'no',
       asunto: 'Centauro ADS · Disponibilidad de espacios publicitarios Phygital + DOOH + Digital',
@@ -152,6 +156,20 @@
           cta: 'Ver catálogo especial', url: 'mailto:equintero@centauroads.com?subject=Cat%C3%A1logo%20de%20branding%20y%20esculturas' },
         // Muro de clientes: prueba social para el perfil de cliente nuevo. APAGADO hasta que Elizabeth
         // confirme que podemos nombrar a estas marcas en un correo.
+        // Datos operativos de los formatos del asesor. Van aparte porque CADUCAN: una
+        // disponibilidad y una fecha de cierre dejan de ser ciertas solas. El texto de
+        // partida es el que entrego el asesor, sin tocar; aqui solo se puede actualizar.
+        asesor: {
+          on: true,
+          periodo: 'Octubre – Diciembre 2026',
+          etiquetaMeta: 'Q1 2026 · AGENCIAS',
+          dispoFecha: '19-sep',
+          dispoTexto: 'LED Chacao: 3 slots libres en octubre.',
+          cierreTexto: 'Cerramos programación de Q1 el 15 de noviembre.',
+          slotsLed: '3 SLOTS',
+          pieCta: 'Instalación llave en mano · reporte de campaña incluido',
+          respuesta: 'Respuesta en menos de 24 horas hábiles.',
+        },
         clientes: { on: false, titulo: 'Marcas que ya están en la calle con nosotros',
           lista: 'Pepsi · Nestlé · Yango · Cashea · EPA · Arturo’s · Ridery · Cinepic · Tío Rico' },
         pasos: { on: true, titulo: 'Próximos pasos',
@@ -391,6 +409,99 @@
     if (pf.bloque === 'ruta') return rutaPasos(st, dark) + (on(st, 'clientes') ? muroClientes(st, dark) : '');
     if (pf.bloque === 'puente') return puentePhygital(st, dark);
     return '';
+  }
+
+  // ══ FORMATOS DEL ASESOR (E, F, G) ══════════════════════════════════════════════
+  //
+  // Tres disenos entregados por el asesor de diseno grafico, cada uno pensado para un
+  // perfil: agencias, cliente nuevo y phygital. Se ANADEN a los mios (A-D), no los
+  // sustituyen.
+  //
+  // Lo que se respeta de su entrega: el texto principal, la composicion y la escala
+  // tipografica, palabra por palabra.
+  // Lo que se cambia por decision del cliente: la firma del pie es la mia (lleva el
+  // correo de mercadeo, que la suya no trae), las fotos son mis carruseles animados en
+  // vez de imagenes sueltas, y los servicios que su diseno no ensena se anaden al final
+  // como complementos.
+  //
+  // Sus versiones clara y oscura usan EXACTAMENTE los tokens de la marca, asi que una
+  // sola funcion sirve las dos: solo cambia la paleta. Duplicar el HTML habria
+  // garantizado que las dos versiones se separaran con el primer retoque.
+
+  function paleta(oscuro) {
+    return oscuro ? {
+      fondo: C.black, panel: C.ink, panel2: C.ink2, linea: C.line,
+      texto: C.textDark, apagado: C.mutedDark,
+      acento: C.purpleLight, vivo: C.orange, sobreVivo: '#141016',
+      botonFondo: C.purple, botonTexto: '#FFFFFF',
+    } : {
+      fondo: C.sand, panel: C.paper, panel2: C.sand, linea: C.rule,
+      texto: C.text, apagado: C.muted,
+      acento: C.purple, vivo: C.orangeInk, sobreVivo: '#FFFFFF',
+      botonFondo: C.purple, botonTexto: '#FFFFFF',
+    };
+  }
+  const esOscuro = st => st.tema === 'oscuro';
+
+  // Cabecera comun: logo a la izquierda, metadato a la derecha.
+  function cabeceraAsesor(st, P, meta) {
+    const k = paleta(esOscuro(st));
+    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
+      '<td valign="middle">' + marca(st, esOscuro(st), 150) + '</td>' +
+      '<td valign="middle" align="right" style="font-family:' + FH + ';font-size:10px;font-weight:800;' +
+        'letter-spacing:.24em;text-transform:uppercase;color:' + k.apagado + ';">' + esc(meta) + '</td>' +
+      '</tr></table>';
+  }
+
+  // Epigrafe pequeno en mayusculas. Es el recurso tipografico que ordena sus tres disenos.
+  function epigrafe(st, txt, color) {
+    const k = paleta(esOscuro(st));
+    return '<div style="font-family:' + FH + ';font-size:11px;font-weight:800;letter-spacing:.26em;' +
+      'text-transform:uppercase;color:' + (color || k.vivo) + ';padding:0 0 12px 0;">' + esc(txt) + '</div>';
+  }
+
+  // Boton solido construido con tabla, no con <button>: es lo unico que Outlook dibuja bien.
+  function botonAsesor(st, texto, url) {
+    const k = paleta(esOscuro(st));
+    return '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>' +
+      '<td bgcolor="' + k.botonFondo + '" style="background:' + k.botonFondo + ';border-radius:8px;">' +
+      '<a href="' + esc(url) + '" style="display:inline-block;padding:15px 30px;font-family:' + FH + ';' +
+      'font-size:14px;font-weight:800;letter-spacing:.01em;color:' + k.botonTexto + ';text-decoration:none;">' +
+      esc(texto) + ' &rarr;</a></td></tr></table>';
+  }
+
+  // La foto de un servicio, siempre con mi carrusel animado cuando existe: el cliente
+  // pidio conservar las varias imagenes por servicio con sus transiciones.
+  function fotoServicio(st, s, ancho, alto) {
+    const src = (st.cardAnim && !usaPortadas(st)) ? imgFor(st, 'carousel_' + s.id + '.gif') : svcImg(st, s);
+    const k = paleta(esOscuro(st));
+    return '<a href="' + esc(linkFor(st, s)) + '"><img src="' + esc(src) + '" width="' + ancho + '"' +
+      (alto ? ' height="' + alto + '"' : '') + ' alt="' + esc(svcAlt(st, s)) + '"' +
+      ' style="display:block;width:' + ancho + 'px;max-width:100%;height:auto;border:0;border-radius:8px;' +
+      'color:' + k.texto + ';font-family:' + FB + ';font-size:13px;line-height:18px;"></a>';
+  }
+
+  // Complementos: los servicios que el diseno del asesor no ensena con imagen se anaden
+  // al final, con foto mas pequena. Asi ninguno queda fuera del correo aunque su
+  // composicion original solo destacara uno o tres.
+  function complementos(st, yaMostrados) {
+    const faltan = activos(st).filter(s => yaMostrados.indexOf(s.id) < 0);
+    if (!faltan.length) return '';
+    const k = paleta(esOscuro(st));
+    let filas = '';
+    for (let i = 0; i < faltan.length; i += 2) {
+      const par = faltan.slice(i, i + 2);
+      filas += '<tr>' + par.map(s =>
+        '<td width="50%" valign="top" style="padding:0 8px 16px 0;">' +
+          fotoServicio(st, s, 250) +
+          '<div style="font-family:' + FH + ';font-size:14px;font-weight:800;color:' + k.texto + ';padding:8px 0 2px 0;">' + esc(s.nombre) + '</div>' +
+          '<div style="font-family:' + FB + ';font-size:12px;line-height:17px;color:' + k.apagado + ';">' + esc(s.cobertura) + '</div>' +
+          '<div style="padding:6px 0 0 0;"><a href="' + esc(linkFor(st, s)) + '" style="font-family:' + FH + ';font-size:11px;font-weight:800;color:' + k.acento + ';text-decoration:none;">Ver presentaci\u00f3n &rarr;</a></div>' +
+        '</td>').join('') +
+        (par.length === 1 ? '<td width="50%"></td>' : '') + '</tr>';
+    }
+    return epigrafe(st, 'Tambi\u00e9n disponible', k.acento) +
+      '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">' + filas + '</table>';
   }
 
   // ── Plantilla A · "Cartelera" (oscura, como los decks) ──
@@ -658,11 +769,364 @@
     return L.join('\n');
   }
 
+  // -- Formato E - "Inventario" (asesor, para agencias) -------------------------
+  // Su idea: una agencia no quiere que le eduquen, quiere la tabla. El correo entero es
+  // una ficha de inventario con metricas comparables, sin parrafo introductorio de mas.
+  function plantillaE(st) {
+    const o = esOscuro(st), k = paleta(o), P = [];
+    const a = B(st, 'asesor');
+    const pad = 'padding-left:32px;padding-right:32px;background:' + k.panel + ';';
+
+    P.push(row(cabeceraAsesor(st, P, a.etiquetaMeta),
+      'padding:26px 32px 22px 32px;background:' + k.panel + ';'));
+
+    // Hero. El acento va en "Share of Voice" porque es el termino que la agencia busca.
+    P.push(row(
+      epigrafe(st, 'Inventario \u00b7 ' + a.periodo) +
+      '<div style="font-family:' + FH + ';font-size:40px;line-height:1.02;font-weight:800;letter-spacing:-.035em;color:' + k.texto + ';">' +
+        'Tu pr\u00f3ximo <span style="color:' + k.acento + ';">Share of Voice</span>, en una sola tabla.</div>' +
+      '<div style="font-family:' + FB + ';font-size:15px;line-height:1.6;color:' + k.apagado + ';padding:16px 0 0 0;">' +
+        'Sin brief educativo. Sin rodeos. Los cinco frentes que operamos en Caracas, con m\u00e9tricas comparables, ' +
+        'para que tu equipo de medios calcule el mix sin llamar a nadie.</div>',
+      pad + 'padding-bottom:26px;'));
+
+    if (on(st, 'saludo')) {
+      P.push(row(
+        epigrafe(st, 'Para el equipo de ' + (st.destinatario || '[Nombre de la Agencia]'), k.acento) +
+        '<div style="font-family:' + FB + ';font-size:15px;line-height:1.65;color:' + k.texto + ';">' +
+          'Sabemos c\u00f3mo trabajan: brief, medios, tabla de disponibilidad, decisi\u00f3n. Vamos directo a la \u00faltima parte.</div>' +
+        '<div style="font-family:' + FB + ';font-size:15px;line-height:1.65;color:' + k.apagado + ';padding:12px 0 0 0;">' +
+          'Este es el inventario que operamos hoy en Caracas, listo para integrarse a tu mix del pr\u00f3ximo trimestre, ' +
+          'sin brief educativo de por medio.</div>',
+        pad + 'padding-bottom:24px;'));
+    }
+
+    // Tira de cifras: tres datos que la agencia reconoce de un vistazo.
+    const cifra = function (n, l) {
+      return '<td width="33%" valign="top" style="padding:14px 10px;border-top:1px solid ' + k.linea + ';border-bottom:1px solid ' + k.linea + ';">' +
+        '<div style="font-family:' + FH + ';font-size:17px;font-weight:800;color:' + k.vivo + ';">' + esc(n) + '</div>' +
+        '<div style="font-family:' + FH + ';font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:' + k.apagado + ';padding:4px 0 0 0;">' + esc(l) + '</div></td>';
+    };
+    P.push(row('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
+      cifra('120K impactos / d\u00eda', 'LED') + cifra('250 motos LED', 'Rider') + cifra('5 frentes', 'activos') +
+      '</tr></table>', pad + 'padding-bottom:26px;'));
+
+    // La tabla de inventario: el corazon de su diseno.
+    P.push(row(epigrafe(st, '01 \u00b7 Inventario', k.acento) +
+      '<div style="font-family:' + FH + ';font-size:24px;font-weight:800;letter-spacing:-.02em;color:' + k.texto + ';">Espacios disponibles</div>' +
+      '<div style="font-family:' + FB + ';font-size:13px;color:' + k.apagado + ';padding:5px 0 0 0;">orden por rotaci\u00f3n de audiencia</div>',
+      pad + 'padding-bottom:16px;'));
+
+    const INVENTARIO = [
+      { n: '01', id: 'led', t: 'Pantallas LED \u00b7 DOOH', badge: a.slotsLed,
+        d: 'Chacao, Av. Francisco de Miranda \u00b7 4\u00d78 m \u00b7 rotaci\u00f3n por franjas horarias',
+        m: [['Impactos', '120.000/d\u00eda'], ['Formato', 'Video / MP4']] },
+      { n: '02', id: 'vallas', t: 'Vallas \u00b7 OOH nacional', badge: '',
+        d: 'Caracas y arterias viales \u00b7 gran formato \u00b7 brand recall de largo plazo',
+        m: [['Rotaci\u00f3n', 'Alta vial'], ['Cobertura', 'Nacional']] },
+      { n: '03', id: 'rider', t: 'Rider Clon \u00b7 movilidad LED', badge: 'TRACKING',
+        d: 'Caracas \u00b7 San Antonio \u00b7 Valencia \u00b7 caja LED 42\u00d759 cm \u00b7 GPS en vivo',
+        m: [['Flota', '250 motos'], ['Turno', '8 h / d\u00eda']] },
+      { n: '04', id: 'totem', t: 'T\u00f3tem digital \u00b7 indoor', badge: '',
+        d: 'C.C. San Ignacio \u00b7 1440\u00d72560 px \u00b7 audiencia cautiva premium',
+        m: [['Salidas', '240/d\u00eda'], ['Ambiente', 'Indoor A+']] },
+      { n: '05', id: 'paradas', t: 'Paradas \u00b7 mobiliario urbano', badge: '',
+        d: 'Las Mercedes \u00b7 Av. Libertador \u00b7 2\u00d72,4 m \u00b7 audiencia peatonal',
+        m: [['Spots', '34.000/mes'], ['Contacto', 'Peatonal']] },
+    ];
+    const vivos = activos(st).map(function (x) { return x.id; });
+    let tabla = '';
+    INVENTARIO.filter(function (f) { return vivos.indexOf(f.id) >= 0; }).forEach(function (f, i) {
+      const cebra = i % 2 ? k.panel2 : k.panel;
+      const svc = st.servicios.filter(function (x) { return x.id === f.id; })[0];
+      tabla += '<tr><td bgcolor="' + cebra + '" style="background:' + cebra + ';padding:16px 14px;border-bottom:1px solid ' + k.linea + ';">' +
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
+        '<td width="26" valign="top" style="font-family:' + FH + ';font-size:11px;font-weight:800;color:' + k.apagado + ';padding-top:3px;">' + f.n + '</td>' +
+        '<td valign="top">' +
+          '<div style="font-family:' + FH + ';font-size:15px;font-weight:800;color:' + k.texto + ';">' + esc(f.t) +
+            (f.badge ? ' <span style="font-family:' + FH + ';font-size:9px;font-weight:800;letter-spacing:.14em;color:' + k.sobreVivo + ';background:' + k.vivo + ';padding:3px 7px;border-radius:100px;">' + esc(f.badge) + '</span>' : '') +
+          '</div>' +
+          '<div style="font-family:' + FB + ';font-size:12px;line-height:17px;color:' + k.apagado + ';padding:5px 0 0 0;">' + esc(f.d) + '</div>' +
+          (svc ? '<div style="padding:7px 0 0 0;"><a href="' + esc(linkFor(st, svc)) + '" style="font-family:' + FH + ';font-size:11px;font-weight:800;color:' + k.acento + ';text-decoration:none;">Ver presentaci\u00f3n &rarr;</a></div>' : '') +
+        '</td>' +
+        '<td width="150" valign="top" align="right">' +
+          f.m.map(function (par) {
+            return '<div style="font-family:' + FH + ';font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:' + k.apagado + ';">' + esc(par[0]) + '</div>' +
+              '<div style="font-family:' + FH + ';font-size:13px;font-weight:800;color:' + k.texto + ';padding:1px 0 7px 0;">' + esc(par[1]) + '</div>';
+          }).join('') +
+        '</td></tr></table></td></tr>';
+    });
+    P.push(row('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid ' + k.linea + ';">' + tabla + '</table>',
+      pad + 'padding-bottom:24px;'));
+
+    // La foto del frente principal, con mi carrusel animado.
+    const led = st.servicios.filter(function (x) { return x.id === 'led' && x.on; })[0];
+    if (led) {
+      P.push(row(fotoServicio(st, led, 536) +
+        '<div style="font-family:' + FB + ';font-size:12px;color:' + k.apagado + ';padding:9px 0 0 0;">' +
+        '&uarr; LED Chacao, el frente con mayor rotaci\u00f3n en Caracas Este.</div>',
+        pad + 'padding-bottom:22px;'));
+    }
+
+    // Disponibilidad: los datos que caducan salen del estado, no del codigo.
+    P.push(row('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
+      '<td bgcolor="' + k.panel2 + '" style="background:' + k.panel2 + ';border-left:3px solid ' + k.vivo + ';padding:14px 16px;">' +
+      '<div style="font-family:' + FH + ';font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:' + k.vivo + ';">' +
+        '\u25cf Disponibilidad al ' + esc(a.dispoFecha) + '</div>' +
+      '<div style="font-family:' + FB + ';font-size:14px;line-height:20px;color:' + k.texto + ';padding:6px 0 0 0;">' +
+        esc(a.dispoTexto) + ' ' + esc(a.cierreTexto) + '</div>' +
+      '</td></tr></table>', pad + 'padding-bottom:24px;'));
+
+    if (on(st, 'cta')) {
+      P.push(row(botonAsesor(st, 'Solicitar disponibilidad Q1', B(st, 'cta').url) +
+        '<div style="font-family:' + FB + ';font-size:12px;color:' + k.apagado + ';padding:12px 0 0 0;">' + esc(a.pieCta) + '</div>',
+        pad + 'padding-bottom:28px;'));
+    }
+
+    // Complementos: los servicios sin foto propia en su diseno original.
+    const comp = complementos(st, ['led']);
+    if (comp) P.push(row(comp, pad + 'padding-bottom:26px;'));
+
+    // Mi firma, por decision del cliente: la suya no lleva el correo de mercadeo.
+    if (on(st, 'firma')) {
+      P.push(row(firma(st, o),
+        'padding:24px 32px 26px 32px;background:' + k.panel + ';border-top:1px solid ' + k.linea + ';'));
+    }
+    if (on(st, 'pie')) {
+      P.push(row('<div style="font-family:' + FB + ';font-size:11px;line-height:16px;color:' + k.apagado + ';">' +
+        nl2br(B(st, 'pie').texto) + '</div>', 'padding:14px 32px 0 32px;'));
+    }
+    return doc(st, k.fondo, P.join(''));
+  }
+
+  // -- Formato F - "Guia" (asesor, para cliente nuevo) --------------------------
+  // Su idea: quien nunca ha comprado exterior no necesita un catalogo, necesita que le
+  // quiten el miedo. Tres fases en orden, cada una con el servicio que le corresponde.
+  function plantillaF(st) {
+    const o = esOscuro(st), k = paleta(o), P = [];
+    const a = B(st, 'asesor');
+    const pad = 'padding-left:32px;padding-right:32px;background:' + k.panel + ';';
+
+    P.push(row(cabeceraAsesor(st, P, 'Gu\u00eda para empezar'),
+      'padding:26px 32px 22px 32px;background:' + k.panel + ';'));
+
+    P.push(row(
+      epigrafe(st, 'Primera vez anunciando afuera', k.acento) +
+      '<div style="font-family:' + FH + ';font-size:36px;line-height:1.06;font-weight:800;letter-spacing:-.03em;color:' + k.texto + ';">' +
+        'Que te conozcan. <span style="color:' + k.acento + ';">Que te recuerden.</span> Que te compren.</div>' +
+      '<div style="font-family:' + FB + ';font-size:15px;line-height:1.6;color:' + k.apagado + ';padding:16px 0 0 0;">' +
+        'Esa es la secuencia. Tres fases, en ese orden, es c\u00f3mo crecen las marcas que aparecen en las calles de ' +
+        'Caracas. Te la explicamos sin tecnicismos y sin comprometerte a nada.</div>',
+      pad + 'padding-bottom:26px;'));
+
+    if (on(st, 'saludo')) {
+      P.push(row(
+        '<div style="font-family:' + FB + ';font-size:15px;line-height:1.65;color:' + k.texto + ';">' +
+          'Hola ' + esc(st.destinatario || '[Nombre]') + ',</div>' +
+        '<div style="font-family:' + FB + ';font-size:15px;line-height:1.65;color:' + k.apagado + ';padding:10px 0 0 0;">' +
+          'Gracias por interesarte en dar el paso a la <b style="color:' + k.texto + ';">publicidad exterior</b>. ' +
+          'Sabemos que es una decisi\u00f3n importante: hay muchos formatos, muchos precios y poca informaci\u00f3n clara ' +
+          'sobre por d\u00f3nde empezar. Este correo no es una cotizaci\u00f3n: es la gu\u00eda que les contamos a puerta ' +
+          'cerrada a las marcas que arrancan con nosotros. L\u00e9ela en 2 minutos y hablamos.</div>',
+        pad + 'padding-bottom:26px;'));
+    }
+
+    // Las tres fases. Cada una lleva su servicio con mi carrusel animado.
+    const FASES = [
+      { n: '01', fase: 'Fase de atracci\u00f3n', tit: 'Que te conozcan', id: 'totem',
+        txt: 'Empezamos con <b>formatos digitales de alto tr\u00e1fico</b>. El brillo y el movimiento captan miradas ' +
+             'nuevas, explican qu\u00e9 haces y qu\u00e9 ofreces. Es la manera m\u00e1s r\u00e1pida de dejar de ser un desconocido.',
+        tag: 'Recomendado para empezar', svcTit: 'T\u00f3tem digital \u00b7 San Ignacio',
+        svcTxt: '240 salidas/d\u00eda en un centro comercial premium. Audiencia atenta, presupuesto de entrada.' },
+      { n: '02', fase: 'Fase de memoria', tit: 'Que te recuerden', id: 'led',
+        txt: 'Cuando ya te conocen, tu marca se instala en <b>las calles que tu cliente recorre todos los d\u00edas</b>. ' +
+             'Vallas y pantallas LED trabajando juntas: cuando piense en lo que vendes, aparecer\u00e1s t\u00fa.',
+        tag: 'Combinamos con la fase 1', svcTit: 'Pantalla LED \u00b7 Chacao',
+        svcTxt: '120.000 impactos/d\u00eda en la arteria de mayor rotaci\u00f3n de Caracas Este.' },
+      { n: '03', fase: 'Fase de decisi\u00f3n', tit: 'Que te compren', id: 'rider',
+        txt: 'La calle empuja, el m\u00f3vil cierra. En esta fase activamos promociones t\u00e1cticas y motos con LED que ' +
+             'aparecen justo donde y cuando decides. Es la parte donde la campa\u00f1a se convierte en ventas.',
+        tag: 'T\u00e1ctico y medible', svcTit: 'Rider Clon \u00b7 movilidad LED',
+        svcTxt: '250 motos con GPS. Elegimos las zonas y horas donde vive tu cliente.' },
+    ];
+    FASES.forEach(function (f) {
+      const svc = st.servicios.filter(function (x) { return x.id === f.id && x.on; })[0];
+      P.push(row(
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
+        '<td width="54" valign="top" style="font-family:' + FH + ';font-size:34px;font-weight:800;color:' + k.acento + ';letter-spacing:-.03em;">' + f.n + '</td>' +
+        '<td valign="top">' +
+          '<div style="font-family:' + FH + ';font-size:10px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:' + k.vivo + ';">' + esc(f.fase) + '</div>' +
+          '<div style="font-family:' + FH + ';font-size:21px;font-weight:800;letter-spacing:-.02em;color:' + k.texto + ';padding:4px 0 8px 0;">' + esc(f.tit) + '</div>' +
+          '<div style="font-family:' + FB + ';font-size:14px;line-height:21px;color:' + k.apagado + ';">' + f.txt + '</div>' +
+        '</td></tr></table>' +
+        (svc ?
+          '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:14px 0 0 0;"><tr>' +
+          '<td bgcolor="' + k.panel2 + '" style="background:' + k.panel2 + ';border:1px solid ' + k.linea + ';border-radius:10px;padding:14px;">' +
+          '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
+          '<td width="180" valign="top" style="font-size:0;line-height:0;">' + fotoServicio(st, svc, 180) + '</td>' +
+          '<td valign="top" style="padding:0 0 0 14px;">' +
+            '<div style="font-family:' + FH + ';font-size:9px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:' + k.vivo + ';">' + esc(f.tag) + '</div>' +
+            '<div style="font-family:' + FH + ';font-size:15px;font-weight:800;color:' + k.texto + ';padding:5px 0 4px 0;">' + esc(f.svcTit) + '</div>' +
+            '<div style="font-family:' + FB + ';font-size:13px;line-height:18px;color:' + k.apagado + ';">' + esc(f.svcTxt) + '</div>' +
+            '<div style="padding:7px 0 0 0;"><a href="' + esc(linkFor(st, svc)) + '" style="font-family:' + FH + ';font-size:11px;font-weight:800;color:' + k.acento + ';text-decoration:none;">Ver presentaci\u00f3n &rarr;</a></div>' +
+          '</td></tr></table></td></tr></table>' : ''),
+        pad + 'padding-bottom:28px;'));
+    });
+
+    P.push(row(
+      '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
+      '<td bgcolor="' + k.panel2 + '" style="background:' + k.panel2 + ';border-left:3px solid ' + k.acento + ';padding:16px 18px;">' +
+      '<div style="font-family:' + FH + ';font-size:15px;font-weight:800;color:' + k.texto + ';">Sin fricciones t\u00e9cnicas</div>' +
+      '<div style="font-family:' + FB + ';font-size:14px;line-height:20px;color:' + k.apagado + ';padding:6px 0 0 0;">' +
+        'Nosotros nos encargamos de todo lo t\u00e9cnico. T\u00fa apruebas el dise\u00f1o.</div>' +
+      '</td></tr></table>', pad + 'padding-bottom:26px;'));
+
+    if (on(st, 'cta')) {
+      P.push(row(
+        '<div style="font-family:' + FB + ';font-size:15px;line-height:1.6;color:' + k.texto + ';padding:0 0 14px 0;">' +
+          'Cu\u00e9ntame de tu marca y te preparo una propuesta <b>a la medida de tu presupuesto</b>. Sin compromiso.</div>' +
+        botonAsesor(st, 'Cu\u00e9ntame de tu marca', B(st, 'cta').url) +
+        '<div style="font-family:' + FB + ';font-size:12px;color:' + k.apagado + ';padding:12px 0 0 0;">' + esc(a.respuesta) + '</div>',
+        pad + 'padding-bottom:28px;'));
+    }
+
+    const compF = complementos(st, ['totem', 'led', 'rider']);
+    if (compF) P.push(row(compF, pad + 'padding-bottom:26px;'));
+
+    if (on(st, 'firma')) {
+      P.push(row(firma(st, o),
+        'padding:24px 32px 26px 32px;background:' + k.panel + ';border-top:1px solid ' + k.linea + ';'));
+    }
+    if (on(st, 'pie')) {
+      P.push(row('<div style="font-family:' + FB + ';font-size:11px;line-height:16px;color:' + k.apagado + ';">' +
+        nl2br(B(st, 'pie').texto) + '</div>', 'padding:14px 32px 0 32px;'));
+    }
+    return doc(st, k.fondo, P.join(''));
+  }
+
+  // -- Formato G - "Phygital" (asesor) ------------------------------------------
+  // Su idea: no explicar el concepto, contarlo como escena. Dos momentos con hora, la
+  // calle y el movil, y el puente entre los dos.
+  function plantillaG(st) {
+    const o = esOscuro(st), k = paleta(o), P = [];
+    const pad = 'padding-left:32px;padding-right:32px;background:' + k.panel + ';';
+
+    P.push(row(cabeceraAsesor(st, P, 'PHYGITAL \u00b7 Serie 2026'),
+      'padding:26px 32px 22px 32px;background:' + k.panel + ';'));
+
+    P.push(row(
+      epigrafe(st, 'Physical + Digital') +
+      '<div style="font-family:' + FH + ';font-size:40px;line-height:1.02;font-weight:800;letter-spacing:-.035em;color:' + k.texto + ';">' +
+        'La pantalla capta.<br><span style="color:' + k.vivo + ';">El m\u00f3vil cierra.</span></div>',
+      pad + 'padding-bottom:24px;'));
+
+    if (on(st, 'saludo')) {
+      P.push(row(
+        '<div style="font-family:' + FB + ';font-size:15px;line-height:1.65;color:' + k.texto + ';">' +
+          'Hola ' + esc(st.destinatario || '[Nombre]') + ',</div>' +
+        '<div style="font-family:' + FB + ';font-size:15px;line-height:1.65;color:' + k.apagado + ';padding:10px 0 0 0;">' +
+          'La gente ya no mira los anuncios. Los graba, los sube y los convierte en contenido, o los ignora. ' +
+          'Sabemos que necesitan algo que rompa el molde. Antes de mostrarte precios o formatos, mira c\u00f3mo se ve ' +
+          'una campa\u00f1a Phygital en <b style="color:' + k.texto + ';">tres minutos reales</b>. Despu\u00e9s conversamos.</div>',
+        pad + 'padding-bottom:26px;'));
+    }
+
+    // Escena 01: la calle.
+    const led = st.servicios.filter(function (x) { return x.id === 'led' && x.on; })[0];
+    P.push(row(
+      '<div style="font-family:' + FH + ';font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:' + k.vivo + ';padding:0 0 10px 0;">' +
+        '\u25cf 09:00 AM \u00b7 Chacao</div>' +
+      (led ? fotoServicio(st, led, 536) : '') +
+      '<div style="font-family:' + FH + ';font-size:10px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:' + k.apagado + ';padding:12px 0 4px 0;">Escena 01</div>' +
+      '<div style="font-family:' + FB + ';font-size:15px;line-height:1.6;color:' + k.texto + ';">' +
+        'Una persona mira arriba. Ve un QR gigante en la pantalla LED. Curiosidad. Levanta el tel\u00e9fono.</div>' +
+      '<div style="font-family:' + FH + ';font-size:11px;font-weight:800;letter-spacing:.2em;color:' + k.vivo + ';padding:14px 0 0 0;">3 SEGUNDOS &darr;</div>',
+      pad + 'padding-bottom:26px;'));
+
+    // Escena 02: el movil. Maqueta de la publicacion, construida con tablas.
+    P.push(row(
+      '<div style="font-family:' + FH + ';font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:' + k.acento + ';padding:0 0 10px 0;">' +
+        '\u25cf 09:03 AM \u00b7 Instagram</div>' +
+      '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
+      '<td bgcolor="' + k.panel2 + '" style="background:' + k.panel2 + ';border:1px solid ' + k.linea + ';border-radius:12px;padding:14px 16px;">' +
+        '<div style="font-family:' + FH + ';font-size:13px;font-weight:800;color:' + k.texto + ';">@tu_marca_aqui</div>' +
+        '<div style="font-family:' + FB + ';font-size:11px;color:' + k.apagado + ';padding:2px 0 10px 0;">Caracas \u00b7 Venezuela</div>' +
+        '<div style="font-family:' + FH + ';font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:' + k.vivo + ';">Filtro AR activo</div>' +
+        '<div style="font-family:' + FB + ';font-size:15px;line-height:1.5;color:' + k.texto + ';padding:8px 0 10px 0;">' +
+          'Encontr\u00e9 la valla \u26a1 <span style="color:' + k.acento + ';">#TuMarcaChacao</span></div>' +
+        '<div style="font-family:' + FH + ';font-size:12px;font-weight:800;color:' + k.texto + ';">2.847 me gusta</div>' +
+        '<div style="font-family:' + FB + ';font-size:13px;line-height:19px;color:' + k.apagado + ';padding:8px 0 0 0;">' +
+          'Vieron mi campa\u00f1a. Se pararon. La grabaron. La subieron.</div>' +
+      '</td></tr></table>', pad + 'padding-bottom:26px;'));
+
+    P.push(row(
+      '<div style="font-family:' + FH + ';font-size:26px;line-height:1.15;font-weight:800;letter-spacing:-.025em;color:' + k.texto + ';">' +
+        'La calle tambi\u00e9n es feed.</div>' +
+      '<div style="font-family:' + FB + ';font-size:15px;line-height:1.6;color:' + k.apagado + ';padding:10px 0 0 0;">' +
+        'Eso es Phygital. Una pantalla que no termina cuando el sem\u00e1foro cambia.</div>',
+      pad + 'padding-bottom:26px;'));
+
+    // Como se arma: tres piezas.
+    P.push(row(epigrafe(st, 'C\u00f3mo se arma', k.acento) +
+      '<div style="font-family:' + FB + ';font-size:14px;color:' + k.apagado + ';padding:0 0 4px 0;">' +
+      'Tres piezas. Una campa\u00f1a que se comparte.</div>', pad + 'padding-bottom:12px;'));
+
+    const PIEZAS = [
+      { n: '01', t: 'Pantalla LED \u00b7 el gancho f\u00edsico',
+        d: 'QR gigante en Chacao o Las Mercedes. Lleva a un filtro AR, un cup\u00f3n o tu e-commerce directo.' },
+      { n: '02', t: 'Rider Clon \u00b7 la campa\u00f1a que se mueve',
+        d: '250 motos con caja LED se convierten en caza-recompensas: los usuarios las fotograf\u00edan y suben, etiquet\u00e1ndote.' },
+      { n: '03', t: 'Capa digital \u00b7 el cierre en el m\u00f3vil',
+        d: 'Retargeting a quien escane\u00f3, filtros AR de tu marca, hashtag propio. El impacto f\u00edsico deja huella medible en redes.' },
+    ];
+    let piezas = '';
+    PIEZAS.forEach(function (z) {
+      piezas += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 12px 0;"><tr>' +
+        '<td width="40" valign="top" style="font-family:' + FH + ';font-size:13px;font-weight:800;color:' + k.vivo + ';padding-top:2px;">' + z.n + '</td>' +
+        '<td valign="top" style="border-left:1px solid ' + k.linea + ';padding:0 0 0 14px;">' +
+          '<div style="font-family:' + FH + ';font-size:15px;font-weight:800;color:' + k.texto + ';">' + esc(z.t) + '</div>' +
+          '<div style="font-family:' + FB + ';font-size:13px;line-height:19px;color:' + k.apagado + ';padding:4px 0 0 0;">' + esc(z.d) + '</div>' +
+        '</td></tr></table>';
+    });
+    P.push(row(piezas, pad + 'padding-bottom:22px;'));
+
+    P.push(row(
+      '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
+      '<td bgcolor="' + k.panel2 + '" style="background:' + k.panel2 + ';border-left:3px solid ' + k.vivo + ';padding:16px 18px;">' +
+      '<div style="font-family:' + FH + ';font-size:15px;font-weight:800;color:' + k.texto + ';">Lo que resolvemos</div>' +
+      '<div style="font-family:' + FB + ';font-size:14px;line-height:20px;color:' + k.apagado + ';padding:6px 0 0 0;">' +
+        'Ya no eliges entre branding masivo o conversi\u00f3n digital. La calle capta. El m\u00f3vil cierra.</div>' +
+      '</td></tr></table>', pad + 'padding-bottom:26px;'));
+
+    if (on(st, 'cta')) {
+      P.push(row(botonAsesor(st, 'Dise\u00f1emos una campa\u00f1a que se comparta', B(st, 'cta').url) +
+        '<div style="font-family:' + FB + ';font-size:12px;color:' + k.apagado + ';padding:12px 0 0 0;">' +
+        'Llamada creativa de 15 minutos, sin brief formal.</div>',
+        pad + 'padding-bottom:28px;'));
+    }
+
+    const compG = complementos(st, ['led']);
+    if (compG) P.push(row(compG, pad + 'padding-bottom:26px;'));
+
+    if (on(st, 'firma')) {
+      P.push(row(firma(st, o),
+        'padding:24px 32px 26px 32px;background:' + k.panel + ';border-top:1px solid ' + k.linea + ';'));
+    }
+    if (on(st, 'pie')) {
+      P.push(row('<div style="font-family:' + FB + ';font-size:11px;line-height:16px;color:' + k.apagado + ';">' +
+        nl2br(B(st, 'pie').texto) + '</div>', 'padding:14px 32px 0 32px;'));
+    }
+    return doc(st, k.fondo, P.join(''));
+  }
+
   const TEMPLATES = {
     A: { nombre: 'Cartelera', desc: 'Oscura, misma identidad que los decks. Para primer envío.', fn: plantillaA },
     B: { nombre: 'Catálogo', desc: 'Clara, tarjetas en dos columnas. Para lectura rápida.', fn: plantillaB },
     C: { nombre: 'Nota', desc: 'Compacta, parece un correo personal. Para responder en hilo.', fn: plantillaC },
     D: { nombre: 'Cartelera móvil', desc: 'Una columna, foto arriba, tipografía grande y un solo botón principal. Pensada para Gmail en el teléfono.', fn: plantillaD },
+    E: { nombre: 'Inventario', desc: 'Asesor de diseño · para agencias. Tabla de inventario con métricas comparables, sin brief educativo. Claro u oscuro.', fn: plantillaE },
+    F: { nombre: 'Guía', desc: 'Asesor de diseño · para cliente nuevo. Tres fases en orden: que te conozcan, que te recuerden, que te compren. Claro u oscuro.', fn: plantillaF },
+    G: { nombre: 'Phygital', desc: 'Asesor de diseño · la escena de las 9:00 AM. La calle capta, el móvil cierra. Claro u oscuro.', fn: plantillaG },
   };
   function pick(st) {
     if (st.plantilla && TEMPLATES[st.plantilla]) return st.plantilla;

@@ -186,6 +186,12 @@
     { k: 'intro', label: 'Introducción', f: [['texto', 'Párrafo', 'textarea']] },
     { k: 'titulo', label: 'Título de sección', f: [['texto', 'Título'], ['sub', 'Subtítulo']] },
     { k: 'servicios', label: 'Servicios (catálogo)', servicios: true },
+    { k: 'asesor', label: 'Datos del formato del asesor (E, F, G)',
+      hint: 'Estos datos CADUCAN. Revisalos antes de cada envio: una disponibilidad vieja o una fecha pasada se notan.',
+      f: [['periodo', 'Periodo que se anuncia'], ['etiquetaMeta', 'Etiqueta de la cabecera'],
+          ['dispoFecha', 'Disponibilidad actualizada al'], ['dispoTexto', 'Que hay disponible'],
+          ['cierreTexto', 'Fecha de cierre'], ['slotsLed', 'Distintivo del LED (ej. 3 SLOTS)'],
+          ['pieCta', 'Linea bajo el boton'], ['respuesta', 'Compromiso de respuesta']] },
     { k: 'clientes', label: 'Marcas que ya son clientes (solo perfil Cliente nuevo)',
       hint: 'APAGADO hasta que Elizabeth confirme que podemos nombrar a esas marcas.',
       f: [['titulo', 'Título'], ['lista', 'Marcas (separadas por ·)']] },
@@ -262,6 +268,17 @@
       btns.push([b, k]); g.appendChild(b);
     });
     g.appendChild(el('p', 'hint', 'El perfil reescribe asunto, título, introducción, cierre y botón sobre la marcha: los campos de abajo siguen intactos y son los que se usan en el perfil General.'));
+    // Claro u oscuro. Solo afecta a los formatos del asesor (E, F, G): los mios llevan
+    // su tema fijo por diseno.
+    const tema = el('div', 'row');
+    const ts = el('label', 'sw'); const tc = document.createElement('input'); tc.type = 'checkbox';
+    tc.checked = st.tema === 'oscuro'; tc.setAttribute('aria-label', 'Tema oscuro');
+    tc.addEventListener('change', () => { st.tema = tc.checked ? 'oscuro' : 'claro'; touch(); });
+    ts.appendChild(tc); ts.appendChild(el('i', 'sw-k'));
+    const tt = el('div', 'row-t'); tt.appendChild(document.createTextNode('Tema oscuro'));
+    tt.appendChild(el('i', null, 'Solo cambia los formatos del asesor: E, F y G.'));
+    tema.appendChild(ts); tema.appendChild(tt); g.appendChild(tema);
+
     const r = el('div', 'row');
     const sw = el('label', 'sw'); const c = document.createElement('input'); c.type = 'checkbox';
     c.checked = st.precios === 'desde'; c.setAttribute('aria-label', 'Mostrar precios desde');
