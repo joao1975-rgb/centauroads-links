@@ -63,6 +63,36 @@
 
   // ── Ficha tecnica de cada espacio (datos reales de los decks de Canva) ──
   // Se usan en la tabla de disponibilidad del perfil de agencias y en los precios "desde".
+  // El cargo que va DEBAJO del nombre en la firma. Dos opciones, a peticion.
+  const ROLES = {
+    alianzas:  'Alianzas Comerciales',
+    directora: 'Directora',
+  };
+
+  // Que correo se ensena en la firma. Por defecto el de mercadeo, que es la cuenta de la
+  // casa: si alguien cambia de puesto el correo sigue funcionando. El personal y los dos
+  // juntos quedan como opcion.
+  const CORREOS = {
+    mercadeo: 'Solo el de mercadeo',
+    personal: 'Solo el personal',
+    ambos:    'Los dos',
+  };
+
+  // El texto del cargo, compuesto. La empresa se anade aqui y no se escribe a mano.
+  function cargoDe(f) {
+    return (ROLES[f.rol] || ROLES.alianzas) + ' \u00b7 Centauro ADS';
+  }
+
+  // Los correos que toca ensenar, en orden. Nunca devuelve vacio: una firma sin correo
+  // no sirve de nada.
+  function correosDe(f) {
+    const casa = f.contacto || 'mercadeo@centauroads.com';
+    const propio = f.email || '';
+    if (f.correo === 'personal' && propio) return [propio];
+    if (f.correo === 'ambos') return propio ? [casa, propio] : [casa];
+    return [casa];
+  }
+
   const FICHA = {
     led:     { ubic: 'Chacao · Av. F. de Miranda',   medida: '4 × 8 m',        trafico: '120.000 impactos/día', desde: '1.500' },
     vallas:  { ubic: 'Caracas y nivel nacional',      medida: 'Gran formato',   trafico: 'Alta rotación vial',   desde: '' },
@@ -211,24 +241,24 @@
 
   const ASUNTOS = {
     general: [
-      { clave: 'directo',    etiqueta: 'Directo',    texto: 'Centauro ADS \u00b7 Espacios publicitarios disponibles' },
-      { clave: 'beneficio',  etiqueta: 'Beneficio',  texto: 'Tu marca en las calles de Caracas: esto es lo que hay libre' },
-      { clave: 'curiosidad', etiqueta: 'Curiosidad', texto: '120.000 personas al d\u00eda pasan por esta pantalla' },
+      { clave: 'directo',    etiqueta: 'Directo',    texto: '📍 Centauro ADS \u00b7 Espacios publicitarios disponibles' },
+      { clave: 'beneficio',  etiqueta: 'Beneficio',  texto: '🚦 Tu marca en las calles de Caracas: esto es lo que hay libre' },
+      { clave: 'curiosidad', etiqueta: 'Curiosidad', texto: '👀 120.000 personas al d\u00eda pasan por esta pantalla' },
     ],
     agencia: [
-      { clave: 'directo',    etiqueta: 'Directo',    texto: 'Inventario OOH/DOOH Caracas \u00b7 disponibilidad actualizada' },
-      { clave: 'beneficio',  etiqueta: 'Beneficio',  texto: 'Cinco frentes con m\u00e9tricas comparables para tu pr\u00f3ximo mix' },
-      { clave: 'curiosidad', etiqueta: 'Curiosidad', texto: 'Tu pr\u00f3ximo Share of Voice, en una sola tabla' },
+      { clave: 'directo',    etiqueta: 'Directo',    texto: '📊 Inventario OOH/DOOH Caracas \u00b7 disponibilidad actualizada' },
+      { clave: 'beneficio',  etiqueta: 'Beneficio',  texto: '🎯 Cinco frentes con m\u00e9tricas comparables para tu pr\u00f3ximo mix' },
+      { clave: 'curiosidad', etiqueta: 'Curiosidad', texto: '📈 Tu pr\u00f3ximo Share of Voice, en una sola tabla' },
     ],
     nuevo: [
-      { clave: 'directo',    etiqueta: 'Directo',    texto: 'C\u00f3mo empezar a anunciar en la calle, paso a paso' },
-      { clave: 'beneficio',  etiqueta: 'Beneficio',  texto: 'Publicidad exterior sin ser experto ni gastar de m\u00e1s' },
-      { clave: 'curiosidad', etiqueta: 'Curiosidad', texto: '\u00bfPor d\u00f3nde se empieza a anunciar en la calle?' },
+      { clave: 'directo',    etiqueta: 'Directo',    texto: '🪧 C\u00f3mo empezar a anunciar en la calle, paso a paso' },
+      { clave: 'beneficio',  etiqueta: 'Beneficio',  texto: '✨ Publicidad exterior sin ser experto ni gastar de m\u00e1s' },
+      { clave: 'curiosidad', etiqueta: 'Curiosidad', texto: '🤔 \u00bfPor d\u00f3nde se empieza a anunciar en la calle?' },
     ],
     phygital: [
-      { clave: 'directo',    etiqueta: 'Directo',    texto: 'Phygital \u00b7 c\u00f3mo conectar la calle con el m\u00f3vil' },
-      { clave: 'beneficio',  etiqueta: 'Beneficio',  texto: 'La calle capta la atenci\u00f3n. El m\u00f3vil cierra la venta.' },
-      { clave: 'curiosidad', etiqueta: 'Curiosidad', texto: '9:00 AM en Chacao. 9:03 AM en Instagram.' },
+      { clave: 'directo',    etiqueta: 'Directo',    texto: '📲 Phygital \u00b7 c\u00f3mo conectar la calle con el m\u00f3vil' },
+      { clave: 'beneficio',  etiqueta: 'Beneficio',  texto: '🔗 La calle capta la atenci\u00f3n. El m\u00f3vil cierra la venta.' },
+      { clave: 'curiosidad', etiqueta: 'Curiosidad', texto: '⏱️ 9:00 AM en Chacao. 9:03 AM en Instagram.' },
     ],
   };
 
@@ -353,7 +383,11 @@
           items: ['RIF digital de la empresa', 'Fecha de inicio y duración de la campaña', 'Formato o alcance (pantalla, tótem u otro)'] },
         cta: { on: true, texto: 'Enviar información para cotizar', url: 'mailto:equintero@centauroads.com?subject=Solicitud%20de%20cotizaci%C3%B3n' },
         cierre: { on: true, texto: 'Quedo atenta a tu respuesta.' },
-        firma: { on: true, nombre: 'Elizabeth Quintero', cargo: 'Alianzas Comerciales · Centauro ADS',
+        firma: { on: true, nombre: 'Elizabeth Quintero',
+          // Cargo elegible: 'alianzas' o 'directora'. El texto lo compone cargoDe().
+          rol: 'alianzas',
+          // Que correo se ensena: 'mercadeo' (por defecto), 'personal' o 'ambos'.
+          correo: 'mercadeo',
           slogan: 'Visibilidad que conecta', linea: 'PHYGITAL DOOH + Digital',
           email: 'equintero@centauroads.com', telefono: '+58 412 100 3559', ig: '@centauroads',
           web: 'linktr.ee/centauroadss', contacto: 'mercadeo@centauroads.com', direccion: 'Caracas, Venezuela' },
@@ -432,9 +466,16 @@
       '<td valign="top" style="padding:0 0 12px 0;">' + marca(st, dark, 168) + '</td></tr><tr>' +
       '<td valign="top" style="font-family:' + FB + ';font-size:13px;line-height:19px;color:' + m + ';">' +
       '<div style="font-family:' + FH + ';font-size:15px;font-weight:800;color:' + t + ';">' + esc(f.nombre) + '</div>' +
-      '<div>' + esc(f.cargo) + '</div>' +
-      '<div><a href="mailto:' + esc(f.email) + '" style="color:' + a + ';text-decoration:none;">' + esc(f.email) + '</a> &nbsp;·&nbsp; <a href="tel:' + esc(String(f.telefono).replace(/[^+0-9]/g, '')) + '" style="color:' + m + ';text-decoration:none;">' + esc(f.telefono) + '</a></div>' +
-      (f.contacto ? '<div><a href="mailto:' + esc(f.contacto) + '" style="color:' + a + ';text-decoration:none;">' + esc(f.contacto) + '</a></div>' : '') +
+      '<div>' + esc(cargoDe(f)) + '</div>' +
+      // El primer correo comparte linea con el telefono; los demas van debajo.
+      correosDe(f).map(function (dir, i) {
+        const enlace = '<a href="mailto:' + esc(dir) + '" style="color:' + a +
+          ';text-decoration:none;">' + esc(dir) + '</a>';
+        if (i > 0) return '<div>' + enlace + '</div>';
+        return '<div>' + enlace + ' &nbsp;·&nbsp; <a href="tel:' +
+          esc(String(f.telefono).replace(/[^+0-9]/g, '')) + '" style="color:' + m +
+          ';text-decoration:none;">' + esc(f.telefono) + '</a></div>';
+      }).join('') +
       '<div>' + esc(f.ig) + ' &nbsp;·&nbsp; <a href="' + webHref(f.web) + '" style="color:' + a + ';text-decoration:none;">' + esc(f.web) + '</a> &nbsp;·&nbsp; ' + esc(f.direccion) + '</div>' +
       '</td></tr></table>';
   }
@@ -692,6 +733,13 @@
     if (st.efecto === undefined) st.efecto = base.efecto;
     if (!st.efectosPorServicio) st.efectosPorServicio = {};
     if (!st.banco) st.banco = {};
+    // La firma paso de un 'cargo' escrito a mano a un rol elegible, y gano la
+    // eleccion de correo. Se rellenan aqui para no tocar CONTENT_VERSION: subirlo
+    // cambia la clave de localStorage y borraria todo lo escrito a mano.
+    if (st.bloques && st.bloques.firma) {
+      if (st.bloques.firma.rol === undefined) st.bloques.firma.rol = base.bloques.firma.rol;
+      if (st.bloques.firma.correo === undefined) st.bloques.firma.correo = base.bloques.firma.correo;
+    }
     if (!st.bloques) st.bloques = base.bloques;
     Object.keys(base.bloques).forEach(function (k) {
       if (!st.bloques[k]) { st.bloques[k] = base.bloques[k]; return; }
@@ -974,7 +1022,7 @@
     if (on(st, 'pasos')) { const b = B(st, 'pasos'); L.push(b.titulo, b.texto, ''); }
     if (on(st, 'presupuesto')) { const b = B(st, 'presupuesto'); L.push(b.titulo + ':'); lines(b.items).forEach((t, i) => L.push((i + 1) + ') ' + t)); L.push(''); }
     if (on(st, 'cierre')) L.push(B(st, 'cierre').texto, '');
-    if (on(st, 'firma')) { const f = B(st, 'firma'); L.push(f.nombre, f.cargo, f.email + ' · ' + f.telefono); if (f.contacto) L.push(f.contacto); L.push(f.ig + ' · ' + webHref(f.web) + ' · ' + f.direccion); }
+    if (on(st, 'firma')) { const f = B(st, 'firma'); const dirs = correosDe(f); L.push(f.nombre, cargoDe(f), dirs[0] + ' · ' + f.telefono); dirs.slice(1).forEach(function (d) { L.push(d); }); L.push(f.ig + ' · ' + webHref(f.web) + ' · ' + f.direccion); }
     return L.join('\n');
   }
 
@@ -1344,5 +1392,5 @@
   }
   const render = (st, key) => TEMPLATES[key || pick(st)].fn(aplicaAsunto(aplicaPerfil(normaliza(st))));
 
-  return { C, SERVICIOS, GRUPOS, TEMPLATES, IMG_SETS, PERFILES, ASUNTOS, asuntosDe, EFECTOS, efectoDe, pesoDe, rangoPeso, BANCO, bancoDe, fotosDe, comandoCarrusel, FICHA, CONTENT_VERSION, defaultState, render, renderText, pick, aplicaPerfil, aplicaAsunto, normaliza };
+  return { C, SERVICIOS, GRUPOS, TEMPLATES, IMG_SETS, PERFILES, ASUNTOS, asuntosDe, EFECTOS, efectoDe, pesoDe, rangoPeso, ROLES, CORREOS, cargoDe, correosDe, BANCO, bancoDe, fotosDe, comandoCarrusel, FICHA, CONTENT_VERSION, defaultState, render, renderText, pick, aplicaPerfil, aplicaAsunto, normaliza };
 });

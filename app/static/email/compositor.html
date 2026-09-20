@@ -65,6 +65,16 @@
   .pf span { display:block; font-size:12px; line-height:1.45; color:var(--dim); margin-top:2px; }
   .pf[aria-pressed="true"] { border-color:var(--purple-l); background:linear-gradient(90deg,rgba(133,67,154,.22),transparent 70%); }
   .pf[aria-pressed="true"] b::before { content:'▸ '; color:var(--orange); }
+  /* asuntos: el texto es lo que se va a pegar, asi que manda sobre la etiqueta */
+  .asunto { position:relative; }
+  .asunto .pf { padding-right:72px; }
+  .pf .asunto-t { font-size:15px; font-weight:700; font-style:italic; color:var(--text);
+                  line-height:1.35; margin-top:4px; }
+  .asunto-c { position:absolute; top:9px; right:9px; font:600 11px/1 var(--mono);
+              color:var(--orange); background:var(--bg); border:1px solid var(--control);
+              border-radius:6px; padding:6px 9px; }
+  .asunto-c:hover { background:var(--hover); color:var(--text); }
+
   .row { display:flex; align-items:center; gap:10px; padding:10px 2px 2px; }
   .row-t { flex:1; font-size:13px; }
   .row-t i { display:block; font-style:normal; font-size:12px; color:var(--dim); }
@@ -225,12 +235,26 @@
     { k: 'cta', label: 'Botón de acción', f: [['texto', 'Texto del botón'], ['url', 'Enlace']] },
     { k: 'cierre', label: 'Cierre', f: [['texto', 'Texto']] },
     { k: 'firma', label: 'Firma', hint: 'Teléfono y dirección son valores de ejemplo: confirmar con Elizabeth.',
-      f: [['nombre', 'Nombre'], ['cargo', 'Cargo'], ['slogan', 'Slogan (bajo el logo)'], ['linea', 'Línea de servicios (bajo el slogan)'], ['email', 'Correo'], ['telefono', 'Teléfono'], ['ig', 'Instagram'], ['web', 'Web'], ['contacto', 'Correo general (pie)'], ['direccion', 'Dirección']] },
+      f: [['nombre', 'Nombre'],
+          ['rol', 'Cargo (debajo del nombre)', 'opciones', M.ROLES],
+          ['correo', 'Qué correo se enseña', 'opciones', M.CORREOS],
+          ['slogan', 'Slogan (bajo el logo)'], ['linea', 'Línea de servicios (bajo el slogan)'],
+          ['contacto', 'Correo de mercadeo'], ['email', 'Correo personal'],
+          ['telefono', 'Teléfono'], ['ig', 'Instagram'], ['web', 'Web'], ['direccion', 'Dirección']] },
     { k: 'pie', label: 'Pie legal', f: [['texto', 'Texto', 'textarea']] },
   ];
 
   function inputEl(path, label, type, onInput) {
     const wrap = el('label', 'fld'); wrap.appendChild(el('span', 'fld-l', label));
+    // 'opciones': selector de catalogo, con el mapa clave->etiqueta en el 4o argumento.
+    // El 'select' de abajo esta clavado a M.IMG_SETS y no vale para nada mas.
+    if (type === 'opciones') {
+      const sel = document.createElement('select');
+      Object.entries(onInput).forEach(([k, l]) => { const o = el('option', null, l); o.value = k; sel.appendChild(o); });
+      sel.value = get(st, path) || Object.keys(onInput)[0];
+      sel.addEventListener('change', () => { set(st, path, sel.value); touch(); });
+      wrap.appendChild(sel); return wrap;
+    }
     if (type === 'select') {
       const sel = document.createElement('select');
       Object.entries(M.IMG_SETS).forEach(([k, l]) => { const o = el('option', null, l); o.value = k; sel.appendChild(o); });
@@ -241,7 +265,7 @@
     const ta = type === 'textarea' || type === 'lines';
     const inp = document.createElement(ta ? 'textarea' : 'input'); if (!ta) inp.type = 'text'; else inp.rows = 3;
     const v = get(st, path); inp.value = type === 'lines' ? (Array.isArray(v) ? v.join('\n') : (v || '')) : (v == null ? '' : v);
-    inp.addEventListener('input', () => { set(st, path, type === 'lines' ? inp.value.split('\n') : inp.value); if (onInput) onInput(inp.value); touch(); });
+    inp.addEventListener('input', () => { set(st, path, type === 'lines' ? inp.value.split('\n') : inp.value); if (typeof onInput === 'function') onInput(inp.value); touch(); });
     wrap.appendChild(inp); return wrap;
   }
   function switchEl(path, onChange) {
@@ -270,7 +294,7 @@
     const body = el('div', 'blk-b');
     if (def.hint) body.appendChild(el('p', 'hint', def.hint));
     if (def.servicios) st.servicios.forEach((s, i) => body.appendChild(servicioEl(s, i)));
-    else def.f.forEach(([k, l, ty]) => body.appendChild(inputEl('bloques.' + def.k + '.' + k, l, ty)));
+    else def.f.forEach(([k, l, ty, op]) => body.appendChild(inputEl('bloques.' + def.k + '.' + k, l, ty, op)));
     b.appendChild(body); return b;
   }
   // Perfil del destinatario: reescribe asunto, textos y orden de servicios, y añade su bloque propio.
@@ -319,11 +343,25 @@
     const botones = [];
     const pinta = () => botones.forEach(([b, k]) => b.setAttribute('aria-pressed', String(k === st.asunto3)));
     lista.forEach(a => {
+      // El boton de copiar va FUERA del de seleccionar, encima: un <button> dentro de
+      // otro es HTML invalido y los lectores de pantalla se pierden.
+      const fila = el('div', 'asunto');
       const b = el('button', 'pf'); b.type = 'button';
       b.appendChild(el('b', null, a.etiqueta));
-      b.appendChild(el('span', null, a.texto));
+      b.appendChild(el('span', 'asunto-t', a.texto));
       b.addEventListener('click', () => { st.asunto3 = a.clave; pinta(); touch(); });
-      botones.push([b, a.clave]); g.appendChild(b);
+      botones.push([b, a.clave]);
+      fila.appendChild(b);
+
+      const cp = el('button', 'asunto-c', 'Copiar'); cp.type = 'button';
+      cp.setAttribute('aria-label', 'Copiar el asunto: ' + a.texto);
+      cp.addEventListener('click', async ev => {
+        ev.stopPropagation();          // copiar no debe cambiar el asunto elegido
+        try { await navigator.clipboard.writeText(a.texto); toast('Asunto copiado'); }
+        catch (e) { toast('No se pudo copiar el asunto'); }
+      });
+      fila.appendChild(cp);
+      g.appendChild(fila);
     });
     const propio = el('button', 'pf'); propio.type = 'button';
     propio.appendChild(el('b', null, 'El mío'));
@@ -332,6 +370,7 @@
     botones.push([propio, 'propio']); g.appendChild(propio);
     pinta();
     g.appendChild(el('p', 'hint', 'Los tres cambian con el perfil: no es lo mismo escribirle a una agencia que a quien nunca ha comprado exterior.'));
+    g.appendChild(el('p', 'aviso', 'La l\u00ednea de asunto de un correo es texto plano: Gmail y Outlook NO muestran negrita, cursiva ni tama\u00f1o ah\u00ed. Los emojis s\u00ed llegan. Aqu\u00ed se ven destacados para poder compararlos.'));
     return g;
   }
 
