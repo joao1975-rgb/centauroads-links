@@ -60,6 +60,31 @@ if (kbOut > 15 * 1024) {
   process.exit(1);
 }
 
+// 2b. Copia publicable en el dominio propio.
+//
+// El compositor tiene que poder repartirse a otros equipos, y el enlace del artefacto de
+// Claude va atado a una cuenta de Claude. links.centauroads.com ya es de la casa y ya
+// sirve las imagenes: se publica ahi.
+//
+// Se publica la version LIGERA -compositor.html + render.js, 130 KB- y no la autonoma de
+// 8,6 MB: la autonoma cambia entera en cada build y cada reconstruccion le anadiria 8,6 MB
+// a la historia de git para siempre. Las imagenes ya estan en esa misma carpeta.
+{
+  const destino = path.join(here, '..', '..', 'app', 'static', 'email');
+  const crudo = fs.readFileSync(path.join(here, 'compositor.html'), 'utf8');
+  // Servido desde /static/email/, 'img/x.jpg' resolveria a /static/email/img/x.jpg, que no
+  // existe. Con '.' resuelve a /static/email/x.jpg, que es donde estan de verdad.
+  const publicado = crudo.replace(
+    '<script src="render.js"></script>',
+    '<script>window.ASSET_BASE=".";</script>\n<script src="render.js"></script>');
+  if (publicado === crudo) { console.error('FALLO publicable: no encontre la etiqueta de render.js'); process.exit(1); }
+  fs.writeFileSync(path.join(destino, 'compositor.html'), publicado, 'utf8');
+  fs.copyFileSync(path.join(here, 'render.js'), path.join(destino, 'render.js'));
+  const kb = (fs.statSync(path.join(destino, 'compositor.html')).size +
+              fs.statSync(path.join(destino, 'render.js')).size) / 1024;
+  console.log('OK app/static/email/compositor.html + render.js', Math.round(kb), 'KB (publicable)');
+}
+
 // 3. Guardia de contenido: la construcción falla si reaparece un dato de contacto retirado, o si falta uno vigente.
 const PROHIBIDO = ['412 000 0000', '412 1003559', 'www.centauroads.com', 'contacto@centauroads'];
 const OBLIGATORIO = ['+58 412 100 3559', 'linktr.ee/centauroadss', 'mercadeo@centauroads.com'];
