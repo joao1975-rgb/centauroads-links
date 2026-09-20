@@ -12,31 +12,19 @@ La aplicación se importa con DATABASE_URL apuntando a una base de datos tempora
 `app.main` crea tablas y migra en tiempo de importación.
 """
 
-import importlib
-import os
-import sys
-
 import pytest
 from fastapi.testclient import TestClient
 
+# conftest.py ya apuntó DATABASE_URL y las claves a un directorio temporal antes de que esto se
+# importe, así que basta con importar la aplicación tal cual.
+from app import main as app_main
+
 
 @pytest.fixture(scope="module")
-def entorno(tmp_path_factory):
-    """La aplicación entera, sobre una base de datos desechable."""
-    bd = tmp_path_factory.mktemp("datos") / "prueba.db"
-    os.environ["DATABASE_URL"] = f"sqlite:///{bd.as_posix()}"
-    os.environ["ADMIN_KEY_FILE"] = str(tmp_path_factory.mktemp("clave") / "admin.key")
-    os.environ["ADMIN_KEY"] = "clave-de-prueba"
-    os.environ["SUPERADMIN_USER"] = "super@ejemplo.test"
-    os.environ["SUPERADMIN_PASS"] = "contrasena-de-prueba"
-
-    # Recargar por si otro test ya importó la aplicación con otra configuración.
-    for modulo in ("app.main", "app.migracion", "app.models", "app.database"):
-        sys.modules.pop(modulo, None)
-
-    main = importlib.import_module("app.main")
-    cliente = TestClient(main.app)
-    cabecera = {"X-Admin-Key": main.get_admin_password()}
+def entorno():
+    """La aplicación entera, sobre la base de datos desechable que preparó conftest."""
+    cliente = TestClient(app_main.app)
+    cabecera = {"X-Admin-Key": app_main.get_admin_password()}
     return cliente, cabecera
 
 
@@ -184,12 +172,11 @@ def test_borrar_enlace(cliente, admin):
 
 # --- El módulo de mails no se ha colado en el camino del acortador --------------------
 
-def test_las_rutas_del_acortador_siguen_todas_presentes(entorno):
+def test_las_rutas_del_acortador_siguen_todas_presentes():
     """
     Inventario explícito. Si alguien retira una ruta sin darse cuenta, esto lo caza.
     """
-    main = sys.modules["app.main"]
-    rutas = {r.path for r in main.app.routes}
+    rutas = {r.path for r in app_main.app.routes}
     esperadas = {
         "/health", "/admin", "/", "/{slug}",
         "/api/links", "/api/links/{link_id}", "/api/links/{link_id}/stats",

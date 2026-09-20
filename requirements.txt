@@ -4,3 +4,11 @@ sqlalchemy==2.0.36
 pydantic==2.10.4
 jinja2==3.1.5
 python-multipart==0.0.20
+
+# Identidad del panel (sustituye la clave unica compartida)
+itsdangerous==2.2.0
+argon2-cffi==25.1.0
+# El extra [requests] trae el transporte HTTP que google-auth usa para descargar las claves
+# publicas de Google al verificar un identificador. Se usa el transporte que la propia
+# biblioteca prueba, en vez de uno propio sobre httpx: no es sitio para hacerlo a mano.
+google-auth[requests]==2.58.0
