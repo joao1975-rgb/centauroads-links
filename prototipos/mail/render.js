@@ -80,6 +80,65 @@
   //   directo    - dice que hay dentro, sin adornos. El que menos falla.
   //   beneficio  - nombra lo que el lector gana.
   //   curiosidad - abre un hueco que solo se cierra abriendo. El que mas arriesga.
+  // Banco de imagenes por servicio.
+  //
+  // Va escrito porque el motor corre en el navegador y no puede mirar el disco. Es el
+  // inventario real: comprobado contra img/ y contra lo que sirve produccion en
+  // app/static/email/. Si se anade una foto al disco hay que anadirla tambien aqui.
+  //
+  // Los VIDEOS no se incrustan: ningun cliente de correo reproduce video de forma
+  // fiable. Lo que se manda es un fotograma que enlaza al video completo, que es lo
+  // unico que funciona en Gmail y en Outlook a la vez.
+  const BANCO = {
+    vallas:  { fotos: ['svc_vallas.jpg', 'svc_vallas_alt.jpg', 'svc_vallas_alt2.jpg'], videos: [] },
+    led:     { fotos: ['svc_led.jpg', 'svc_led_alt.jpg', 'svc_led_alt2.jpg'],
+               videos: [
+                 { poster: 'svc_led_vid1.jpg', etiqueta: 'Pantalla LED Chacao \u00b7 fotograma 1' },
+                 { poster: 'svc_led_vid2.jpg', etiqueta: 'Pantalla LED Chacao \u00b7 fotograma 2' },
+               ],
+               // Pendiente y sin resolver: estos dos fotogramas son de @nanopopcast, llevan
+               // su marca de agua y el permiso de uso comercial NO esta concedido. Por eso
+               // el video viene apagado de serie y el panel lo avisa.
+               aviso: 'Fotogramas de @nanopopcast: llevan marca de agua y el permiso de uso comercial sigue pendiente.' },
+    totem:   { fotos: ['svc_totem.jpg', 'svc_totem_alt.jpg', 'svc_totem_alt2.jpg'], videos: [] },
+    rider:   { fotos: ['svc_rider.jpg', 'svc_rider_alt.jpg', 'svc_rider_alt2.jpg'], videos: [] },
+    paradas: { fotos: ['svc_paradas.jpg', 'svc_paradas_alt.jpg', 'svc_paradas_alt2.jpg',
+                       'svc_paradas_alt3.jpg'], videos: [] },
+  };
+
+  // Lo que hay disponible para un servicio, con los tres huecos libres ya unidos.
+  function bancoDe(st, s) {
+    const fijo = BANCO[s.id] || { fotos: [s.img], videos: [] };
+    const mio = (st.banco && st.banco[s.id]) || {};
+    const extra = (mio.extra || []).filter(x => x && x.trim());
+    return {
+      fotos: fijo.fotos,
+      videos: fijo.videos || [],
+      aviso: fijo.aviso || '',
+      extra: extra,
+      video: mio.video || { poster: '', enlace: '' },
+    };
+  }
+
+  // Las fotos que entran de verdad en el carrusel: las marcadas mas los huecos usados.
+  // Sin marcar ninguna entran todas, que es como se comportaba antes de existir el banco.
+  function fotosDe(st, s) {
+    const b = bancoDe(st, s);
+    const mio = (st.banco && st.banco[s.id]) || {};
+    const marcadas = (mio.usar && mio.usar.length)
+      ? b.fotos.filter(f => mio.usar.indexOf(f) >= 0)
+      : b.fotos.slice();
+    return marcadas.concat(b.extra);
+  }
+
+  // El comando exacto que regenera el carrusel de un servicio con lo que se ha marcado.
+  // El GIF esta hecho de antemano: marcar fotos aqui no cambia el fichero hasta que se
+  // vuelve a generar, y el panel ensena el comando en vez de fingir que ya esta hecho.
+  function comandoCarrusel(st, s) {
+    return 'python carrusel_gif.py --servicio ' + s.id + ' --efecto ' + efectoDe(st, s) +
+           ' --imagenes ' + fotosDe(st, s).join(' ');
+  }
+
   // Banco de efectos de animacion para el carrusel de cada servicio.
   //
   // El correo no ejecuta JavaScript y las animaciones CSS no llegan a Gmail ni a Outlook:
@@ -211,6 +270,9 @@
       efecto: 'barrido',
       // Excepciones por servicio: { led: 'persiana' }. Vacio = todos usan el global.
       efectosPorServicio: {},
+      // Banco de imagenes por servicio: que fotos entran, tres huecos libres y el video.
+      // Vacio = cada servicio usa todas sus fotos, que es el comportamiento de siempre.
+      banco: {},
 
 
       // Precios: 'no' = ninguno (el precio va en la cotización formal) · 'desde' = precio de entrada.
@@ -596,6 +658,7 @@
     if (st.asunto3 === undefined) st.asunto3 = base.asunto3;
     if (st.efecto === undefined) st.efecto = base.efecto;
     if (!st.efectosPorServicio) st.efectosPorServicio = {};
+    if (!st.banco) st.banco = {};
     if (!st.bloques) st.bloques = base.bloques;
     Object.keys(base.bloques).forEach(function (k) {
       if (!st.bloques[k]) { st.bloques[k] = base.bloques[k]; return; }
@@ -1248,5 +1311,5 @@
   }
   const render = (st, key) => TEMPLATES[key || pick(st)].fn(aplicaAsunto(aplicaPerfil(normaliza(st))));
 
-  return { C, SERVICIOS, GRUPOS, TEMPLATES, IMG_SETS, PERFILES, ASUNTOS, asuntosDe, EFECTOS, efectoDe, FICHA, CONTENT_VERSION, defaultState, render, renderText, pick, aplicaPerfil, aplicaAsunto, normaliza };
+  return { C, SERVICIOS, GRUPOS, TEMPLATES, IMG_SETS, PERFILES, ASUNTOS, asuntosDe, EFECTOS, efectoDe, BANCO, bancoDe, fotosDe, comandoCarrusel, FICHA, CONTENT_VERSION, defaultState, render, renderText, pick, aplicaPerfil, aplicaAsunto, normaliza };
 });

@@ -64,6 +64,21 @@
   .row-t { flex:1; font-size:13px; }
   .row-t i { display:block; font-style:normal; font-size:12px; color:var(--dim); }
 
+  /* banco de imagenes: la foto apagada es la que NO entra, para que se vea de un vistazo */
+  .bk { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin:0 0 10px; }
+  .bk button { border:1px solid var(--border); border-radius:6px; overflow:hidden;
+               background:var(--card); padding:0; text-align:left; }
+  .bk img { display:block; width:100%; height:54px; object-fit:cover; opacity:.35; transition:opacity .12s; }
+  .bk button[aria-pressed="true"] { border-color:var(--purple-l); }
+  .bk button[aria-pressed="true"] img { opacity:1; }
+  .bk i { display:block; font:10px/1.3 var(--mono); font-style:normal; padding:3px 5px;
+          color:var(--dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .bk button[aria-pressed="true"] i { color:var(--text); }
+  .aviso { font-size:12px; line-height:1.45; color:#F7C69B; background:rgba(247,145,49,.10);
+           border:1px solid rgba(247,145,49,.38); border-radius:6px; padding:7px 9px; margin:0 0 10px; }
+  .cmd { font:11px/1.5 var(--mono); color:var(--dim); background:var(--bg); border:1px solid var(--border);
+         border-radius:6px; padding:6px 8px; margin:0 0 4px; word-break:break-all; }
+
   .blk { border:1px solid var(--border); border-radius:var(--radius); background:var(--card); margin:0 0 8px; overflow:hidden; }
   .blk-h { display:flex; align-items:center; gap:10px; padding:9px 12px; }
   .blk-t { flex:1; text-align:left; font-weight:600; font-size:13px; padding:2px 0; display:flex; justify-content:space-between; align-items:center; }
@@ -336,8 +351,8 @@
     // para todo: una parada de autobus y una pantalla LED no se lucen con lo mismo.
     g.appendChild(el('p', 'hint', 'Abajo, si un servicio concreto se luce con otro efecto, se le pone el suyo.'));
     M.SERVICIOS.forEach(sv => {
-      const fila = el('div', 'row-t');
-      fila.appendChild(el('label', null, sv.nombre));
+      const fila = el('label', 'fld');
+      fila.appendChild(el('span', 'fld-l', sv.nombre));
       const sel = el('select');
       const opGlobal = el('option', null, 'El de todos'); opGlobal.value = ''; sel.appendChild(opGlobal);
       M.EFECTOS.forEach(e => {
@@ -358,11 +373,110 @@
     return g;
   }
 
+  // Banco de imagenes por servicio: que fotos entran en el carrusel, tres huecos para
+  // anadir mas y el video. Un servicio por bloque plegable, que si no son cinco listas
+  // abiertas a la vez y no se encuentra nada.
+  function buildBanco() {
+    const g = el('div', 'grp');
+    g.appendChild(el('h2', null, 'Banco de im\u00e1genes por servicio'));
+    g.appendChild(el('p', 'hint',
+      'La foto apagada no entra en el carrusel. El GIF est\u00e1 hecho de antemano: ' +
+      'al cambiar la selecci\u00f3n, abajo sale el comando que lo regenera.'));
+
+    const base = (st.assetBase || 'img').replace(/\/$/, '');
+    const mio = id => (st.banco[id] = st.banco[id] || { usar: [], extra: ['', '', ''], video: { poster: '', enlace: '' } });
+
+    M.SERVICIOS.forEach(sv => {
+      const b = M.bancoDe(st, sv);
+      const m = mio(sv.id);
+      const blk = el('div', 'blk');
+      const cab = el('div', 'blk-h');
+      const tit = el('button', 'blk-t'); tit.type = 'button';
+      tit.appendChild(el('span', null, sv.nombre));
+      const cuenta = el('span', null, ''); tit.appendChild(cuenta);
+      cab.appendChild(tit); blk.appendChild(cab);
+      const cuerpo = el('div', 'blk-b'); blk.appendChild(cuerpo);
+      tit.addEventListener('click', () => {
+        blk.classList.toggle('open');
+        cuerpo.style.display = blk.classList.contains('open') ? 'block' : 'none';
+      });
+
+      const cmd = el('p', 'cmd', '');
+      const refresca = () => {
+        const dentro = M.fotosDe(st, sv);
+        cuenta.textContent = dentro.length + ' de ' + (b.fotos.length + b.extra.length);
+        cmd.textContent = M.comandoCarrusel(st, sv);
+      };
+
+      // Las fotos del inventario, como interruptores.
+      const rejilla = el('div', 'bk');
+      const marcada = f => !m.usar.length || m.usar.indexOf(f) >= 0;
+      b.fotos.forEach(f => {
+        const bt = el('button'); bt.type = 'button';
+        const im = el('img'); im.src = base + '/' + f; im.alt = f; im.loading = 'lazy';
+        bt.appendChild(im); bt.appendChild(el('i', null, f.replace(/^svc_/, '')));
+        const pinta = () => bt.setAttribute('aria-pressed', String(marcada(f)));
+        pinta();
+        bt.addEventListener('click', () => {
+          // usar vacio significa "todas"; en cuanto se quita una hay que materializar la lista.
+          if (!m.usar.length) m.usar = b.fotos.slice();
+          const i = m.usar.indexOf(f);
+          if (i >= 0) {
+            if (m.usar.length === 1) return;   // sin fotos no hay carrusel: no se quita la ultima
+            m.usar.splice(i, 1);
+          } else {
+            m.usar = b.fotos.filter(x => x === f || m.usar.indexOf(x) >= 0);
+          }
+          pinta(); refresca(); touch();
+        });
+        rejilla.appendChild(bt);
+      });
+      cuerpo.appendChild(rejilla);
+
+      // Tres huecos para anadir. Se escribe el nombre del fichero -ya subido a
+      // app/static/email/- o una URL completa.
+      [0, 1, 2].forEach(i => {
+        const f = el('label', 'fld');
+        f.appendChild(el('span', 'fld-l', 'A\u00f1adir ' + (i + 1) + ' \u00b7 nombre de fichero o URL'));
+        const inp = el('input'); inp.type = 'text'; inp.value = m.extra[i] || '';
+        inp.placeholder = 'svc_' + sv.id + '_nueva.jpg';
+        inp.addEventListener('input', () => { m.extra[i] = inp.value.trim(); refresca(); touch(); });
+        f.appendChild(inp); cuerpo.appendChild(f);
+      });
+
+      // Video. No se incrusta: se manda un fotograma que enlaza al video completo,
+      // que es lo unico que funciona en Gmail y en Outlook a la vez.
+      if (b.aviso) cuerpo.appendChild(el('p', 'aviso', b.aviso));
+      const fv = el('label', 'fld');
+      fv.appendChild(el('span', 'fld-l', 'V\u00eddeo \u00b7 fotograma de portada'));
+      const selv = el('select');
+      const nada = el('option', null, 'Sin v\u00eddeo'); nada.value = ''; selv.appendChild(nada);
+      b.videos.forEach(v => { const o = el('option', null, v.etiqueta); o.value = v.poster; selv.appendChild(o); });
+      if (!b.videos.length) { selv.disabled = true; nada.textContent = 'No hay v\u00eddeo de este servicio'; }
+      selv.value = m.video.poster || '';
+      selv.addEventListener('change', () => { m.video.poster = selv.value; touch(); });
+      fv.appendChild(selv); cuerpo.appendChild(fv);
+
+      const fe = el('label', 'fld');
+      fe.appendChild(el('span', 'fld-l', 'V\u00eddeo \u00b7 enlace al completo'));
+      const inpe = el('input'); inpe.type = 'url'; inpe.value = m.video.enlace || '';
+      inpe.placeholder = 'https://...';
+      inpe.addEventListener('input', () => { m.video.enlace = inpe.value.trim(); touch(); });
+      fe.appendChild(inpe); cuerpo.appendChild(fe);
+
+      cuerpo.appendChild(cmd);
+      refresca();
+      g.appendChild(blk);
+    });
+    return g;
+  }
+
   function buildPanel() {
     const p = $('#panel'); p.innerHTML = '';
     p.appendChild(buildPerfil());
     p.appendChild(buildAsuntos());
     p.appendChild(buildEfectos());
+    p.appendChild(buildBanco());
     const g1 = el('div', 'grp'); g1.appendChild(el('h2', null, 'Envío'));
     ENVIO.forEach(([k, l, ty]) => g1.appendChild(inputEl(k, l, ty))); p.appendChild(g1);
     const g2 = el('div', 'grp'); g2.appendChild(el('h2', null, 'Bloques del mensaje · interruptor = mostrar / inhibir'));
@@ -390,7 +504,13 @@
   function renderPreview() {
     const key = M.pick(st);
     let html = M.render(st, key);
-    html = html.replace(/src="img\/([^"]+)"/g, (m, n) => (window.IMG_DATA && window.IMG_DATA[n]) ? 'src="' + window.IMG_DATA[n] + '"' : m);
+    // En el compositor autonomo no hay carpeta img/: lo que no venga incrustado hay que
+    // pedirlo a produccion, o la vista previa sale con las fotos rotas.
+    html = html.replace(/src="img\/([^"]+)"/g, (m, n) => {
+      if (window.IMG_DATA && window.IMG_DATA[n]) return 'src="' + window.IMG_DATA[n] + '"';
+      if (window.IMG_DATA) return 'src="' + (st.assetBaseProd || '') + '/' + n + '"';
+      return m;
+    });
     const extra = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&display=swap"><base target="_blank">' +
       (noImg ? '<style>img{display:none!important}</style>' : '');
     $('#preview').srcdoc = html.replace('</head>', extra + '</head>');

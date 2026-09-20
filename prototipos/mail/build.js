@@ -32,10 +32,17 @@ for (const key of Object.keys(M.TEMPLATES)) {
 }
 
 // 2. Compositor autónomo (render.js + imágenes embebidas)
+// Los carruseles son 12 de los 15 MB de img/, y en base64 crecen un tercio mas.
+// Incrustarlos todos dejaba este fichero en 22 MB, por encima del limite de 16 MB de un
+// artefacto. Se incrusta solo el efecto por defecto; los demas se piden a produccion,
+// que es de donde salen las imagenes del correo de verdad.
+const EFECTO_INCRUSTADO = 'barrido';
+
 const IMG_DATA = {};
 for (const f of fs.readdirSync(imgDir)) {
   const ext = path.extname(f).slice(1).toLowerCase();
   if (!['png', 'jpg', 'jpeg', 'gif'].includes(ext)) continue;
+  if (/^carousel_/.test(f) && !f.endsWith('_' + EFECTO_INCRUSTADO + '.gif')) continue;
   const mime = ext === 'png' ? 'image/png' : ext === 'gif' ? 'image/gif' : 'image/jpeg';
   IMG_DATA[f] = 'data:' + mime + ';base64,' + fs.readFileSync(path.join(imgDir, f)).toString('base64');
 }
@@ -45,7 +52,13 @@ html = html.replace('<script src="render.js"></script>',
   '<script>window.IMG_DATA=' + JSON.stringify(IMG_DATA) + ';</script>\n<script>\n' + renderSrc + '\n</script>');
 const out = path.join(here, 'compositor.standalone.html');
 fs.writeFileSync(out, html, 'utf8');
-console.log('OK', path.basename(out), Math.round(fs.statSync(out).size / 1024), 'KB');
+const kbOut = Math.round(fs.statSync(out).size / 1024);
+console.log('OK', path.basename(out), kbOut, 'KB');
+if (kbOut > 15 * 1024) {
+  console.error('FALLO: ' + kbOut + ' KB supera el limite de 16 MB de un artefacto.');
+  console.error('       Revisa que se incrusta en IMG_DATA (EFECTO_INCRUSTADO).');
+  process.exit(1);
+}
 
 // 3. Guardia de contenido: la construcción falla si reaparece un dato de contacto retirado, o si falta uno vigente.
 const PROHIBIDO = ['412 000 0000', '412 1003559', 'www.centauroads.com', 'contacto@centauroads'];
