@@ -122,7 +122,7 @@
   // CONTENT_VERSION: SUBIR este número cada vez que cambie un valor por defecto (contacto, lema, servicios…).
   // El compositor guarda el contenido en el navegador con esta versión en la clave; al subirla, lo guardado con
   // datos viejos deja de usarse y se cargan los valores nuevos.
-  const CONTENT_VERSION = 6;
+  const CONTENT_VERSION = 5;
 
   function defaultState() {
     return {
@@ -152,16 +152,6 @@
           cta: 'Ver catálogo especial', url: 'mailto:equintero@centauroads.com?subject=Cat%C3%A1logo%20de%20branding%20y%20esculturas' },
         // Muro de clientes: prueba social para el perfil de cliente nuevo. APAGADO hasta que Elizabeth
         // confirme que podemos nombrar a estas marcas en un correo.
-        // Etiquetas promocionales sobre las fotos. Cada una se enciende por separado: se puede
-        // llevar solo el descuento, solo la fecha límite, o las dos.
-        etiquetas: {
-          on: false,
-          descuento: '15%', descuentoOn: true,
-          hasta: '31/10/2026', hastaOn: true,
-          // Con animación la etiqueta es un GIF (brillo + rebote del número). Sin ella, la
-          // versión de tablas, que pesa cero. Ver etiqueta_gif.py.
-          animada: true,
-        },
         clientes: { on: false, titulo: 'Marcas que ya están en la calle con nosotros',
           lista: 'Pepsi · Nestlé · Yango · Cashea · EPA · Arturo’s · Ridery · Cinepic · Tío Rico' },
         pasos: { on: true, titulo: 'Próximos pasos',
@@ -403,106 +393,6 @@
     return '';
   }
 
-  // ── Etiquetas promocionales ──
-  // Van pegadas al borde de la foto, sin separación, para que se lean como una cinta puesta
-  // encima y no como otro renglón de texto. Se hace con una fila de tabla, no con posicionamiento
-  // absoluto ni imagen de fondo: es lo único que aguanta en Outlook, y una promoción que no se ve
-  // en la mitad de los clientes de correo no es una promoción.
-  //
-  // Cuando van las dos, el naranja (el premio) tira a la izquierda y la tinta oscura (la prisa)
-  // cierra a la derecha. Esa tensión es el efecto buscado.
-  function cintaEtiquetas(st, arriba, ancho) {
-    if (!on(st, 'etiquetas')) return '';
-    const e = B(st, 'etiquetas');
-    const dto = e.descuentoOn && String(e.descuento || '').trim();
-    const fecha = e.hastaOn && String(e.hasta || '').trim();
-    if (!dto && !fecha) return '';
-
-    const radio = arriba ? 'border-radius:8px 8px 0 0;' : 'border-radius:0 0 8px 8px;';
-    const base = 'font-family:' + FH + ';font-weight:800;text-transform:uppercase;line-height:1;';
-
-    // ── Versión animada ──
-    // El correo no ejecuta JavaScript y las animaciones CSS no llegan a Gmail ni a Outlook: lo
-    // único que se mueve de verdad en todos los clientes es un GIF. El fichero lo genera
-    // etiqueta_gif.py, que dibuja el fotograma 0 en reposo (es lo que ve Outlook) y luego el
-    // barrido de brillo y el rebote del número.
-    //
-    // El precio de esto: el GIF está pre-renderizado, así que los valores viven dentro de la
-    // imagen. Cambiar el descuento o la fecha exige regenerarlo. El `alt` lleva el texto
-    // completo para quien tenga las imágenes bloqueadas, que en Outlook es lo habitual.
-    if (e.animada) {
-      const archivo = (dto && fecha) ? 'etq_promo.gif' : (dto ? 'etq_dto.gif' : 'etq_fecha.gif');
-      const w = ancho || 264;
-      const leyenda = [dto ? dto + ' de descuento' : '', fecha ? 'solo hasta el ' + fecha : '']
-        .filter(Boolean).join(' · ');
-      return '<img src="' + esc(imgFor(st, archivo)) + '" width="' + w + '" alt="' + esc(leyenda) + '"' +
-        ' style="display:block;width:' + w + 'px;max-width:100%;height:auto;' + radio +
-        'border:0;font-family:' + FH + ';font-size:13px;font-weight:800;color:' + C.orangeInk + ';">';
-    }
-
-    // Cada celda apila etiqueta y valor en dos líneas fijas, en vez de dejar que el texto se
-    // parta por donde quiera: en una tarjeta de 264 px "15% de descuento" no cabe de una línea y
-    // el corte caía en mitad de la frase. Apilado a propósito se lee como un sello.
-    const dosLineas = (arriba_, abajo_) =>
-      '<div style="' + base + arriba_.estilo + 'white-space:nowrap;">' + arriba_.txt + '</div>' +
-      '<div style="' + base + abajo_.estilo + 'white-space:nowrap;padding-top:3px;">' + abajo_.txt + '</div>';
-
-    // Celda del descuento: el número manda, la palabra lo acompaña.
-    const celdaDto = '<td align="center" bgcolor="' + C.orange + '" valign="middle" style="background:' + C.orange + ';padding:8px 8px;' +
-      (fecha ? '' : radio) + '">' +
-      dosLineas(
-        { txt: esc(dto), estilo: 'font-size:20px;letter-spacing:-.01em;color:#141016;' },
-        { txt: 'de descuento', estilo: 'font-size:9px;letter-spacing:.16em;color:#141016;' }
-      ) + '</td>';
-
-    // Celda de la fecha: más pequeña, deliberadamente. Es el contrapunto, no el titular.
-    //
-    // Va en morado corporativo y no en tinta casi negra: sobre las plantillas oscuras el negro se
-    // fundía con el fondo y la etiqueta parecía texto suelto en vez de un sello. El morado se lee
-    // como bloque en claro y en oscuro, y junto al naranja deja el par de la marca. El lila del
-    // rótulo da 5,5:1 sobre el morado; el naranja que había antes daba 2,6:1 y no pasaba.
-    const celdaFecha = '<td align="center" bgcolor="' + C.purple + '" valign="middle" style="background:' + C.purple + ';padding:8px 8px;' +
-      (dto ? '' : radio) + '">' +
-      dosLineas(
-        { txt: 'solo hasta el', estilo: 'font-size:9px;letter-spacing:.16em;color:#E8D5EF;' },
-        { txt: esc(fecha), estilo: 'font-size:14px;letter-spacing:.01em;color:#FFFFFF;' }
-      ) + '</td>';
-
-    // Con las dos etiquetas lado a lado hacen falta unos 250 px de hueco. Por debajo de eso el
-    // texto no cabe, la tabla se ensancha por su cuenta y la cinta sobresale de la foto: parecía
-    // un error de montaje. Cuando el sitio es estrecho se apilan, y así la tipografía puede
-    // seguir siendo grande, que es de lo que va una etiqueta promocional.
-    const apilar = !!(ancho && ancho <= 250 && dto && fecha);
-
-    let filas;
-    if (apilar) {
-      filas = '<tr>' + celdaDto.replace('<td ', '<td width="100%" ') + '</tr>' +
-              '<tr>' + celdaFecha.replace('<td ', '<td width="100%" ') + '</tr>';
-    } else if (dto && fecha) {
-      filas = '<tr>' + celdaDto.replace('<td ', '<td width="52%" ') +
-                       celdaFecha.replace('<td ', '<td width="48%" ') + '</tr>';
-    } else {
-      filas = '<tr>' + (dto ? celdaDto : celdaFecha) + '</tr>';
-    }
-
-    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"' +
-      ' style="' + (ancho ? 'width:' + ancho + 'px;max-width:100%;' : '') + radio + '">' +
-      filas + '</table>';
-  }
-
-  // Versión para fondo oscuro: la cinta es la misma, pero la fecha usa el gris de las plantillas
-  // oscuras en vez del negro, para no abrir un agujero en la composición.
-  function cintaTexto(st) {
-    if (!on(st, 'etiquetas')) return '';
-    const e = B(st, 'etiquetas');
-    const dto = e.descuentoOn && String(e.descuento || '').trim();
-    const fecha = e.hastaOn && String(e.hasta || '').trim();
-    const partes = [];
-    if (dto) partes.push(dto + ' de descuento');
-    if (fecha) partes.push('solo hasta el ' + fecha);
-    return partes.join(' · ');
-  }
-
   // ── Plantilla A · "Cartelera" (oscura, como los decks) ──
   function plantillaA(st) {
     const P = [];
@@ -590,57 +480,18 @@
     if (bqB) P.push(row(bqB, 'padding:6px 28px 16px 28px;background:' + C.paper + ';'));
     const act = activos(st);
     if (act.length) {
-      // Las dos tarjetas de una fila tienen que acabar a la misma altura. Antes no lo hacían:
-      // "Vallas" lleva una línea de texto y "Pantallas LED" tres, así que una terminaba antes y
-      // dejaba un hueco blanco con el borde inferior desalineado.
-      //
-      // La solución que aguanta en correo es fijar la altura del bloque de texto con `height` en
-      // el <td>, que Outlook y Gmail respetan. ALTO_TEXTO es el peor caso real del catálogo
-      // (epígrafe + nombre en dos líneas + descripción en tres + enlace).
-      const ALTO_TEXTO = 116;
-      const foto = (s, w) => '<a href="' + esc(linkFor(st, s)) + '"><img src="' + esc(st.cardAnim && !usaPortadas(st) ? imgFor(st, 'carousel_' + s.id + '.gif') : svcImg(st, s)) + '" width="' + w + '" height="' + Math.round(w / 1.5) + '" alt="' + esc(svcAlt(st, s)) + '" style="display:block;width:100%;height:auto;color:#1F1B24;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:18px;"></a>';
-      const textos = (s) =>
+      const card = (s, w) => '<table role="presentation" width="' + w + '" align="left" cellpadding="0" cellspacing="0" border="0" style="width:' + w + 'px;max-width:100%;margin:0 0 16px 0;"><tr><td style="border:1px solid ' + C.rule + ';border-radius:8px;overflow:hidden;background:' + C.paper + ';">' +
+        '<a href="' + esc(linkFor(st, s)) + '"><img src="' + esc(st.cardAnim && !usaPortadas(st) ? imgFor(st, 'carousel_' + s.id + '.gif') : svcImg(st, s)) + '" width="' + w + '" alt="' + esc(svcAlt(st, s)) + '" style="display:block;width:100%;height:auto;border-radius:8px 8px 0 0;color:#1F1B24;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:18px;"></a>' +
+        '<div style="padding:12px 14px 14px 14px;">' +
         '<div style="font-family:' + FH + ';font-size:10px;font-weight:700;letter-spacing:.14em;color:' + C.orangeDark + ';text-transform:uppercase;">' + esc(s.eyebrow) + '</div>' +
         '<div style="font-family:' + FH + ';font-size:15px;line-height:20px;font-weight:800;color:' + C.text + ';padding:3px 0 3px 0;">' + esc(s.nombre) + '</div>' +
         '<div style="font-family:' + FB + ';font-size:13px;line-height:19px;color:' + C.muted + ';">' + esc(s.cobertura) + (s.nota ? '<br>' + esc(s.nota) : '') + '</div>' +
-        '<div style="padding:8px 0 0 0;"><a href="' + esc(linkFor(st, s)) + '" style="font-family:' + FH + ';font-size:12px;font-weight:700;color:' + C.purple + ';text-decoration:none;">Ver presentación &rarr;</a></div>';
-
-      const card = (s, w) => '<table role="presentation" width="' + w + '" cellpadding="0" cellspacing="0" border="0" style="width:' + w + 'px;max-width:100%;">' +
-        '<tr><td style="border:1px solid ' + C.rule + ';border-top:0;border-radius:8px;overflow:hidden;background:' + C.paper + ';">' +
-        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">' +
-        (on(st, 'etiquetas') ? '<tr><td style="font-size:0;line-height:0;">' + cintaEtiquetas(st, true, w) + '</td></tr>' : '') +
-        '<tr><td style="font-size:0;line-height:0;">' + foto(s, w) + '</td></tr>' +
-        '<tr><td height="' + ALTO_TEXTO + '" valign="top" style="height:' + ALTO_TEXTO + 'px;padding:12px 14px 14px 14px;">' + textos(s) + '</td></tr>' +
-        '</table></td></tr></table>';
-
-      // La tarjeta impar sobrante ya no se estira a ancho completo con una foto enorme: pasa a
-      // ser un destacado horizontal, foto a la izquierda y texto a la derecha. Ocupa la fila
-      // entera porque así estaba pensado, no porque sobrara.
-      const destacado = (s) => '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:100%;">' +
-        '<tr><td style="border:1px solid ' + C.rule + ';border-radius:8px;overflow:hidden;background:' + C.sand + ';">' +
-        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
-        '<td width="240" valign="top" style="font-size:0;line-height:0;width:240px;">' +
-          (on(st, 'etiquetas') ? cintaEtiquetas(st, true, 240) : '') + foto(s, 240) + '</td>' +
-        '<td valign="top" style="padding:16px 18px;">' + textos(s) +
-          (cintaTexto(st) ? '<div style="font-family:' + FH + ';font-size:11px;font-weight:800;letter-spacing:.10em;text-transform:uppercase;color:' + C.orangeInk + ';padding:10px 0 0 0;">' + esc(cintaTexto(st)) + '</div>' : '') +
-        '</td>' +
-        '</tr></table></td></tr></table>';
-
-      // Pares en filas de verdad: dos celdas de la misma <tr> comparten altura por definición,
-      // que es lo que evita el borde desalineado. El 16 del medio es el aire entre columnas.
+        '<div style="padding:8px 0 0 0;"><a href="' + esc(linkFor(st, s)) + '" style="font-family:' + FH + ';font-size:12px;font-weight:700;color:' + C.purple + ';text-decoration:none;">Ver presentación &rarr;</a></div>' +
+        '</div></td></tr></table>';
       let grid = '';
-      const pares = [];
-      for (let i = 0; i < act.length; i += 2) pares.push(act.slice(i, i + 2));
-      pares.forEach(par => {
-        if (par.length === 2) {
-          grid += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px 0;"><tr>' +
-            '<td width="264" valign="top">' + card(par[0], 264) + '</td>' +
-            '<td width="16" style="font-size:0;line-height:0;">&nbsp;</td>' +
-            '<td width="264" valign="top">' + card(par[1], 264) + '</td>' +
-            '</tr></table>';
-        } else {
-          grid += '<div style="padding:0 0 16px 0;">' + destacado(par[0]) + '</div>';
-        }
+      act.forEach((s, i) => {
+        const last = i === act.length - 1 && act.length % 2 === 1;
+        grid += last ? card(s, 544) : card(s, 264) + (i % 2 === 0 ? '<table role="presentation" width="16" align="left" cellpadding="0" cellspacing="0" border="0"><tr><td style="font-size:0;line-height:0;">&nbsp;</td></tr></table>' : '');
       });
       P.push(row(grid, 'padding:12px 28px 0 28px;background:' + C.paper + ';'));
     }
@@ -807,122 +658,11 @@
     return L.join('\n');
   }
 
-  // ── Plantilla E · "Marquesina" ──────────────────────────────────────────────────────
-  // Propuesta propia, distinta de las otras cuatro a propósito.
-  //
-  // La idea: un correo de publicidad exterior no debería parecer una tienda en línea. A, B y D
-  // son variaciones de lo mismo —una rejilla de fichas de producto— y eso ya lo hace todo el
-  // mundo. Aquí se invierte la jerarquía: **manda el dato, no el nombre**. Quien compra exterior
-  // no compara títulos bonitos, compara impactos por día y medidas; así que el número va grande y
-  // el nombre del espacio debajo, pequeño.
-  //
-  // La composición imita el propio medio: bandas anchas que se alternan izquierda y derecha, como
-  // vallas que van pasando, separadas por un filete morado→naranja que hace de eje. Sin tarjetas,
-  // sin cajas iguales, sin rejilla.
-  function plantillaE(st) {
-    const P = [];
-    const dark = 'background:' + C.ink + ';';
-    const filete = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
-      '<td width="38%" height="3" bgcolor="' + C.purple + '" style="background:' + C.purple + ';font-size:0;line-height:0;">&nbsp;</td>' +
-      '<td height="3" bgcolor="' + C.orange + '" style="background:' + C.orange + ';font-size:0;line-height:0;">&nbsp;</td>' +
-      '</tr></table>';
-
-    P.push(row(filete, 'font-size:0;line-height:0;'));
-    P.push(row(marca(st, true, 210), 'padding:24px 30px 18px 30px;' + dark));
-
-    // Titular a escala de cartel: el mayor contraste tipográfico de todas las plantillas.
-    if (on(st, 'titulo')) {
-      const b = B(st, 'titulo');
-      P.push(row(
-        '<div style="font-family:' + FH + ';font-size:11px;font-weight:800;letter-spacing:.20em;text-transform:uppercase;color:' + C.orange + ';padding:0 0 10px 0;">' + esc(b.sub) + '</div>' +
-        '<div style="font-family:' + FH + ';font-size:38px;line-height:40px;font-weight:800;letter-spacing:-.03em;color:#FFFFFF;">' + esc(b.texto) + '</div>',
-        'padding:6px 30px 18px 30px;' + dark));
-    }
-
-    let entrada = '';
-    if (on(st, 'saludo')) entrada += '<div style="font-family:' + FB + ';font-size:15px;line-height:23px;color:' + C.textDark + ';padding:0 0 10px 0;">' + nl2br(fill(B(st, 'saludo').texto, st)) + '</div>';
-    if (on(st, 'intro')) entrada += '<div style="font-family:' + FB + ';font-size:15px;line-height:24px;color:' + C.mutedDark + ';">' + nl2br(fill(B(st, 'intro').texto, st)) + '</div>';
-    if (entrada) P.push(row(entrada, 'padding:0 30px 20px 30px;' + dark));
-
-    const bqE = bloquePerfil(st, true);
-    if (bqE) P.push(row(bqE, 'padding:0 30px 18px 30px;' + dark));
-
-    // Las bandas. El lado de la foto alterna para romper la lectura en columna.
-    const act = activos(st);
-    act.forEach((s, i) => {
-      const f = FICHA[s.id] || {};
-      const izquierda = i % 2 === 0;
-      const precio = desdeDe(st, s.id);
-
-      const foto = '<td width="228" valign="top" style="width:228px;font-size:0;line-height:0;padding:0;">' +
-        '<table role="presentation" width="228" cellpadding="0" cellspacing="0" border="0" style="width:228px;">' +
-        (on(st, 'etiquetas') ? '<tr><td style="font-size:0;line-height:0;">' + cintaEtiquetas(st, true, 228) + '</td></tr>' : '') +
-        '<tr><td style="font-size:0;line-height:0;">' +
-        '<a href="' + esc(linkFor(st, s)) + '"><img src="' + esc(st.cardAnim && !usaPortadas(st) ? imgFor(st, 'carousel_' + s.id + '.gif') : svcImg(st, s)) + '" width="228" height="152" alt="' + esc(svcAlt(st, s)) + '" style="display:block;width:228px;max-width:100%;height:auto;border-radius:6px;color:' + C.textDark + ';font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:18px;"></a>' +
-        '</td></tr></table></td>';
-
-      // El dato primero, a tamaño de titular. Si el espacio no tiene ficha, el nombre ocupa su
-      // sitio: la banda no se queda coja, simplemente cambia de protagonista.
-      const datos = '<td valign="middle" style="padding:' + (izquierda ? '2px 0 2px 20px' : '2px 20px 2px 0') + ';">' +
-        (f.trafico
-          ? '<div style="font-family:' + FH + ';font-size:26px;line-height:28px;font-weight:800;letter-spacing:-.02em;color:' + C.orange + ';">' + esc(f.trafico) + '</div>'
-          : '') +
-        '<div style="font-family:' + FH + ';font-size:17px;line-height:22px;font-weight:800;color:#FFFFFF;padding:' + (f.trafico ? '6px' : '0') + ' 0 0 0;">' + esc(s.nombre) + '</div>' +
-        '<div style="font-family:' + FH + ';font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:' + C.purpleLight + ';padding:5px 0 0 0;">' + esc(s.eyebrow) + (f.medida ? ' &middot; ' + esc(f.medida) : '') + '</div>' +
-        '<div style="font-family:' + FB + ';font-size:13px;line-height:19px;color:' + C.mutedDark + ';padding:7px 0 0 0;">' + esc(s.cobertura) + (s.nota ? '<br>' + esc(s.nota) : '') + '</div>' +
-        (precio ? '<div style="font-family:' + FH + ';font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:' + C.orange + ';padding:7px 0 0 0;">' + esc(precio) + '</div>' : '') +
-        '<div style="padding:10px 0 0 0;"><a href="' + esc(linkFor(st, s)) + '" style="font-family:' + FH + ';font-size:12px;font-weight:800;letter-spacing:.04em;color:' + C.orange + ';text-decoration:none;">Ver presentación &rarr;</a></div>' +
-        '</td>';
-
-      P.push(row('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
-        (izquierda ? foto + datos : datos + foto) +
-        '</tr></table>', 'padding:18px 30px;' + dark));
-
-      if (i < act.length - 1) P.push(row(filete, 'padding:0 30px;font-size:0;line-height:0;' + dark));
-    });
-
-    // Cierre operativo, en tono menor para que no compita con las bandas.
-    let ficha = '';
-    if (on(st, 'suministro')) {
-      const b = B(st, 'suministro');
-      ficha += '<div style="font-family:' + FH + ';font-size:14px;font-weight:800;color:#FFFFFF;padding:0 0 6px 0;">' + esc(b.titulo) + '</div>' +
-        '<div style="font-family:' + FB + ';font-size:13px;line-height:19px;color:' + C.mutedDark + ';padding:0 0 8px 0;">' + nl2br(b.texto) + '</div>' +
-        bullets(lines(b.requisitos), C.orange, C.textDark);
-    }
-    if (on(st, 'presupuesto')) {
-      const b = B(st, 'presupuesto');
-      ficha += '<div style="font-family:' + FH + ';font-size:14px;font-weight:800;color:#FFFFFF;padding:14px 0 8px 0;">' + esc(b.titulo) + '</div>' +
-        numbered(lines(b.items), C.orange, '#141016', C.textDark);
-    }
-    if (ficha) P.push(row(ficha, 'padding:16px 30px 20px 30px;background:' + C.ink2 + ';'));
-
-    // Llamada a la acción a sangre: una barra naranja de lado a lado. Es el único naranja grande
-    // del correo, así que el ojo va ahí sin discusión.
-    if (on(st, 'cta')) {
-      const b = B(st, 'cta');
-      P.push(row(
-        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
-        '<td align="center" bgcolor="' + C.orange + '" style="background:' + C.orange + ';padding:20px 24px;">' +
-        (cintaTexto(st) ? '<div style="font-family:' + FH + ';font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#141016;padding:0 0 8px 0;">' + esc(cintaTexto(st)) + '</div>' : '') +
-        '<a href="' + esc(b.url) + '" style="font-family:' + FH + ';font-size:19px;line-height:24px;font-weight:800;letter-spacing:-.01em;color:#141016;text-decoration:none;">' + esc(b.texto) + ' &rarr;</a>' +
-        '</td></tr></table>', 'font-size:0;line-height:0;'));
-    }
-
-    let pie = '';
-    if (on(st, 'cierre')) pie += '<div style="font-family:' + FB + ';font-size:15px;line-height:23px;color:' + C.textDark + ';padding:0 0 16px 0;">' + nl2br(B(st, 'cierre').texto) + '</div>';
-    if (on(st, 'firma')) pie += firma(st, true);
-    if (pie) P.push(row(pie, 'padding:22px 30px 24px 30px;' + dark));
-    if (on(st, 'pie')) P.push(row('<div style="font-family:' + FB + ';font-size:11px;line-height:16px;color:' + C.mutedDark + ';">' + nl2br(B(st, 'pie').texto) + '</div>', 'padding:14px 30px 0 30px;'));
-
-    return doc(st, C.black, P.join(''));
-  }
-
   const TEMPLATES = {
     A: { nombre: 'Cartelera', desc: 'Oscura, misma identidad que los decks. Para primer envío.', fn: plantillaA },
     B: { nombre: 'Catálogo', desc: 'Clara, tarjetas en dos columnas. Para lectura rápida.', fn: plantillaB },
     C: { nombre: 'Nota', desc: 'Compacta, parece un correo personal. Para responder en hilo.', fn: plantillaC },
     D: { nombre: 'Cartelera móvil', desc: 'Una columna, foto arriba, tipografía grande y un solo botón principal. Pensada para Gmail en el teléfono.', fn: plantillaD },
-    E: { nombre: 'Marquesina', desc: 'Propuesta nueva: bandas alternadas, sin rejilla de tarjetas. Manda el dato (impactos/día) y el nombre va debajo. Para cuando hay que impresionar.', fn: plantillaE },
   };
   function pick(st) {
     if (st.plantilla && TEMPLATES[st.plantilla]) return st.plantilla;
