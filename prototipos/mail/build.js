@@ -1,6 +1,7 @@
 /*
  * build.js — genera los entregables del prototipo a partir de render.js:
  *   plantilla-A-cartelera.html / plantilla-B-catalogo.html / plantilla-C-nota.html
+ *   plantilla-D-movil.html / plantilla-E-marquesina.html
  *     (mail renderizado con el contenido por defecto; imágenes relativas a img/)
  *   compositor.standalone.html
  *     (compositor.html con render.js e imágenes embebidas como data URI,
@@ -14,7 +15,7 @@ const M = require('./render.js');
 
 const here = __dirname;
 const imgDir = path.join(here, 'img');
-const slug = { A: 'cartelera', B: 'catalogo', C: 'nota', D: 'movil' };
+const slug = { A: 'cartelera', B: 'catalogo', C: 'nota', D: 'movil', E: 'marquesina' };
 
 // 1. Plantillas estáticas: con fotos reales (por defecto) y con portadas de Canva (sufijo -portadas)
 for (const key of Object.keys(M.TEMPLATES)) {

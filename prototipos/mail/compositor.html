@@ -186,6 +186,10 @@
     { k: 'intro', label: 'Introducción', f: [['texto', 'Párrafo', 'textarea']] },
     { k: 'titulo', label: 'Título de sección', f: [['texto', 'Título'], ['sub', 'Subtítulo']] },
     { k: 'servicios', label: 'Servicios (catálogo)', servicios: true },
+    { k: 'etiquetas', label: 'Etiquetas promocionales sobre las fotos',
+      hint: 'El interruptor de arriba las enciende. Debajo puedes llevar solo el descuento, solo la fecha, o las dos.',
+      f: [['descuentoOn', 'Llevar el descuento', 'sw'], ['descuento', 'Descuento (lo que se ve grande: 15%, 2x1, …)'],
+          ['hastaOn', 'Llevar la fecha límite', 'sw'], ['hasta', 'Válida hasta (DD/MM/AAAA)']] },
     { k: 'clientes', label: 'Marcas que ya son clientes (solo perfil Cliente nuevo)',
       hint: 'APAGADO hasta que Elizabeth confirme que podemos nombrar a esas marcas.',
       f: [['titulo', 'Título'], ['lista', 'Marcas (separadas por ·)']] },
@@ -203,6 +207,17 @@
   ];
 
   function inputEl(path, label, type, onInput) {
+    // Interruptor con etiqueta, para los campos que son un sí/no dentro de un bloque (por
+    // ejemplo: llevar el descuento, llevar la fecha límite, o las dos cosas).
+    if (type === 'sw') {
+      const r = el('div', 'row');
+      const l = el('label', 'sw'); const c = document.createElement('input');
+      c.type = 'checkbox'; c.checked = !!get(st, path); c.setAttribute('aria-label', label);
+      c.addEventListener('change', () => { set(st, path, c.checked); touch(); });
+      l.appendChild(c); l.appendChild(el('i', 'sw-k'));
+      const t = el('div', 'row-t'); t.appendChild(document.createTextNode(label));
+      r.appendChild(l); r.appendChild(t); return r;
+    }
     const wrap = el('label', 'fld'); wrap.appendChild(el('span', 'fld-l', label));
     if (type === 'select') {
       const sel = document.createElement('select');
