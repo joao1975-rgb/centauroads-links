@@ -1,0 +1,118 @@
+<!doctype html><meta charset="utf-8"><title>Tres direcciones de diseño · Centauro ADS</title>
+<style>
+  :root{ --bg:#15141B; --panel:#0F0E13; --linea:#2D2B3A; --texto:#EEEDF2;
+         --tenue:#A29EB1; --morado:#B98BCB; --naranja:#F79131; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--texto);
+       font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5}
+  header{padding:20px 22px;background:var(--panel);border-bottom:1px solid var(--linea)}
+  header h1{margin:0;font-size:18px;letter-spacing:-.01em}
+  header h1 b{color:var(--naranja)}
+  header p{margin:8px 0 0;color:var(--tenue);font-size:13px;max-width:82ch}
+  header p b{color:var(--texto);font-weight:600}
+
+  .tres{display:flex;gap:22px;padding:22px;overflow-x:auto;align-items:flex-start}
+  .via{flex:0 0 640px;max-width:640px}
+  .cab{padding:0 0 12px}
+  .letra{display:inline-block;font:800 13px/1 Segoe UI,sans-serif;letter-spacing:.14em;
+         color:#141016;background:var(--naranja);padding:6px 10px;border-radius:3px}
+  .via h2{margin:10px 0 2px;font-size:21px;letter-spacing:-.02em}
+  .idea{color:var(--morado);font-size:13px;font-weight:600;margin:0 0 8px}
+  .via p{margin:0 0 8px;color:var(--tenue);font-size:13px}
+  .via p b{color:var(--texto);font-weight:600}
+  .fam{margin:8px 0 12px;padding:10px 12px;background:#1B1A23;border-left:3px solid var(--morado);
+       font-size:12px;line-height:1.7;color:var(--tenue)}
+  .fam b{color:var(--texto)}
+  iframe{border:0;background:#fff;border-radius:8px;box-shadow:0 12px 40px rgba(0,0,0,.6);display:block}
+  footer{padding:18px 22px 40px;border-top:1px solid var(--linea);color:var(--tenue);font-size:13px}
+  footer b{color:var(--texto)}
+  @media (max-width:1100px){ .tres{flex-direction:column} .via{flex:1 1 auto;max-width:100%}
+                             iframe{width:100%!important} }
+</style>
+
+<header>
+  <h1><b>Tres direcciones</b> para el correo de Centauro ADS</h1>
+  <p>Las tres llevan <b>el mismo contenido real</b> y las mismas restricciones de correo. Lo que
+     cambia es la idea de fondo. Las hizo un diseñador distinto cada una, con contexto aislado,
+     para que no se contagiaran entre sí. <b>Elige una, o mezcla</b>: «la retícula de B con el
+     color de A» es una respuesta perfectamente válida.</p>
+  <p>A las tres les impuse la regla que hundió a Marquesina: <b>máximo dos secciones seguidas con
+     foto al lado de texto</b>, y cada familia de composición una sola vez. Debajo de cada una
+     está su desglose, para que puedas comprobarlo.</p>
+</header>
+
+<div class="tres">
+
+  <div class="via">
+    <div class="cab">
+      <span class="letra">A</span>
+      <h2>Contraste crudo</h2>
+      <p class="idea">Cartel de calle</p>
+      <p>Tipografía enorme en bloques macizos de color plano. Sin sombras, sin degradados, todo a
+         canto vivo. <b>El color es el material.</b> Se lee de un golpe, como un rótulo.</p>
+      <div class="fam">
+        <b>Familias:</b> cabecera negra · titular a sangre sobre naranja (47 px) · texto sobre
+        papel · foto a sangre con tira de datos · <b>una sola</b> dupla foto/texto · banda de la
+        promoción · mosaico desigual morado+tinta · tabla de datos sin foto con «250» a 66 px.
+      </div>
+    </div>
+    <iframe src="demo-dir-A.html" width="640" height="1500" loading="lazy"></iframe>
+  </div>
+
+  <div class="via">
+    <div class="cab">
+      <span class="letra">B</span>
+      <h2>El informe que da gusto leer</h2>
+      <p class="idea">Quien compra exterior compara cifras</p>
+      <p>Se comporta como una página de informe económico, no como un folleto. Fondo claro, reglas
+         finas, <b>cifras grandes</b> y barras dibujadas con celdas de tabla. Las fotos apoyan al
+         dato, no al revés.</p>
+      <div class="fam">
+        <b>Familias:</b> cabecera centrada · portada tipográfica · sumario tabular de las cinco
+        filas · <b>dos</b> fichas foto/texto en espejo · panel de cifras con barras · banda a
+        sangre del tótem · cuadrícula de dos columnas · promoción · firma.
+        <br><b>El detalle honesto:</b> las cuatro cifras tienen <b>unidades distintas</b>
+        (impactos/día, salidas/día, spots/mes, motos). No las metió en un eje común, que sería
+        mentir con un gráfico: lo declara por escrito y a Vallas le deja la pista vacía con el
+        rótulo «Sin cifra» en vez de inventarle un número.
+      </div>
+    </div>
+    <iframe src="demo-dir-B.html" width="640" height="1500" loading="lazy"></iframe>
+  </div>
+
+  <div class="via">
+    <div class="cab">
+      <span class="letra">C</span>
+      <h2>La ciudad de noche</h2>
+      <p class="idea">El exterior vive cuando las pantallas encienden</p>
+      <p>Un recorrido nocturno: el negro es cálido y <b>la única luz sale de las fotos</b>. El
+         morado y el naranja hacen de resplandor de los rótulos sobre el asfalto. Ritmo de cine:
+         un plano general que abre, luego planos cerrados.</p>
+      <div class="fam">
+        <b>Familias:</b> cabecera de marca · banda solo texto · foto a sangre con filo naranja y
+        banda morada pegada al borde · <b>dos</b> duplas foto/texto en espejo · promoción ·
+        mosaico desigual (320 px junto a 200 px) · cierre con filete vertical.
+        <br><b>Con imágenes bloqueadas:</b> nombres, ubicaciones, medidas y enlaces son texto
+        real, así que el correo se lee entero aunque las fotos no carguen. En un diseño donde las
+        fotos son el 80 % del peso visual, eso no es un detalle.
+      </div>
+    </div>
+    <iframe src="demo-dir-C.html" width="640" height="1500" loading="lazy"></iframe>
+  </div>
+
+</div>
+
+<footer>
+  <p><b>Lo que ya corregí en las tres:</b> el logotipo lleva el fondo <code>#16141D</code> horneado
+     y las cabeceras son <code>#0F0E13</code>. Siete unidades de diferencia, suficiente para que se
+     viera un recuadro alrededor del logo. Generé la variante que faltaba.</p>
+  <p><b>Lo que falta y no doy por bueno todavía:</b> ninguna está revisada a ancho de móvil, y la
+     etiqueta animada solo se ve aquí en local porque el GIF aún no está desplegado en producción.
+     Dime cuál sigue adelante y lo remato.</p>
+</footer>
+
+<script>
+document.querySelectorAll('iframe').forEach(f => f.addEventListener('load', () => {
+  try { const d = f.contentDocument; const b = d.createElement('base'); b.target = '_blank'; d.head.prepend(b); } catch (e) {}
+}));
+</script>
