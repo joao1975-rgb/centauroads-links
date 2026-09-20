@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Manual de diseño · Correos de Centauro ADS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&display=swap">
+<style>
+  :root{
+    --papel:#FFFFFF; --arena:#F6F3EF; --regla:#E2DDE8;
+    --tinta:#1F1B24; --apagado:#6E6879;
+    --morado:#85439A; --naranja:#B35E0A; --naranja-vivo:#F79131;
+    --negro:#0F0E13;
+    --titulo:'Montserrat','Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    --cuerpo:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--papel);color:var(--tinta);
+       font-family:var(--cuerpo);font-size:16px;line-height:1.65}
+  .marco{max-width:860px;margin:0 auto;padding-inline:20px}
+
+  header{background:var(--negro);color:#EEEDF2;padding-block:40px 34px;margin-bottom:34px}
+  header h1{margin:0;font-family:var(--titulo);font-weight:800;
+            font-size:clamp(28px,5vw,42px);line-height:1.08;letter-spacing:-.025em;
+            color:#fff;text-wrap:balance}
+  header .sub{margin:14px 0 0;color:#A29EB1;max-width:60ch;text-wrap:pretty}
+  header .meta{margin:18px 0 0;font-family:var(--mono);font-size:12px;color:#6A6778}
+
+  h2{font-family:var(--titulo);font-weight:800;font-size:26px;line-height:1.2;
+     letter-spacing:-.02em;margin:46px 0 4px;text-wrap:balance;
+     padding-top:18px;border-top:2px solid var(--negro)}
+  h2 .n{color:var(--naranja-vivo);font-variant-numeric:tabular-nums}
+  h3{font-family:var(--titulo);font-weight:700;font-size:18px;margin:26px 0 6px;letter-spacing:-.01em}
+  p{margin:0 0 14px;text-wrap:pretty}
+  ul,ol{margin:0 0 14px;padding-left:22px}
+  li{margin:0 0 7px}
+  a{color:var(--morado)}
+  code{font-family:var(--mono);font-size:.88em;background:var(--arena);
+       padding:1px 5px;border-radius:3px;color:var(--naranja)}
+
+  .tabla{overflow-x:auto;margin:0 0 20px}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th{text-align:left;font-family:var(--titulo);font-weight:700;font-size:11px;
+     letter-spacing:.12em;text-transform:uppercase;color:var(--apagado);
+     padding:0 10px 8px 0;border-bottom:2px solid var(--negro)}
+  td{padding:10px 10px 10px 0;border-bottom:1px solid var(--regla);vertical-align:top}
+  td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+  .muestra{display:inline-block;width:15px;height:15px;border-radius:3px;
+           vertical-align:-2px;margin-right:7px;border:1px solid rgba(0,0,0,.18)}
+
+  .aviso{margin:20px 0;padding:14px 18px;background:var(--arena);
+         border-left:4px solid var(--morado)}
+  .aviso.peligro{border-left-color:#B3261E;background:#FDF3F2}
+  .aviso p:last-child{margin-bottom:0}
+
+  .fallo{margin:0 0 22px;padding:16px 18px;border:1px solid var(--regla);border-radius:6px}
+  .fallo h3{margin-top:0;color:#B3261E}
+  .fallo .porque{color:var(--apagado);font-size:15px}
+  .fallo .leccion{margin:10px 0 0;padding-top:10px;border-top:1px dashed var(--regla);
+                  font-weight:600}
+
+  footer{margin-top:50px;padding-block:26px 60px;border-top:2px solid var(--negro);
+         color:var(--apagado);font-size:14px}
+  @media print{header{background:#fff}header h1,header .sub{color:#000}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="marco">
+    <h1>Manual de diseño de los correos de Centauro ADS</h1>
+    <p class="sub">Todo lo que hace falta saber para rediseñar estas piezas: la marca, las
+       restricciones del medio, las decisiones que ya se tomaron, y sobre todo <b>los errores
+       cometidos y por qué</b>. Ese último apartado es el más útil.</p>
+    <p class="meta">Para: asesor de diseño gráfico · Versión del contenido: 5 · Septiembre 2026</p>
+  </div>
+</header>
+
+<div class="marco">
+
+<p>Este documento describe cuatro plantillas de correo HTML en producción para Centauro ADS,
+   empresa de publicidad exterior en Caracas. Se entregan a un diseñador externo con el encargo
+   explícito de <b>mejorarlas</b>.</p>
+
+<p>Está escrito para que no tenga que adivinar nada: los valores exactos de marca, las reglas
+   técnicas que no puede saltarse, el contenido real, y el registro honesto de lo que ya se probó
+   y falló. No hace falta saber programar para leerlo.</p>
+
+<div class="aviso">
+  <p><b>Lo primero que conviene entender:</b> esto no es diseño web. El correo electrónico tiene
+     las restricciones técnicas de una página de 1999 y hay que diseñar dentro de ellas. El
+     apartado 2 explica cuáles son. Diseñar sin tenerlas en cuenta produce piezas preciosas que se
+     rompen en la bandeja de entrada de la mitad de los destinatarios.</p>
+</div>
+
+<h2><span class="n">1</span> · La marca</h2>
+
+<h3>Colores exactos</h3>
+<p>Son los del sistema y no se inventan colores nuevos. Los dos primeros son los corporativos.</p>
+
+<div class="tabla"><table>
+  <tr><th>Uso</th><th>Nombre</th><th>Valor</th></tr>
+  <tr><td>Corporativo principal</td><td>morado</td><td class="num"><span class="muestra" style="background:#85439A"></span>#85439A</td></tr>
+  <tr><td>Corporativo acento</td><td>naranja</td><td class="num"><span class="muestra" style="background:#F79131"></span>#F79131</td></tr>
+  <tr><td>Morado sobre fondo oscuro</td><td>morado claro</td><td class="num"><span class="muestra" style="background:#B98BCB"></span>#B98BCB</td></tr>
+  <tr><td><b>Naranja sobre fondo claro</b></td><td>naranja tinta</td><td class="num"><span class="muestra" style="background:#B35E0A"></span>#B35E0A</td></tr>
+  <tr><td>Fondo exterior oscuro</td><td>negro</td><td class="num"><span class="muestra" style="background:#0F0E13"></span>#0F0E13</td></tr>
+  <tr><td>Panel oscuro</td><td>tinta</td><td class="num"><span class="muestra" style="background:#16141D"></span>#16141D</td></tr>
+  <tr><td>Panel oscuro 2</td><td>tinta 2</td><td class="num"><span class="muestra" style="background:#1F1C2A"></span>#1F1C2A</td></tr>
+  <tr><td>Línea sobre oscuro</td><td>línea</td><td class="num"><span class="muestra" style="background:#2D2B3A"></span>#2D2B3A</td></tr>
+  <tr><td>Fondo claro</td><td>papel</td><td class="num"><span class="muestra" style="background:#FFFFFF"></span>#FFFFFF</td></tr>
+  <tr><td>Fondo claro alterno</td><td>arena</td><td class="num"><span class="muestra" style="background:#F6F3EF"></span>#F6F3EF</td></tr>
+  <tr><td>Línea sobre claro</td><td>regla</td><td class="num"><span class="muestra" style="background:#E2DDE8"></span>#E2DDE8</td></tr>
+  <tr><td>Texto sobre claro</td><td>texto</td><td class="num"><span class="muestra" style="background:#1F1B24"></span>#1F1B24</td></tr>
+  <tr><td>Texto secundario claro</td><td>apagado</td><td class="num"><span class="muestra" style="background:#6E6879"></span>#6E6879</td></tr>
+  <tr><td>Texto sobre oscuro</td><td>texto claro</td><td class="num"><span class="muestra" style="background:#EEEDF2"></span>#EEEDF2</td></tr>
+  <tr><td>Texto secundario oscuro</td><td>apagado claro</td><td class="num"><span class="muestra" style="background:#A29EB1"></span>#A29EB1</td></tr>
+</table></div>
+
+<div class="aviso peligro">
+  <p><b>Trampa de contraste, ya nos mordió una vez.</b> El naranja corporativo <code>#F79131</code>
+     sobre blanco da <b>2,32:1</b> de contraste. El mínimo legible es 4,5:1. <b>No se puede usar
+     como color de texto sobre fondo claro.</b> Para eso existe <code>#B35E0A</code>, que da 4,64:1.
+     Sobre fondo oscuro el naranja vivo sí funciona y es el acento principal.</p>
+</div>
+
+<h3>Tipografía</h3>
+<ul>
+  <li><b>Títulos:</b> Montserrat, pesos 700 y 800. Es la tipografía de la marca.</li>
+  <li><b>Texto:</b> Segoe UI con respaldo a Roboto, Helvetica, Arial. Deliberadamente una pila de
+      sistema: <b>el correo no puede cargar tipografías web de forma fiable</b>, así que el cuerpo
+      se ve con lo que tenga instalado el lector. Montserrat se declara igual, y cae al respaldo
+      cuando no está; la jerarquía aguanta porque descansa en tamaño y peso, no en la forma de la
+      letra.</li>
+</ul>
+
+<h3>El logotipo, y un detalle que cuesta caro</h3>
+<p>Hay tres variantes, todas en PNG a doble resolución (se muestran a la mitad de su tamaño real
+   para que no se vean blandas en pantallas densas):</p>
+<div class="tabla"><table>
+  <tr><th>Fichero</th><th>Fondo horneado</th><th>Usar sobre</th></tr>
+  <tr><td><code>logo_h_light_2x.png</code></td><td class="num">#FFFFFF</td><td>fondos claros</td></tr>
+  <tr><td><code>logo_h_dark_2x.png</code></td><td class="num">#16141D</td><td>paneles tinta</td></tr>
+  <tr><td><code>logo_h_black_2x.png</code></td><td class="num">#0F0E13</td><td>fondos negros</td></tr>
+</table></div>
+<p>El PNG <b>no tiene transparencia real</b>: lleva el fondo pintado dentro. La razón es que
+   Outlook no compone transparencias con fiabilidad. La consecuencia práctica: <b>el fondo del
+   logotipo y el de la sección donde se coloca tienen que coincidir exactamente</b>. Siete
+   unidades de diferencia entre <code>#16141D</code> y <code>#0F0E13</code> bastan para que se vea
+   un recuadro alrededor del logo. Pasó, y hubo que generar la tercera variante.</p>
+<p>Bajo el logotipo van siempre dos líneas: <b>«Visibilidad que conecta»</b> (el eslogan, en morado)
+   y <b>«PHYGITAL DOOH + Digital»</b> (la línea de servicios, en naranja, en mayúsculas y con
+   espaciado amplio).</p>
+
+<h2><span class="n">2</span> · Las reglas del medio</h2>
+
+<p>Esto es lo que separa un correo que funciona de uno que se rompe. No son preferencias
+   estéticas; son límites de los programas de correo.</p>
+
+<div class="tabla"><table>
+  <tr><th>Regla</th><th>Por qué</th></tr>
+  <tr><td>Maquetación con <b>tablas anidadas</b></td><td>Outlook usa el motor de Word para renderizar. No entiende flexbox ni grid.</td></tr>
+  <tr><td>CSS <b>100 % en línea</b>, en el atributo <code>style</code></td><td>Gmail elimina los bloques <code>&lt;style&gt;</code> y no admite clases ni hojas externas.</td></tr>
+  <tr><td>Ancho máximo <b>600 px</b></td><td>Es el ancho seguro del panel de lectura en escritorio.</td></tr>
+  <tr><td><b>Cero JavaScript</b></td><td>Ningún programa de correo lo ejecuta. Ninguno.</td></tr>
+  <tr><td>Fondos con <code>bgcolor</code> <b>y</b> <code>style</code> a la vez</td><td>Outlook lee el atributo; el resto lee el estilo. Hacen falta los dos.</td></tr>
+  <tr><td>Nada de posicionamiento absoluto</td><td>No existe en el motor de Outlook. Texto sobre foto se hace con celdas contiguas, no superponiendo.</td></tr>
+  <tr><td>Sin <code>@media</code> fiable</td><td>Muchos clientes lo ignoran. El diseño tiene que funcionar a un solo ancho.</td></tr>
+  <tr><td>Animación solo en <b>GIF</b></td><td>Las animaciones CSS no llegan a Gmail ni a Outlook. El GIF es lo único que se mueve en todos.</td></tr>
+</table></div>
+
+<div class="aviso peligro">
+  <p><b>La restricción que más condiciona el diseño: las imágenes vienen bloqueadas por defecto</b>
+     en Outlook y en muchas configuraciones de Gmail. El destinatario ve el correo sin ninguna
+     foto hasta que pulsa «mostrar imágenes», y muchos no lo pulsan nunca.</p>
+  <p>Consecuencia: <b>todo dato importante tiene que ser texto HTML real</b>, no parte de una
+     imagen. Y cada <code>&lt;img&gt;</code> lleva un texto alternativo útil con su propio tamaño y
+     color, para que el hueco se lea como información y no como un rectángulo vacío. Un diseño
+     donde las fotos cargan el 80 % del peso visual tiene que seguir teniendo sentido sin ellas.</p>
+</div>
+
+<div class="aviso">
+  <p><b>Con GIF hay una regla más:</b> Outlook <b>solo muestra el primer fotograma</b> y descarta
+     el resto. Así que el fotograma 0 tiene que ser el estado final y acabado, nunca el principio
+     del movimiento. Si la animación arranca desde vacío, medio público ve un hueco.</p>
+</div>
+
+<h2><span class="n">3</span> · Los cuatro formatos</h2>
+
+<p>El mismo contenido se sirve en cuatro formatos. La persona que manda el correo elige uno según
+   el caso.</p>
+
+<div class="tabla"><table>
+  <tr><th>Formato</th><th>Qué es</th><th>Cuándo se usa</th></tr>
+  <tr><td><b>A · Cartelera</b></td><td>Oscura, misma identidad que las presentaciones de la empresa. Fichas apiladas con foto a la izquierda.</td><td>Primer envío a un contacto nuevo.</td></tr>
+  <tr><td><b>B · Catálogo</b></td><td>Clara, tarjetas en dos columnas.</td><td>Lectura rápida, cuando el cliente quiere comparar de un vistazo.</td></tr>
+  <tr><td><b>C · Nota</b></td><td>Compacta, sin adornos, parece escrita a mano. 10 KB.</td><td>Responder dentro del hilo de un correo entrante.</td></tr>
+  <tr><td><b>D · Cartelera móvil</b></td><td>Una columna, foto grande arriba, tipografía grande, un solo botón.</td><td>Cuando se sabe que el destinatario lee en el teléfono.</td></tr>
+</table></div>
+
+<h3>El eje de perfil: lo que multiplica el sistema</h3>
+<p>Además del formato hay un segundo eje independiente, el <b>perfil del destinatario</b>. El
+   formato decide <b>cómo se ve</b>; el perfil decide <b>qué se dice</b>. Se multiplican: cuatro
+   por cuatro son dieciséis correos distintos con un solo sistema.</p>
+
+<div class="tabla"><table>
+  <tr><th>Perfil</th><th>Ángulo</th><th>Bloque propio que añade</th></tr>
+  <tr><td><b>General</b></td><td>Catálogo completo, sin segmentar.</td><td>ninguno</td></tr>
+  <tr><td><b>Agencias y grandes cuentas</b></td><td>Datos primero, sin rodeos. Una agencia no compra inspiración, compra fichas técnicas comparables.</td><td>Tabla de disponibilidad con medidas y tráfico</td></tr>
+  <tr><td><b>Cliente nuevo</b></td><td>Nunca ha comprado exterior y no sabe por dónde empezar.</td><td>Escalera de tres pasos: que te conozcan, que te recuerden, que te encuentren</td></tr>
+  <tr><td><b>Phygital</b></td><td>La pantalla capta, el móvil cierra.</td><td>Diagrama calle a puente a móvil</td></tr>
+</table></div>
+
+<p>Cada perfil reescribe además el asunto, el titular, la introducción, el cierre y el texto del
+   botón, y <b>reordena los espacios</b>: la agencia ve primero las pantallas LED; el cliente nuevo
+   ve primero el tótem, que es lo más asequible.</p>
+
+<div class="aviso">
+  <p><b>Decisión de arquitectura que conviene respetar:</b> el perfil se aplica sobre una copia
+     del contenido al generar el correo, no sobre el guardado. Así, cambiar de perfil nunca borra
+     lo que la persona haya escrito a mano. Si se rediseña el sistema, esta propiedad debe
+     conservarse.</p>
+</div>
+
+<h2><span class="n">4</span> · El contenido real</h2>
+
+<p>Cinco espacios publicitarios. Los datos salen de las presentaciones de la empresa. <b>No se
+   inventan cifras</b>: si un espacio no tiene un dato, se dice que no lo tiene.</p>
+
+<div class="tabla"><table>
+  <tr><th>Espacio</th><th>Epígrafe</th><th>Ubicación</th><th>Medida</th><th>Tráfico</th></tr>
+  <tr><td><b>Pantallas LED (DOOH)</b></td><td>Digital outdoor</td><td>Chacao, Av. F. de Miranda</td><td class="num">4 × 8 m</td><td class="num">120.000 impactos/día</td></tr>
+  <tr><td><b>Vallas (OOH)</b></td><td>Publicidad exterior</td><td>Caracas y nivel nacional</td><td>Gran formato</td><td>Alta rotación vial</td></tr>
+  <tr><td><b>Tótem digital</b></td><td>Outdoor · Indoor</td><td>C.C. San Ignacio</td><td class="num">1440 × 2560 px</td><td class="num">240 salidas/día</td></tr>
+  <tr><td><b>Paradas en Caracas</b></td><td>Mobiliario urbano</td><td>Las Mercedes, Av. Libertador</td><td class="num">2 × 2,4 m</td><td class="num">34.000 spots/mes</td></tr>
+  <tr><td><b>Publicidad móvil · Rider Clon</b></td><td>Movilidad</td><td>Caracas, San Antonio, Valencia</td><td class="num">42 × 59 cm</td><td class="num">250 motos · 8 h/día</td></tr>
+</table></div>
+
+<div class="aviso peligro">
+  <p><b>Cuidado al comparar estas cifras en un gráfico.</b> Las unidades son distintas:
+     impactos/día, salidas/día, spots/mes, motos por horas. Ponerlas en un mismo eje quedaría muy
+     vistoso y <b>sería mentir con un gráfico</b>. Si se comparan, hay que etiquetar la unidad de
+     cada una y decir por escrito que no están en escala común. Y Vallas no tiene cifra: se deja
+     vacía, no se le inventa una.</p>
+</div>
+
+<h3>Precios</h3>
+<p>Existe un modo opcional que muestra un precio de entrada por espacio. Está <b>apagado por
+   defecto</b>. Cuando se enciende, el espacio sin tarifa confirmada dice <b>«a cotizar»</b>, nunca
+   un importe estimado. Un precio inventado en un correo comercial es una oferta.</p>
+
+<h3>Contacto (dato vigente, no cambiar sin confirmar)</h3>
+<ul>
+  <li>Elizabeth Quintero, Alianzas Comerciales, Centauro ADS</li>
+  <li><code>equintero@centauroads.com</code> · <code>+58 412 100 3559</code></li>
+  <li>Correo general del pie: <code>mercadeo@centauroads.com</code></li>
+  <li><code>@centauroads</code> · <code>linktr.ee/centauroadss</code> · Caracas, Venezuela</li>
+</ul>
+
+<h2><span class="n">5</span> · Los errores cometidos</h2>
+
+<p>Este es el apartado más útil del documento. Cada uno de estos fallos llegó al cliente y hubo
+   que corregirlo. Conocerlos ahorra repetirlos.</p>
+
+<div class="fallo">
+  <h3>El rediseño que parecía nuevo y era un patrón de manual</h3>
+  <p class="porque">Se propuso una plantilla con cinco bandas anchas alternando foto a la
+     izquierda y foto a la derecha, presentada como «vanguardista». El cliente la rechazó. Tenía
+     razón: alternar imagen y texto es <b>el patrón editorial más repetido que existe</b>. Las
+     guías de diseño lo marcan como error a partir de la tercera sección consecutiva.</p>
+  <p class="leccion">Lección: si una composición se puede describir en cinco palabras que valdrían
+     para cualquier página («bandas alternando foto y texto»), no es una idea, es un molde. Cada
+     familia de composición debe usarse <b>una sola vez</b> en la pieza.</p>
+</div>
+
+<div class="fallo">
+  <h3>Tarjetas de distinta altura y huecos en blanco</h3>
+  <p class="porque">En el catálogo de dos columnas, un espacio lleva una línea de descripción y
+     otro lleva tres. Las tarjetas terminaban a alturas distintas y el borde inferior quedaba
+     descuadrado. No era culpa de las fotos: todas son 1200 × 800.</p>
+  <p class="leccion">Lección: en una retícula, la altura la fija <b>el contenido más largo</b>. O
+     se reserva ese espacio por construcción, o el diseño se rompe con el primer texto que no
+     encaja. Y antes de culpar a las imágenes, conviene medirlas.</p>
+</div>
+
+<div class="fallo">
+  <h3>Una etiqueta que sobresalía de su foto</h3>
+  <p class="porque">Se diseñó una cinta promocional con dos partes una al lado de otra. En un
+     hueco de 228 px el texto no cabía, la tabla se ensanchaba sola y la cinta sobresalía de la
+     foto. Parecía un error de montaje.</p>
+  <p class="leccion">Lección: en correo no hay reflujo inteligente. Si un elemento tiene que caber
+     en anchos distintos, hay que <b>diseñar su versión estrecha explícitamente</b> (aquí:
+     apilando las dos partes), no confiar en que se encoja.</p>
+</div>
+
+<div class="fallo">
+  <h3>Una etiqueta invisible sobre fondo oscuro</h3>
+  <p class="porque">La parte de la fecha iba en tinta casi negra. Sobre las plantillas oscuras se
+     fundía con el fondo y parecía texto suelto en vez de un sello.</p>
+  <p class="leccion">Lección: cada color se prueba <b>sobre los dos fondos</b>, claro y oscuro.
+     Aquí se resolvió pasándola al morado corporativo, que se lee como bloque en ambos.</p>
+</div>
+
+<div class="fallo">
+  <h3>Un recuadro alrededor del logotipo</h3>
+  <p class="porque">Ya explicado en el apartado 1: el PNG lleva su fondo pintado dentro y se
+     colocó sobre un negro ligeramente distinto.</p>
+  <p class="leccion">Lección: con logotipos sin transparencia, el fondo de la sección es parte de
+     la especificación del logotipo, no una decisión libre.</p>
+</div>
+
+<div class="fallo">
+  <h3>Contenido superpuesto sobre una foto, a ojo</h3>
+  <p class="porque">Se colocaron piezas «dentro» de la pantalla LED de una fotografía usando un
+     rectángulo recto estimado a ojo. Quedó 29 px alto y 15 px ancho de más, y sin perspectiva. El
+     cliente lo vio descuadrado. Solo se había revisado en una vista reducida.</p>
+  <p class="leccion">Lección: una pantalla fotografiada casi nunca es un rectángulo recto. Hay que
+     medir las cuatro esquinas reales y proyectar con perspectiva. Y revisar a tamaño completo,
+     porque un desajuste de 20 px desaparece en una miniatura y salta a la vista en pantalla.</p>
+</div>
+
+<div class="fallo">
+  <h3>Transiciones que se veían como saltos</h3>
+  <p class="porque">Un carrusel en GIF a 8 fotogramas por segundo con transiciones de 0,55 s:
+     cuatro pasos visibles por transición. Se percibía como un salto, no como un movimiento.</p>
+  <p class="leccion">Lección: en GIF, la fluidez depende del producto de duración por fotogramas
+     por segundo. Se resolvió alargando la transición a 1,3 s y subiendo a 15 fps con tasa
+     variable, que además mantuvo el peso bajo.</p>
+</div>
+
+<div class="fallo">
+  <h3>Datos de contacto retirados que reaparecían</h3>
+  <p class="porque">Un teléfono y un correo antiguos volvieron a aparecer dos veces después de
+     haberlos corregido, porque existían copias desactualizadas del contenido y porque el estado
+     guardado en el navegador tenía prioridad sobre las correcciones.</p>
+  <p class="leccion">Lección: <b>una sola fuente de verdad</b> para el contenido. Y una
+     comprobación automática que impida publicar si aparece un dato retirado. Cuando hay dos
+     copias de un texto, una de las dos está mal y nadie sabe cuál.</p>
+</div>
+
+<h2><span class="n">6</span> · Lista de verificación antes de dar por buena una pieza</h2>
+
+<ol>
+  <li><b>Verla renderizada</b>, no leer el código. Casi todos los fallos anteriores pasaron la
+      revisión del código y fallaron al verse.</li>
+  <li><b>A 600 px</b> (escritorio) <b>y a 375 px</b> (móvil).</li>
+  <li><b>Con las imágenes bloqueadas.</b> ¿Sigue leyéndose? ¿Se reconoce la marca?</li>
+  <li><b>Contraste:</b> 4,5:1 en texto normal, 3:1 en texto grande. Recordar que el naranja
+      corporativo no vale sobre blanco.</li>
+  <li><b>Nada se sale de su caja</b> a ningún ancho. Sin barras de desplazamiento horizontales.</li>
+  <li><b>Los datos importantes son texto</b>, no parte de una imagen.</li>
+  <li><b>Si hay GIF:</b> el primer fotograma es el estado final y acabado.</li>
+  <li><b>Ninguna cifra inventada</b> y ninguna comparación entre unidades distintas.</li>
+  <li><b>Cada familia de composición, una sola vez.</b> Máximo dos secciones seguidas con el
+      patrón foto al lado de texto.</li>
+</ol>
+
+<h2><span class="n">7</span> · Los materiales</h2>
+
+<p>Las fotos y el logotipo están publicados y se pueden usar directamente por su dirección. Todas
+   las fotos son <b>1200 × 800</b> (proporción 3:2).</p>
+
+<div class="tabla"><table>
+  <tr><th>Qué</th><th>Dirección</th></tr>
+  <tr><td>Carpeta de materiales</td><td><code>https://links.centauroads.com/static/email/</code></td></tr>
+  <tr><td>Fotos de los espacios</td><td><code>svc_led.jpg</code>, <code>svc_vallas.jpg</code>, <code>svc_totem.jpg</code>, <code>svc_paradas.jpg</code>, <code>svc_rider.jpg</code></td></tr>
+  <tr><td>Logotipos</td><td><code>logo_h_light_2x.png</code>, <code>logo_h_dark_2x.png</code>, <code>logo_h_black_2x.png</code></td></tr>
+</table></div>
+
+<p>Hay además dos juegos de imagen intercambiables: <b>fotos reales del inventario</b> (el que se
+   usa) y <b>portadas de las presentaciones de Canva</b>. El sistema permite cambiar de uno a otro
+   sin tocar el diseño.</p>
+
+<h3>Cómo se generan los correos</h3>
+<p>Un único motor genera los cuatro formatos a partir del mismo contenido. Hay un compositor web
+   donde se elige formato, perfil, espacios activos y destinatario, se ve la vista previa y se
+   copia el correo listo para pegar en Gmail. <b>Los ficheros HTML de las plantillas son
+   resultado, no fuente</b>: se regeneran, así que editarlos a mano no sirve de nada.</p>
+<p>Para el rediseño esto significa que <b>el entregable ideal no es un archivo de Figma</b>, sino
+   la especificación suficiente para reconstruir el generador: composición, escalas tipográficas,
+   espaciados, y qué cambia en cada formato y perfil.</p>
+
+<h2><span class="n">8</span> · Pendiente de confirmar</h2>
+
+<p>Tres cosas siguen sin cerrar. Conviene saberlo antes de diseñar alrededor de ellas:</p>
+<ul>
+  <li><b>Precios.</b> Las tarifas de entrada no están confirmadas para uso comercial. El modo de
+      precios existe pero no debe encenderse hasta tener el visto bueno.</li>
+  <li><b>Marcas cliente.</b> Hay un bloque de prueba social con nombres de marcas conocidas,
+      construido pero <b>apagado</b>, a la espera de permiso para nombrarlas.</li>
+  <li><b>Material de terceros.</b> Algunos fotogramas proceden de un vídeo de un tercero y siguen
+      con su marca de agua. Falta el permiso de uso comercial.</li>
+</ul>
+
+<footer>
+  <p><b>Qué se espera del rediseño.</b> Que las piezas sigan cumpliendo todo el apartado 2 y pasen
+     la lista del apartado 6, y que aporten una idea de composición que no se pueda describir con
+     una fórmula genérica. Las restricciones del correo son duras, pero dentro de ellas hay mucho
+     más margen del que se ha aprovechado hasta ahora.</p>
+  <p>Documento preparado para revisión externa. Los valores de marca, el contenido y las cifras
+     son los que están hoy en producción.</p>
+</footer>
+
+</div>
+</body>
+</html>
