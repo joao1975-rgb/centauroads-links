@@ -1168,13 +1168,14 @@
       'padding:26px 32px 22px 32px;background:' + k.panel + ';'));
 
     P.push(row(
-      epigrafe(st, 'Primera vez anunciando afuera', k.acento) +
       '<div style="font-family:' + FH + ';font-size:36px;line-height:1.06;font-weight:800;letter-spacing:-.03em;color:' + k.texto + ';">' +
         'Que te conozcan. <span style="color:' + k.acento + ';">Que te recuerden.</span> Que te compren.</div>' +
       '<div style="font-family:' + FB + ';font-size:15px;line-height:1.6;color:' + k.apagado + ';padding:16px 0 0 0;">' +
         'Esa es la secuencia. Tres fases, en ese orden, es c\u00f3mo crecen las marcas que aparecen en las calles de ' +
         'Caracas. Te la explicamos sin tecnicismos y sin comprometerte a nada.</div>',
-      pad + 'padding-bottom:26px;'));
+      // El aire de arriba lo daba el epigrafe que habia aqui. Al quitarlo, el titular de
+      // 36 px se quedaba a 22 px de la cabecera; esto le devuelve el respiro.
+      pad + 'padding-top:12px;padding-bottom:26px;'));
 
     if (on(st, 'saludo')) {
       P.push(row(
@@ -1197,7 +1198,7 @@
         svcTxt: '240 salidas/d\u00eda en un centro comercial premium. Audiencia atenta, presupuesto de entrada.' },
       { n: '02', fase: 'Fase de memoria', tit: 'Que te recuerden', id: 'led',
         txt: 'Cuando ya te conocen, tu marca se instala en <b>las calles que tu cliente recorre todos los d\u00edas</b>. ' +
-             'Vallas y pantallas LED trabajando juntas: cuando piense en lo que vendes, aparecer\u00e1s t\u00fa.',
+             'Vallas y pantallas LED trabajando juntas: y cuando piensen en lo que vendes, aparecer\u00e1s t\u00fa.',
         tag: 'Combinamos con la fase 1', svcTit: 'Pantalla LED \u00b7 Chacao',
         svcTxt: '120.000 impactos/d\u00eda en la arteria de mayor rotaci\u00f3n de Caracas Este.' },
       { n: '03', fase: 'Fase de decisi\u00f3n', tit: 'Que te compren', id: 'rider',
