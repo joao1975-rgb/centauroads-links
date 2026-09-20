@@ -408,7 +408,7 @@
   //
   // Cuando van las dos, el naranja (el premio) tira a la izquierda y la tinta oscura (la prisa)
   // cierra a la derecha. Esa tensión es el efecto buscado.
-  function cintaEtiquetas(st, arriba) {
+  function cintaEtiquetas(st, arriba, ancho) {
     if (!on(st, 'etiquetas')) return '';
     const e = B(st, 'etiquetas');
     const dto = e.descuentoOn && String(e.descuento || '').trim();
@@ -434,20 +434,38 @@
       ) + '</td>';
 
     // Celda de la fecha: más pequeña, deliberadamente. Es el contrapunto, no el titular.
-    const celdaFecha = '<td align="center" bgcolor="' + C.ink + '" valign="middle" style="background:' + C.ink + ';padding:8px 8px;' +
+    //
+    // Va en morado corporativo y no en tinta casi negra: sobre las plantillas oscuras el negro se
+    // fundía con el fondo y la etiqueta parecía texto suelto en vez de un sello. El morado se lee
+    // como bloque en claro y en oscuro, y junto al naranja deja el par de la marca. El lila del
+    // rótulo da 5,5:1 sobre el morado; el naranja que había antes daba 2,6:1 y no pasaba.
+    const celdaFecha = '<td align="center" bgcolor="' + C.purple + '" valign="middle" style="background:' + C.purple + ';padding:8px 8px;' +
       (dto ? '' : radio) + '">' +
       dosLineas(
-        { txt: 'solo hasta el', estilo: 'font-size:9px;letter-spacing:.16em;color:' + C.orange + ';' },
+        { txt: 'solo hasta el', estilo: 'font-size:9px;letter-spacing:.16em;color:#E8D5EF;' },
         { txt: esc(fecha), estilo: 'font-size:14px;letter-spacing:.01em;color:#FFFFFF;' }
       ) + '</td>';
 
-    const celdas = (dto ? celdaDto : '') + (fecha ? celdaFecha : '');
-    const anchos = dto && fecha
-      ? '<tr>' + celdaDto.replace('<td ', '<td width="52%" ') + celdaFecha.replace('<td ', '<td width="48%" ') + '</tr>'
-      : '<tr>' + celdas + '</tr>';
+    // Con las dos etiquetas lado a lado hacen falta unos 250 px de hueco. Por debajo de eso el
+    // texto no cabe, la tabla se ensancha por su cuenta y la cinta sobresale de la foto: parecía
+    // un error de montaje. Cuando el sitio es estrecho se apilan, y así la tipografía puede
+    // seguir siendo grande, que es de lo que va una etiqueta promocional.
+    const apilar = !!(ancho && ancho <= 250 && dto && fecha);
 
-    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="' + radio + '">' +
-      anchos + '</table>';
+    let filas;
+    if (apilar) {
+      filas = '<tr>' + celdaDto.replace('<td ', '<td width="100%" ') + '</tr>' +
+              '<tr>' + celdaFecha.replace('<td ', '<td width="100%" ') + '</tr>';
+    } else if (dto && fecha) {
+      filas = '<tr>' + celdaDto.replace('<td ', '<td width="52%" ') +
+                       celdaFecha.replace('<td ', '<td width="48%" ') + '</tr>';
+    } else {
+      filas = '<tr>' + (dto ? celdaDto : celdaFecha) + '</tr>';
+    }
+
+    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"' +
+      ' style="' + (ancho ? 'width:' + ancho + 'px;max-width:100%;' : '') + radio + '">' +
+      filas + '</table>';
   }
 
   // Versión para fondo oscuro: la cinta es la misma, pero la fecha usa el gris de las plantillas
@@ -568,7 +586,7 @@
       const card = (s, w) => '<table role="presentation" width="' + w + '" cellpadding="0" cellspacing="0" border="0" style="width:' + w + 'px;max-width:100%;">' +
         '<tr><td style="border:1px solid ' + C.rule + ';border-top:0;border-radius:8px;overflow:hidden;background:' + C.paper + ';">' +
         '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">' +
-        (on(st, 'etiquetas') ? '<tr><td style="font-size:0;line-height:0;">' + cintaEtiquetas(st, true) + '</td></tr>' : '') +
+        (on(st, 'etiquetas') ? '<tr><td style="font-size:0;line-height:0;">' + cintaEtiquetas(st, true, w) + '</td></tr>' : '') +
         '<tr><td style="font-size:0;line-height:0;">' + foto(s, w) + '</td></tr>' +
         '<tr><td height="' + ALTO_TEXTO + '" valign="top" style="height:' + ALTO_TEXTO + 'px;padding:12px 14px 14px 14px;">' + textos(s) + '</td></tr>' +
         '</table></td></tr></table>';
@@ -580,7 +598,7 @@
         '<tr><td style="border:1px solid ' + C.rule + ';border-radius:8px;overflow:hidden;background:' + C.sand + ';">' +
         '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
         '<td width="240" valign="top" style="font-size:0;line-height:0;width:240px;">' +
-          (on(st, 'etiquetas') ? cintaEtiquetas(st, true) : '') + foto(s, 240) + '</td>' +
+          (on(st, 'etiquetas') ? cintaEtiquetas(st, true, 240) : '') + foto(s, 240) + '</td>' +
         '<td valign="top" style="padding:16px 18px;">' + textos(s) +
           (cintaTexto(st) ? '<div style="font-family:' + FH + ';font-size:11px;font-weight:800;letter-spacing:.10em;text-transform:uppercase;color:' + C.orangeInk + ';padding:10px 0 0 0;">' + esc(cintaTexto(st)) + '</div>' : '') +
         '</td>' +
@@ -816,7 +834,7 @@
 
       const foto = '<td width="228" valign="top" style="width:228px;font-size:0;line-height:0;padding:0;">' +
         '<table role="presentation" width="228" cellpadding="0" cellspacing="0" border="0" style="width:228px;">' +
-        (on(st, 'etiquetas') ? '<tr><td style="font-size:0;line-height:0;">' + cintaEtiquetas(st, true) + '</td></tr>' : '') +
+        (on(st, 'etiquetas') ? '<tr><td style="font-size:0;line-height:0;">' + cintaEtiquetas(st, true, 228) + '</td></tr>' : '') +
         '<tr><td style="font-size:0;line-height:0;">' +
         '<a href="' + esc(linkFor(st, s)) + '"><img src="' + esc(st.cardAnim && !usaPortadas(st) ? imgFor(st, 'carousel_' + s.id + '.gif') : svcImg(st, s)) + '" width="228" height="152" alt="' + esc(svcAlt(st, s)) + '" style="display:block;width:228px;max-width:100%;height:auto;border-radius:6px;color:' + C.textDark + ';font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:18px;"></a>' +
         '</td></tr></table></td>';

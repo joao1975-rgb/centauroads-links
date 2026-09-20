@@ -1,28 +1,166 @@
 <!doctype html><meta charset="utf-8"><title>Plantillas de email Centauro ADS</title>
 <style>
-body{margin:0;background:#1c1b22;color:#eee;font-family:Segoe UI,Roboto,Arial,sans-serif}
-header{padding:14px 20px;background:#0F0E13;border-bottom:1px solid #333;font-size:14px}
-header b{color:#F79131}
-.row{display:flex;gap:18px;padding:18px;overflow-x:auto;align-items:flex-start}
-.col{flex:0 0 auto}
-.col h2{font-size:14px;margin:0 0 6px;font-weight:700}
-.col h2 span{color:#B98BCB;font-weight:400;margin-left:8px}
-iframe{border:0;background:#fff;border-radius:6px;box-shadow:0 8px 30px rgba(0,0,0,.5)}
-nav{position:sticky;top:0;z-index:5;display:flex;gap:6px;padding:8px 12px;background:#0F0E13;border-bottom:1px solid #333;overflow-x:auto}
-nav a{color:#eee;text-decoration:none;font-size:13px;font-weight:700;padding:6px 12px;border:1px solid #F79131;border-radius:20px;white-space:nowrap}
-nav a:hover{background:#F79131;color:#0F0E13}
-@media (max-width: 1000px){ .row{flex-direction:column;padding:12px} .col{width:100%} iframe{width:100% !important;height:1500px} }
+  :root{
+    --bg:#15141B; --panel:#0F0E13; --linea:#2D2B3A;
+    --texto:#EEEDF2; --tenue:#A29EB1; --morado:#B98BCB; --naranja:#F79131;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--texto);
+       font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5}
+  header{padding:18px 22px;background:var(--panel);border-bottom:1px solid var(--linea)}
+  header h1{margin:0;font-size:17px;letter-spacing:-.01em}
+  header h1 b{color:var(--naranja)}
+  header p{margin:6px 0 0;color:var(--tenue);font-size:13px;max-width:78ch}
+  nav{position:sticky;top:0;z-index:5;display:flex;gap:6px;flex-wrap:wrap;
+      padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--linea)}
+  nav a{color:var(--texto);text-decoration:none;font-size:12px;font-weight:700;
+        padding:6px 13px;border:1px solid var(--linea);border-radius:20px;white-space:nowrap;
+        transition:background .12s,color .12s,border-color .12s}
+  nav a:hover{background:var(--naranja);color:#141016;border-color:var(--naranja)}
+  nav a.nuevo{border-color:var(--naranja);color:var(--naranja)}
+  nav a.nuevo:hover{color:#141016}
+
+  section{padding:26px 22px 8px}
+  section>h2{margin:0;font-size:22px;letter-spacing:-.02em}
+  section>h2 em{font-style:normal;color:var(--naranja)}
+  section>p{margin:8px 0 0;color:var(--tenue);max-width:80ch}
+  section>p b{color:var(--texto);font-weight:600}
+  .nota{margin-top:10px;padding:10px 14px;border-left:3px solid var(--morado);
+        background:rgba(133,67,154,.12);color:var(--texto);font-size:13px;max-width:80ch}
+
+  .fila{display:flex;gap:20px;padding:16px 22px 30px;overflow-x:auto;align-items:flex-start}
+  .col{flex:0 0 auto}
+  .col h3{margin:0 0 4px;font-size:13px;font-weight:700}
+  .col .pie{margin:0 0 8px;color:var(--tenue);font-size:12px}
+  iframe{border:0;background:#fff;border-radius:8px;box-shadow:0 10px 34px rgba(0,0,0,.55);display:block}
+  hr{border:0;border-top:1px solid var(--linea);margin:0}
+  @media (max-width:1000px){
+    .fila{flex-direction:column;padding:12px}
+    .col{width:100%}
+    iframe{width:100%!important;height:1400px}
+  }
 </style>
-<header><b>Centauro ADS · Mails de servicios</b> — los 4 modelos con el contenido por defecto (fotos reales del inventario). Cada uno a 600 px de ancho; <b>C Nota</b> es la plantilla para <b>respuestas en hilo (N1)</b>.</header>
-<nav id="nav"><a href="#c">C · Nota</a><a href="#d">D · Móvil</a><a href="#a">A · Cartelera</a><a href="#b">B · Catálogo</a><a href="muestrario/index.html">Muestrario</a></nav>
-<div class="row">
-<div class="col" id="c"><h2>C · Nota<span>respuesta en hilo · sin animación · 9 KB</span></h2><iframe src="plantilla-C-nota.html" width="620" height="1500" loading="lazy"></iframe></div>
-<div class="col" id="d"><h2>D · Cartelera móvil<span>pantalla de Chacao en vivo · 242 KB</span></h2><iframe src="plantilla-D-movil.html" width="620" height="1500" loading="lazy"></iframe></div>
-<div class="col" id="a"><h2>A · Cartelera<span>carrusel de 3 fotos por servicio</span></h2><iframe src="plantilla-A-cartelera.html" width="620" height="1500" loading="lazy"></iframe></div>
-<div class="col" id="b"><h2>B · Catálogo<span>2 columnas · carrusel por tarjeta</span></h2><iframe src="plantilla-B-catalogo.html" width="620" height="1500" loading="lazy"></iframe></div>
+
+<header>
+  <h1><b>Centauro ADS</b> · Plantillas de correo</h1>
+  <p>Cada muestra es el correo real, a 600 px de ancho, con las imágenes servidas desde producción.
+     Lo nuevo va primero. Los enlaces abren en pestaña nueva.</p>
+</header>
+
+<nav>
+  <a class="nuevo" href="#e">★ E · Marquesina (nueva)</a>
+  <a class="nuevo" href="#etq">★ Etiquetas</a>
+  <a class="nuevo" href="#b">★ B corregido</a>
+  <a href="#resto">A · C · D</a>
+  <a href="compositor.html">Abrir el compositor</a>
+</nav>
+
+<section id="e">
+  <h2>1. <em>Marquesina</em> — la propuesta nueva</h2>
+  <p>A, B y D son variaciones de lo mismo: una rejilla de fichas de producto. Aquí se
+     <b>invierte la jerarquía: manda el dato, no el nombre.</b> Quien compra exterior compara
+     impactos por día, no títulos, así que el número va grande y en naranja, y el nombre del
+     espacio debajo, pequeño.</p>
+  <p>La composición imita al propio medio: <b>bandas anchas que alternan izquierda y derecha</b>,
+     como vallas que van pasando, separadas por un filete morado→naranja que hace de eje. Sin
+     tarjetas, sin cajas iguales, sin rejilla. Cierra con una barra naranja a sangre, el único
+     naranja grande del correo.</p>
+  <div class="nota">Pendiente de revisar a ancho de móvil y con las imágenes bloqueadas antes de
+     darla por buena. Dime si el diseño te convence y lo remato.</div>
+</section>
+<div class="fila">
+  <div class="col">
+    <h3>E · Marquesina</h3>
+    <p class="pie">sin etiquetas · 21 KB</p>
+    <iframe src="demo-E.html" width="620" height="1600" loading="lazy"></iframe>
+  </div>
+  <div class="col">
+    <h3>E · Marquesina con etiquetas</h3>
+    <p class="pie">descuento + fecha límite</p>
+    <iframe src="demo-E-etq.html" width="620" height="1600" loading="lazy"></iframe>
+  </div>
 </div>
+<hr>
+
+<section id="etq">
+  <h2>2. <em>Etiquetas promocionales</em> — las tres combinaciones</h2>
+  <p>Cada una tiene su interruptor: puedes llevar <b>las dos, solo el descuento o solo la
+     fecha</b>. Naranja corporativo para el premio, tinta oscura para la prisa.</p>
+  <p>Van pegadas al borde de la foto como una cinta, no flotando encima: el posicionamiento
+     absoluto sobre una imagen <b>se rompe en Outlook</b>, y una promoción que no se ve en la
+     mitad de los clientes de correo no es una promoción.</p>
+  <div class="nota">El <b>31/10/2026</b> es un valor de ejemplo. Cámbialo por la fecha real en el
+     compositor antes de enviar nada.</div>
+</section>
+<div class="fila">
+  <div class="col">
+    <h3>Las dos</h3>
+    <p class="pie">descuento + fecha</p>
+    <iframe src="demo-B-etq.html" width="620" height="1250" loading="lazy"></iframe>
+  </div>
+  <div class="col">
+    <h3>Solo el descuento</h3>
+    <p class="pie">la cinta ocupa todo el ancho</p>
+    <iframe src="demo-B-dto.html" width="620" height="1250" loading="lazy"></iframe>
+  </div>
+  <div class="col">
+    <h3>Solo la fecha límite</h3>
+    <p class="pie">sin mencionar precio</p>
+    <iframe src="demo-B-fecha.html" width="620" height="1250" loading="lazy"></iframe>
+  </div>
+  <div class="col">
+    <h3>También en A · Cartelera</h3>
+    <p class="pie">la cinta funciona en todos los formatos</p>
+    <iframe src="demo-A-etq.html" width="620" height="1250" loading="lazy"></iframe>
+  </div>
+</div>
+<hr>
+
+<section id="b">
+  <h2>3. <em>Catálogo B</em> — corregido</h2>
+  <p>El problema no eran las fotos: <b>todas son 1200×800</b>. Era el texto. «Vallas» lleva una
+     línea de descripción y «Pantallas LED» tres, así que una tarjeta acababa antes que la otra y
+     dejaba el hueco blanco con el borde inferior desalineado. Y la quinta, sola en fila impar, se
+     estiraba a 544 px con una foto enorme: eso era lo disperso.</p>
+  <p>Arreglado <b>por construcción, no retocando</b>: los pares van en filas de tabla de verdad,
+     que comparten altura por definición, y el bloque de texto lleva altura fija. La quinta
+     tarjeta pasa a ser un <b>destacado horizontal</b> que ocupa la fila entera porque está
+     pensado así, no porque sobrara.</p>
+</section>
+<div class="fila">
+  <div class="col">
+    <h3>B · Catálogo corregido</h3>
+    <p class="pie">filas parejas · destacado horizontal al final</p>
+    <iframe src="demo-B.html" width="620" height="1400" loading="lazy"></iframe>
+  </div>
+</div>
+<hr>
+
+<section id="resto">
+  <h2>4. Los formatos anteriores</h2>
+  <p>Sin cambios en esta tanda. <b>C · Nota</b> es la que se usa para responder dentro del hilo de
+     un correo entrante; <b>D · Cartelera móvil</b> es la pensada para Gmail en el teléfono.</p>
+</section>
+<div class="fila">
+  <div class="col">
+    <h3>A · Cartelera</h3>
+    <p class="pie">oscura, misma identidad que los decks</p>
+    <iframe src="plantilla-A-cartelera.html" width="620" height="1400" loading="lazy"></iframe>
+  </div>
+  <div class="col">
+    <h3>C · Nota</h3>
+    <p class="pie">respuesta en hilo · 10 KB</p>
+    <iframe src="plantilla-C-nota.html" width="620" height="1400" loading="lazy"></iframe>
+  </div>
+  <div class="col">
+    <h3>D · Cartelera móvil</h3>
+    <p class="pie">una columna, tipografía grande</p>
+    <iframe src="plantilla-D-movil.html" width="620" height="1400" loading="lazy"></iframe>
+  </div>
+</div>
+
 <script>
-// Los correos abren enlaces en pestaña nueva; dentro de un iframe Canva bloquea el embebido (X-Frame-Options).
+// Los correos abren enlaces en pestaña nueva; dentro de un iframe, Canva bloquea el embebido.
 document.querySelectorAll('iframe').forEach(f => f.addEventListener('load', () => {
   try { const d = f.contentDocument; const b = d.createElement('base'); b.target = '_blank'; d.head.prepend(b); } catch (e) {}
 }));

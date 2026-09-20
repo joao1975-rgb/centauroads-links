@@ -45,3 +45,6 @@ prototipos/mail/cards/assets/
 prototipos/mail/cards/node_modules/
 prototipos/mail/*.bak
 prototipos/mail/_v-*.html
+
+# Muestras de la galeria: se regeneran con render.js, no hace falta versionarlas
+prototipos/mail/demo-*.html
