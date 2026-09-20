@@ -262,6 +262,7 @@
       b.setAttribute('aria-pressed', String(st.perfil === k));
       b.addEventListener('click', () => {
         st.perfil = k;
+        buildPanel();
         btns.forEach(([bb, kk]) => bb.setAttribute('aria-pressed', String(kk === k)));
         touch();
       });
@@ -289,9 +290,34 @@
     r.appendChild(sw); r.appendChild(t); g.appendChild(r);
     return g;
   }
+  // Tres asuntos por perfil, mas la opcion de escribir el propio. El asunto es lo unico
+  // que se ve antes de abrir el correo, asi que merece su propio bloque y no un campo mas.
+  function buildAsuntos() {
+    const g = el('div', 'grp'); g.appendChild(el('h2', null, 'Asunto del correo'));
+    const lista = M.asuntosDe(st);
+    const botones = [];
+    const pinta = () => botones.forEach(([b, k]) => b.setAttribute('aria-pressed', String(k === st.asunto3)));
+    lista.forEach(a => {
+      const b = el('button', 'pf'); b.type = 'button';
+      b.appendChild(el('b', null, a.etiqueta));
+      b.appendChild(el('span', null, a.texto));
+      b.addEventListener('click', () => { st.asunto3 = a.clave; pinta(); touch(); });
+      botones.push([b, a.clave]); g.appendChild(b);
+    });
+    const propio = el('button', 'pf'); propio.type = 'button';
+    propio.appendChild(el('b', null, 'El mío'));
+    propio.appendChild(el('span', null, 'Usa el que escribas abajo, en el campo Asunto.'));
+    propio.addEventListener('click', () => { st.asunto3 = 'propio'; pinta(); touch(); });
+    botones.push([propio, 'propio']); g.appendChild(propio);
+    pinta();
+    g.appendChild(el('p', 'hint', 'Los tres cambian con el perfil: no es lo mismo escribirle a una agencia que a quien nunca ha comprado exterior.'));
+    return g;
+  }
+
   function buildPanel() {
     const p = $('#panel'); p.innerHTML = '';
     p.appendChild(buildPerfil());
+    p.appendChild(buildAsuntos());
     const g1 = el('div', 'grp'); g1.appendChild(el('h2', null, 'Envío'));
     ENVIO.forEach(([k, l, ty]) => g1.appendChild(inputEl(k, l, ty))); p.appendChild(g1);
     const g2 = el('div', 'grp'); g2.appendChild(el('h2', null, 'Bloques del mensaje · interruptor = mostrar / inhibir'));

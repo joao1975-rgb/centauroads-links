@@ -75,6 +75,37 @@
   // Un correo no dice lo mismo a una agencia que compra medios cada semana que a una marca que nunca
   // ha anunciado en la calle. El perfil cambia asunto, texto de entrada, ORDEN de los servicios, el
   // bloque propio de cada audiencia y la llamada a la accion. El formato (A/B/C/D) es independiente.
+  // Tres asuntos por perfil, con angulos distintos a proposito: el asunto es lo unico
+  // que se ve antes de abrir, y el que funciona depende de a quien se escribe.
+  //   directo    - dice que hay dentro, sin adornos. El que menos falla.
+  //   beneficio  - nombra lo que el lector gana.
+  //   curiosidad - abre un hueco que solo se cierra abriendo. El que mas arriesga.
+  const ASUNTOS = {
+    general: [
+      { clave: 'directo',    etiqueta: 'Directo',    texto: 'Centauro ADS \u00b7 Espacios publicitarios disponibles' },
+      { clave: 'beneficio',  etiqueta: 'Beneficio',  texto: 'Tu marca en las calles de Caracas: esto es lo que hay libre' },
+      { clave: 'curiosidad', etiqueta: 'Curiosidad', texto: '120.000 personas al d\u00eda pasan por esta pantalla' },
+    ],
+    agencia: [
+      { clave: 'directo',    etiqueta: 'Directo',    texto: 'Inventario OOH/DOOH Caracas \u00b7 disponibilidad actualizada' },
+      { clave: 'beneficio',  etiqueta: 'Beneficio',  texto: 'Cinco frentes con m\u00e9tricas comparables para tu pr\u00f3ximo mix' },
+      { clave: 'curiosidad', etiqueta: 'Curiosidad', texto: 'Tu pr\u00f3ximo Share of Voice, en una sola tabla' },
+    ],
+    nuevo: [
+      { clave: 'directo',    etiqueta: 'Directo',    texto: 'C\u00f3mo empezar a anunciar en la calle, paso a paso' },
+      { clave: 'beneficio',  etiqueta: 'Beneficio',  texto: 'Publicidad exterior sin ser experto ni gastar de m\u00e1s' },
+      { clave: 'curiosidad', etiqueta: 'Curiosidad', texto: '\u00bfPor d\u00f3nde se empieza a anunciar en la calle?' },
+    ],
+    phygital: [
+      { clave: 'directo',    etiqueta: 'Directo',    texto: 'Phygital \u00b7 c\u00f3mo conectar la calle con el m\u00f3vil' },
+      { clave: 'beneficio',  etiqueta: 'Beneficio',  texto: 'La calle capta la atenci\u00f3n. El m\u00f3vil cierra la venta.' },
+      { clave: 'curiosidad', etiqueta: 'Curiosidad', texto: '9:00 AM en Chacao. 9:03 AM en Instagram.' },
+    ],
+  };
+
+  // Los tres asuntos que corresponden al perfil activo.
+  function asuntosDe(st) { return ASUNTOS[st.perfil] || ASUNTOS.general; }
+
   const PERFILES = {
     general: {
       nombre: 'General', desc: 'Catálogo completo, sin segmentar. El de siempre.',
@@ -132,6 +163,10 @@
       // Claro u oscuro. Los formatos del asesor (E, F, G) existen en los dos; los mios
       // (A-D) llevan su tema fijo por diseno y este campo no les afecta.
       tema: 'claro',
+      // Cual de los tres asuntos se usa. 'propio' respeta el que se escriba a mano en el
+      // campo Asunto: la ultima palabra la tiene quien redacta, no el catalogo.
+      asunto3: 'directo',
+
 
       // Precios: 'no' = ninguno (el precio va en la cotización formal) · 'desde' = precio de entrada.
       precios: 'no',
@@ -504,6 +539,37 @@
       '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">' + filas + '</table>';
   }
 
+  // Rellena lo que falte en un estado guardado antes de que exista un campo nuevo.
+  //
+  // La alternativa era subir CONTENT_VERSION, que cambia la clave del almacenamiento y
+  // hace desaparecer lo que el usuario llevara escrito a mano. Ya paso una vez y se
+  // vivio como una perdida de trabajo. Completar en silencio lo que falta cuesta veinte
+  // lineas y no le quita nada a nadie.
+  function normaliza(st) {
+    const base = defaultState();
+    if (st.tema === undefined) st.tema = base.tema;
+    if (st.asunto3 === undefined) st.asunto3 = base.asunto3;
+    if (!st.bloques) st.bloques = base.bloques;
+    Object.keys(base.bloques).forEach(function (k) {
+      if (!st.bloques[k]) { st.bloques[k] = base.bloques[k]; return; }
+      Object.keys(base.bloques[k]).forEach(function (campo) {
+        if (st.bloques[k][campo] === undefined) st.bloques[k][campo] = base.bloques[k][campo];
+      });
+    });
+    return st;
+  }
+
+  // Sustituye el asunto por el elegido de los tres. Se aplica DESPUES del perfil, porque
+  // es una decision mas concreta: el perfil propone y esto dispone.
+  function aplicaAsunto(st) {
+    if (!st.asunto3 || st.asunto3 === 'propio') return st;
+    const elegido = asuntosDe(st).filter(function (x) { return x.clave === st.asunto3; })[0];
+    if (!elegido) return st;
+    const p = JSON.parse(JSON.stringify(st));
+    p.asunto = elegido.texto;
+    return p;
+  }
+
   // ── Plantilla A · "Cartelera" (oscura, como los decks) ──
   function plantillaA(st) {
     const P = [];
@@ -754,7 +820,7 @@
 
   // ── Texto plano (fallback y para clientes sin HTML) ──
   function renderText(st0) {
-    const st = aplicaPerfil(st0);
+    const st = aplicaAsunto(aplicaPerfil(normaliza(st0)));
     const L = [];
     if (on(st, 'saludo')) L.push(fill(B(st, 'saludo').texto, st), '');
     if (on(st, 'intro')) L.push(fill(B(st, 'intro').texto, st), '');
@@ -1133,7 +1199,7 @@
     const keys = Object.keys(TEMPLATES);
     return keys[Math.abs(Number(st.seed) || 0) % keys.length];
   }
-  const render = (st, key) => TEMPLATES[key || pick(st)].fn(aplicaPerfil(st));
+  const render = (st, key) => TEMPLATES[key || pick(st)].fn(aplicaAsunto(aplicaPerfil(normaliza(st))));
 
-  return { C, SERVICIOS, GRUPOS, TEMPLATES, IMG_SETS, PERFILES, FICHA, CONTENT_VERSION, defaultState, render, renderText, pick, aplicaPerfil };
+  return { C, SERVICIOS, GRUPOS, TEMPLATES, IMG_SETS, PERFILES, ASUNTOS, asuntosDe, FICHA, CONTENT_VERSION, defaultState, render, renderText, pick, aplicaPerfil, aplicaAsunto, normaliza };
 });
