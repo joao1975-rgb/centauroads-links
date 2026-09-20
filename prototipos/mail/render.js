@@ -158,6 +158,9 @@
           on: false,
           descuento: '15%', descuentoOn: true,
           hasta: '31/10/2026', hastaOn: true,
+          // Con animación la etiqueta es un GIF (brillo + rebote del número). Sin ella, la
+          // versión de tablas, que pesa cero. Ver etiqueta_gif.py.
+          animada: true,
         },
         clientes: { on: false, titulo: 'Marcas que ya están en la calle con nosotros',
           lista: 'Pepsi · Nestlé · Yango · Cashea · EPA · Arturo’s · Ridery · Cinepic · Tío Rico' },
@@ -417,6 +420,25 @@
 
     const radio = arriba ? 'border-radius:8px 8px 0 0;' : 'border-radius:0 0 8px 8px;';
     const base = 'font-family:' + FH + ';font-weight:800;text-transform:uppercase;line-height:1;';
+
+    // ── Versión animada ──
+    // El correo no ejecuta JavaScript y las animaciones CSS no llegan a Gmail ni a Outlook: lo
+    // único que se mueve de verdad en todos los clientes es un GIF. El fichero lo genera
+    // etiqueta_gif.py, que dibuja el fotograma 0 en reposo (es lo que ve Outlook) y luego el
+    // barrido de brillo y el rebote del número.
+    //
+    // El precio de esto: el GIF está pre-renderizado, así que los valores viven dentro de la
+    // imagen. Cambiar el descuento o la fecha exige regenerarlo. El `alt` lleva el texto
+    // completo para quien tenga las imágenes bloqueadas, que en Outlook es lo habitual.
+    if (e.animada) {
+      const archivo = (dto && fecha) ? 'etq_promo.gif' : (dto ? 'etq_dto.gif' : 'etq_fecha.gif');
+      const w = ancho || 264;
+      const leyenda = [dto ? dto + ' de descuento' : '', fecha ? 'solo hasta el ' + fecha : '']
+        .filter(Boolean).join(' · ');
+      return '<img src="' + esc(imgFor(st, archivo)) + '" width="' + w + '" alt="' + esc(leyenda) + '"' +
+        ' style="display:block;width:' + w + 'px;max-width:100%;height:auto;' + radio +
+        'border:0;font-family:' + FH + ';font-size:13px;font-weight:800;color:' + C.orangeInk + ';">';
+    }
 
     // Cada celda apila etiqueta y valor en dos líneas fijas, en vez de dejar que el texto se
     // parta por donde quiera: en una tarjeta de 264 px "15% de descuento" no cabe de una línea y

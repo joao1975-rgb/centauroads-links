@@ -48,9 +48,9 @@
 </header>
 
 <nav>
-  <a class="nuevo" href="#e">★ E · Marquesina (nueva)</a>
-  <a class="nuevo" href="#etq">★ Etiquetas</a>
-  <a class="nuevo" href="#b">★ B corregido</a>
+  <a class="nuevo" href="#etq">★ Etiquetas animadas</a>
+  <a class="nuevo" href="#e">E · Marquesina</a>
+  <a class="nuevo" href="#b">B corregido</a>
   <a href="#resto">A · C · D</a>
   <a href="compositor.html">Abrir el compositor</a>
 </nav>
@@ -83,14 +83,21 @@
 <hr>
 
 <section id="etq">
-  <h2>2. <em>Etiquetas promocionales</em> — las tres combinaciones</h2>
-  <p>Cada una tiene su interruptor: puedes llevar <b>las dos, solo el descuento o solo la
-     fecha</b>. Naranja corporativo para el premio, tinta oscura para la prisa.</p>
-  <p>Van pegadas al borde de la foto como una cinta, no flotando encima: el posicionamiento
-     absoluto sobre una imagen <b>se rompe en Outlook</b>, y una promoción que no se ve en la
-     mitad de los clientes de correo no es una promoción.</p>
-  <div class="nota">El <b>31/10/2026</b> es un valor de ejemplo. Cámbialo por la fecha real en el
-     compositor antes de enviar nada.</div>
+  <h2>2. <em>Etiquetas animadas</em> — se mueven de verdad</h2>
+  <p><b>Míralas unos segundos.</b> Un barrido de luz cruza el naranja y el número se encoge un
+     pelo antes de saltar y rebasar su tamaño. Ese encogimiento previo es lo que hace que el
+     salto <i>se sienta</i>; sin él solo se ve.</p>
+  <p>El correo no ejecuta JavaScript y las animaciones CSS no llegan a Gmail ni a Outlook. Lo
+     único que se mueve en todos los clientes es un <b>GIF</b>. Y trae premio: lo que en HTML de
+     correo es imposible, dentro de una imagen sale gratis.</p>
+  <p>El primer fotograma es la etiqueta <b>ya acabada</b>, no el principio del movimiento. Es
+     deliberado: Outlook enseña el fotograma 0 y nada más, así que quien no vea la animación ve
+     una etiqueta terminada, nunca un hueco. Y el bucle termina con una pausa larga para que
+     verlo muchas veces no canse. <b>24 KB</b> cada una.</p>
+  <div class="nota">Dos avisos honestos. El <b>31/10/2026</b> es un ejemplo: cámbialo por la fecha
+     real. Y como el GIF es una imagen ya dibujada, al cambiar el descuento o la fecha <b>hay que
+     regenerarlo</b> con <code>etiqueta_gif.py</code>; cuando exista el módulo del panel, lo hará
+     solo al armar cada correo.</div>
 </section>
 <div class="fila">
   <div class="col">
