@@ -342,7 +342,7 @@
       const b = el('button', 'pf'); b.type = 'button';
       const r = M.rangoPeso(e.clave);
       const peso = r[0] === r[1] ? r[0] + ' KB' : r[0] + '-' + r[1] + ' KB';
-      b.appendChild(el('b', null, e.etiqueta + ' \u00b7 ' + peso));
+      b.appendChild(el('b', null, e.etiqueta + ' \u00b7 ' + peso + (e.servido ? '' : ' \u00b7 SIN SUBIR')));
       b.appendChild(el('span', null, e.idea));
       b.addEventListener('click', () => { st.efecto = e.clave; pinta(); touch(); });
       botones.push([b, e.clave]); g.appendChild(b);
@@ -371,7 +371,16 @@
     });
 
     g.appendChild(el('p', 'hint',
-      'El rango es el del servicio mas ligero al mas pesado; abajo, la cifra exacta de cada uno.'));
+      'El rango es el del servicio m\u00e1s ligero al m\u00e1s pesado; abajo, la cifra exacta de cada uno.'));
+    const sinSubir = M.EFECTOS.filter(function (e) { return !e.servido; });
+    if (sinSubir.length) {
+      g.appendChild(el('p', 'aviso',
+        'Sin subir: ' + sinSubir.map(function (e) { return e.etiqueta; }).join(', ') +
+        '. Se puede elegir, pero la imagen sale rota hasta generarlo y subirlo a ' +
+        'app/static/email/.'));
+      g.appendChild(el('p', 'cmd',
+        'python carrusel_gif.py --todos --efecto ' + sinSubir[0].clave));
+    }
     return g;
   }
 

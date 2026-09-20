@@ -149,26 +149,32 @@
   // SERVICIO porque depende de las fotos y de cuantas hay: el mismo efecto pesa 667 KB
   // en LED y 1174 KB en Paradas. Esta aqui a proposito: quien elige tiene que ver lo
   // que le cuesta a quien abre el correo con datos moviles.
+  //
+  // "servido" dice si el GIF esta subido a app/static/email/. Seis lo estan. El zoom
+  // no: sus cinco ficheros pesan 12 MB, tanto como los otros seis efectos juntos, y
+  // meter eso en la historia de un repositorio publico es permanente. Se sigue
+  // ofreciendo porque la eleccion informada es justamente para esto, pero hay que
+  // generarlo y subirlo antes de usarlo, y el panel lo dice.
   const EFECTOS = [
-    { clave: 'corte', etiqueta: 'Corte',
+    { clave: 'corte', servido: true, etiqueta: 'Corte',
       kb: { led: 245, vallas: 310, totem: 301, rider: 250, paradas: 431 },
       idea: 'Cambio seco, sin transicion. El mas ligero y el que mejor aguanta conexiones lentas.' },
-    { clave: 'barrido', etiqueta: 'Barrido',
+    { clave: 'barrido', servido: true, etiqueta: 'Barrido',
       kb: { led: 355, vallas: 426, totem: 392, rider: 342, paradas: 538 },
       idea: 'Una linea vertical descubre la foto siguiente, como el giro de una valla rotativa.' },
-    { clave: 'persiana', etiqueta: 'Persiana',
+    { clave: 'persiana', servido: true, etiqueta: 'Persiana',
       kb: { led: 405, vallas: 477, totem: 458, rider: 409, paradas: 602 },
       idea: 'La foto nueva entra en franjas horizontales. El mas llamativo de los ligeros.' },
-    { clave: 'fundido', etiqueta: 'Fundido',
+    { clave: 'fundido', servido: true, etiqueta: 'Fundido',
       kb: { led: 667, vallas: 888, totem: 789, rider: 697, paradas: 1174 },
       idea: 'Una foto se disuelve en la siguiente. El mas neutro: no compite con el texto.' },
-    { clave: 'deslizar', etiqueta: 'Deslizar',
+    { clave: 'deslizar', servido: true, etiqueta: 'Deslizar',
       kb: { led: 669, vallas: 860, totem: 758, rider: 634, paradas: 1120 },
       idea: 'La foto nueva empuja a la anterior. Sensacion de recorrido entre soportes.' },
-    { clave: 'destello', etiqueta: 'Destello',
+    { clave: 'destello', servido: true, etiqueta: 'Destello',
       kb: { led: 672, vallas: 890, totem: 817, rider: 699, paradas: 1205 },
       idea: 'Un brillo diagonal cruza la foto antes del cambio. Lee metalico, va con promociones.' },
-    { clave: 'zoom', etiqueta: 'Zoom',
+    { clave: 'zoom', servido: false, etiqueta: 'Zoom',
       kb: { led: 1784, vallas: 2511, totem: 2188, rider: 1820, paradas: 3418 },
       idea: 'Acercamiento lento sobre cada foto. PESA MUCHO y no tiene arreglo: el acercamiento ' +
             'cambia la imagen entera en cada paso y la compresion no puede reutilizar nada. En ' +
