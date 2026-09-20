@@ -18,11 +18,16 @@ from pydantic import BaseModel
 
 from .database import engine, get_db, Base
 from . import models, schemas
+from .migracion import migrar
 
 # ---------------------------------------------------------------------------
-# Crear tablas
+# Crear tablas y poner el esquema al día
+#   migrar() es idempotente y solo añade: nunca borra, renombra ni cambia tipos. Corre ANTES de
+#   servir tráfico para que ninguna petición llegue a un esquema a medias. En una instalación
+#   nueva no encuentra nada que ampliar y se limita a crear las tablas.
 # ---------------------------------------------------------------------------
 Base.metadata.create_all(bind=engine)
+migrar(engine)
 
 # ---------------------------------------------------------------------------
 # App
