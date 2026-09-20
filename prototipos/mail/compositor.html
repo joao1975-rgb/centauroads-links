@@ -340,7 +340,9 @@
     const pinta = () => botones.forEach(([b, k]) => b.setAttribute('aria-pressed', String(k === st.efecto)));
     M.EFECTOS.forEach(e => {
       const b = el('button', 'pf'); b.type = 'button';
-      b.appendChild(el('b', null, e.etiqueta + ' \u00b7 ' + e.kb + ' KB' + (e.servido ? '' : ' \u00b7 hay que generarlo')));
+      const r = M.rangoPeso(e.clave);
+      const peso = r[0] === r[1] ? r[0] + ' KB' : r[0] + '-' + r[1] + ' KB';
+      b.appendChild(el('b', null, e.etiqueta + ' \u00b7 ' + peso));
       b.appendChild(el('span', null, e.idea));
       b.addEventListener('click', () => { st.efecto = e.clave; pinta(); touch(); });
       botones.push([b, e.clave]); g.appendChild(b);
@@ -356,7 +358,7 @@
       const sel = el('select');
       const opGlobal = el('option', null, 'El de todos'); opGlobal.value = ''; sel.appendChild(opGlobal);
       M.EFECTOS.forEach(e => {
-        const o = el('option', null, e.etiqueta + ' \u00b7 ' + e.kb + ' KB');
+        const o = el('option', null, e.etiqueta + ' \u00b7 ' + M.pesoDe(e.clave, sv) + ' KB');
         o.value = e.clave; sel.appendChild(o);
       });
       sel.value = st.efectosPorServicio[sv.id] || '';
@@ -369,7 +371,7 @@
     });
 
     g.appendChild(el('p', 'hint',
-      'Para generar uno que no este servido: python carrusel_gif.py --todos --efecto <nombre>'));
+      'El rango es el del servicio mas ligero al mas pesado; abajo, la cifra exacta de cada uno.'));
     return g;
   }
 

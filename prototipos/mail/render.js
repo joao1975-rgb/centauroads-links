@@ -145,27 +145,51 @@
   // el GIF es lo unico que se mueve en todos los clientes. Cada efecto se genera con
   // carrusel_gif.py y se guarda como carousel_<servicio>_<efecto>.gif.
   //
-  // El campo "kb" es el peso MEDIDO, no una estimacion, y esta aqui a proposito: quien
-  // elige un efecto tiene que ver lo que le cuesta a quien abre el correo con datos
-  // moviles. Los tres primeros estan ya servidos; los otros se generan al elegirlos.
+  // El campo "kb" es el peso MEDIDO fichero a fichero, no una estimacion, y va POR
+  // SERVICIO porque depende de las fotos y de cuantas hay: el mismo efecto pesa 667 KB
+  // en LED y 1174 KB en Paradas. Esta aqui a proposito: quien elige tiene que ver lo
+  // que le cuesta a quien abre el correo con datos moviles.
   const EFECTOS = [
-    { clave: 'corte',    etiqueta: 'Corte',    kb: 246, servido: true,
+    { clave: 'corte', etiqueta: 'Corte',
+      kb: { led: 245, vallas: 310, totem: 301, rider: 250, paradas: 431 },
       idea: 'Cambio seco, sin transicion. El mas ligero y el que mejor aguanta conexiones lentas.' },
-    { clave: 'barrido',  etiqueta: 'Barrido',  kb: 355, servido: true,
+    { clave: 'barrido', etiqueta: 'Barrido',
+      kb: { led: 355, vallas: 426, totem: 392, rider: 342, paradas: 538 },
       idea: 'Una linea vertical descubre la foto siguiente, como el giro de una valla rotativa.' },
-    { clave: 'persiana', etiqueta: 'Persiana', kb: 405, servido: true,
+    { clave: 'persiana', etiqueta: 'Persiana',
+      kb: { led: 405, vallas: 477, totem: 458, rider: 409, paradas: 602 },
       idea: 'La foto nueva entra en franjas horizontales. El mas llamativo de los ligeros.' },
-    { clave: 'fundido',  etiqueta: 'Fundido',  kb: 667, servido: false,
+    { clave: 'fundido', etiqueta: 'Fundido',
+      kb: { led: 667, vallas: 888, totem: 789, rider: 697, paradas: 1174 },
       idea: 'Una foto se disuelve en la siguiente. El mas neutro: no compite con el texto.' },
-    { clave: 'deslizar', etiqueta: 'Deslizar', kb: 669, servido: false,
+    { clave: 'deslizar', etiqueta: 'Deslizar',
+      kb: { led: 669, vallas: 860, totem: 758, rider: 634, paradas: 1120 },
       idea: 'La foto nueva empuja a la anterior. Sensacion de recorrido entre soportes.' },
-    { clave: 'destello', etiqueta: 'Destello', kb: 672, servido: false,
+    { clave: 'destello', etiqueta: 'Destello',
+      kb: { led: 672, vallas: 890, totem: 817, rider: 699, paradas: 1205 },
       idea: 'Un brillo diagonal cruza la foto antes del cambio. Lee metalico, va con promociones.' },
-    { clave: 'zoom',     etiqueta: 'Zoom',     kb: 1784, servido: false,
-      idea: 'Acercamiento lento sobre cada foto. PESA: el acercamiento cambia la imagen entera ' +
-            'en cada paso y la compresion no puede reutilizar nada. El zoom de las etiquetas ' +
-            'de oferta es otra animacion distinta y si es ligera (25 KB).' },
+    { clave: 'zoom', etiqueta: 'Zoom',
+      kb: { led: 1784, vallas: 2511, totem: 2188, rider: 1820, paradas: 3418 },
+      idea: 'Acercamiento lento sobre cada foto. PESA MUCHO y no tiene arreglo: el acercamiento ' +
+            'cambia la imagen entera en cada paso y la compresion no puede reutilizar nada. En ' +
+            'Paradas son 3,4 MB, que en datos moviles no se abre. El zoom de las etiquetas de ' +
+            'oferta es otra animacion distinta y si es ligera (25 KB).' },
   ];
+
+  // El peso REAL de un efecto en un servicio concreto, en KB.
+  function pesoDe(clave, s) {
+    const e = EFECTOS.filter(function (x) { return x.clave === clave; })[0];
+    if (!e) return 0;
+    return e.kb[s.id] || 0;
+  }
+
+  // Lo que pesa el mas ligero y el mas pesado de un efecto, para ensenar el rango.
+  function rangoPeso(clave) {
+    const e = EFECTOS.filter(function (x) { return x.clave === clave; })[0];
+    if (!e) return [0, 0];
+    const v = Object.keys(e.kb).map(function (k) { return e.kb[k]; });
+    return [Math.min.apply(null, v), Math.max.apply(null, v)];
+  }
 
   // El efecto que toca a un servicio: el suyo propio si se le ha puesto uno, si no el global.
   function efectoDe(st, s) {
@@ -1311,5 +1335,5 @@
   }
   const render = (st, key) => TEMPLATES[key || pick(st)].fn(aplicaAsunto(aplicaPerfil(normaliza(st))));
 
-  return { C, SERVICIOS, GRUPOS, TEMPLATES, IMG_SETS, PERFILES, ASUNTOS, asuntosDe, EFECTOS, efectoDe, BANCO, bancoDe, fotosDe, comandoCarrusel, FICHA, CONTENT_VERSION, defaultState, render, renderText, pick, aplicaPerfil, aplicaAsunto, normaliza };
+  return { C, SERVICIOS, GRUPOS, TEMPLATES, IMG_SETS, PERFILES, ASUNTOS, asuntosDe, EFECTOS, efectoDe, pesoDe, rangoPeso, BANCO, bancoDe, fotosDe, comandoCarrusel, FICHA, CONTENT_VERSION, defaultState, render, renderText, pick, aplicaPerfil, aplicaAsunto, normaliza };
 });
