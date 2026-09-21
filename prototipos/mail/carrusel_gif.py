@@ -91,7 +91,7 @@ AJUSTE = {
     'deslizar': {'trans': 0.20, 'col':  64, 'peso': 'medio'},
     'zoom':     {'trans': 0.20, 'col':  48, 'peso': 'pesado'},
 }
-SERVICIOS = ['led', 'vallas', 'totem', 'rider', 'paradas']
+SERVICIOS = ['led', 'vallas', 'totem', 'rider']
 
 # Peso maximo razonable. Gmail corta el HTML a 102 KB, pero las imagenes van aparte;
 # aun asi, un carrusel de mas de 700 KB castiga a quien abre el correo con datos moviles.

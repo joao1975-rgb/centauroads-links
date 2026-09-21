@@ -30,8 +30,8 @@
       slug: 'vallas', canva: 'https://canva.link/fgsgrl8vj329ue0',
       img: 'svc_vallas.jpg', alt: 'Valla de Centauro ADS bajo el elevado de Las Mercedes, Caracas',
       cover: 'cover_vallas.jpg', altCover: 'Portada: Disponibilidad de vallas Gran Caracas' },
-    { id: 'led', nombre: 'Pantallas LED (DOOH)', eyebrow: 'Digital outdoor', cta: 'Consultar disponibilidad',
-      cobertura: 'Ubicación: Chacao y Las Mercedes',
+    { id: 'led', nombre: 'Pantalla LED (DOOH)', eyebrow: 'Digital outdoor', cta: 'Consultar disponibilidad',
+      cobertura: 'Ubicación: Chacao',
       nota: 'Servicio de videos (por cotizar) · Alquiler y venta de pantallas LED',
       slug: 'pantallas-led', canva: 'https://canva.link/p69pybf8jctaq8d',
       img: 'svc_led.jpg', alt: 'Pantalla LED vertical de Chacao, Av. Francisco de Miranda con Calle Elice',
@@ -46,17 +46,12 @@
       slug: 'rider-clon', canva: 'https://canva.link/rider-clon',
       img: 'svc_rider.jpg', alt: 'Motorizado Rider Clon con caja de luz LED en Caracas',
       cover: 'cover_rider.jpg', altCover: 'Portada: Rider Clon publicidad móvil' },
-    { id: 'paradas', nombre: 'Paradas en Caracas', eyebrow: 'Mobiliario urbano', cta: 'Consultar disponibilidad',
-      cobertura: 'Paradas con pantalla LED · Las Mercedes', nota: '',
-      slug: 'paradas-caracas', canva: 'https://www.canva.com/design/DAHBIjY6Bxc/InR36fbTc24tlKhdrI7tBA/view',
-      img: 'svc_paradas.jpg', alt: 'Parada con pantalla LED en Av. Paseo Enrique Eraso, Las Mercedes',
-      cover: 'cover_paradas.jpg', altCover: 'Portada: Parada con pantalla LED Las Mercedes' },
   ];
 
   // ── Grupos de la plantilla D (taxonomía del flyer "Servicios de publicidad exterior") ──
   const GRUPOS = [
     { id: 'vallas', eyebrow: 'Gran formato', titulo: 'Vallas (OOH)', servicios: ['vallas'] },
-    { id: 'dooh', eyebrow: 'Digital outdoor', titulo: 'Pantallas LED y Tótems (DOOH)', servicios: ['led', 'totem', 'paradas'] },
+    { id: 'dooh', eyebrow: 'Digital outdoor', titulo: 'Pantalla LED y Tótem (DOOH)', servicios: ['led', 'totem'] },
     { id: 'movil', eyebrow: 'Movilidad', titulo: 'Publicidad móvil · Rider Clon', servicios: ['rider'] },
   ];
 
@@ -94,11 +89,10 @@
   }
 
   const FICHA = {
-    led:     { ubic: 'Chacao · Av. F. de Miranda',   medida: '4 × 8 m',        trafico: '120.000 impactos/día', desde: '1.500' },
-    vallas:  { ubic: 'Caracas y nivel nacional',      medida: 'Gran formato',   trafico: 'Alta rotación vial',   desde: '' },
+    led:     { ubic: 'Chacao · Av. F. de Miranda',   medida: '1080 × 1920 px',        trafico: '120.000 impactos/día', desde: '1.500' },
+    vallas:  { ubic: 'Caracas y nivel nacional',      medida: 'Según ubicación',   trafico: 'Alta rotación vial',   desde: '' },
     totem:   { ubic: 'C.C. San Ignacio',              medida: '1440 × 2560 px', trafico: '240 salidas/día',      desde: '300' },
-    paradas: { ubic: 'Las Mercedes · Av. Libertador', medida: '2 × 2,4 m',      trafico: '34.000 spots/mes',     desde: '360' },
-    rider:   { ubic: 'Caracas · San Antonio · Valencia', medida: '42 × 59 cm',  trafico: '250 motos · 8 h/día',  desde: '1.500' },
+    rider:   { ubic: 'Caracas · San Antonio · Valencia', medida: '0,42 × 0,59 m',  trafico: '250 motos · 8 h/día',  desde: '1.500' },
   };
 
   // ── Perfiles de cliente ──
@@ -132,8 +126,6 @@
                aviso: 'Fotogramas de @nanopopcast: llevan marca de agua y el permiso de uso comercial sigue pendiente.' },
     totem:   { fotos: ['svc_totem.jpg', 'svc_totem_alt.jpg', 'svc_totem_alt2.jpg'], videos: [] },
     rider:   { fotos: ['svc_rider.jpg', 'svc_rider_alt.jpg', 'svc_rider_alt2.jpg'], videos: [] },
-    paradas: { fotos: ['svc_paradas.jpg', 'svc_paradas_alt.jpg', 'svc_paradas_alt2.jpg',
-                       'svc_paradas_alt3.jpg'], videos: [] },
   };
 
   // Lo que hay disponible para un servicio, con los tres huecos libres ya unidos.
@@ -177,38 +169,38 @@
   //
   // El campo "kb" es el peso MEDIDO fichero a fichero, no una estimacion, y va POR
   // SERVICIO porque depende de las fotos y de cuantas hay: el mismo efecto pesa 667 KB
-  // en LED y 1174 KB en Paradas. Esta aqui a proposito: quien elige tiene que ver lo
+  // en LED y 888 KB en Vallas. Esta aqui a proposito: quien elige tiene que ver lo
   // que le cuesta a quien abre el correo con datos moviles.
   //
   // "servido" dice si el GIF esta subido a app/static/email/. Seis lo estan. El zoom
-  // no: sus cinco ficheros pesan 12 MB, tanto como los otros seis efectos juntos, y
+  // no: sus cuatro ficheros pesan 8 MB, mas de la mitad que los otros seis juntos, y
   // meter eso en la historia de un repositorio publico es permanente. Se sigue
   // ofreciendo porque la eleccion informada es justamente para esto, pero hay que
   // generarlo y subirlo antes de usarlo, y el panel lo dice.
   const EFECTOS = [
     { clave: 'corte', servido: true, etiqueta: 'Corte',
-      kb: { led: 245, vallas: 310, totem: 301, rider: 250, paradas: 431 },
+      kb: { led: 245, vallas: 310, totem: 301, rider: 250 },
       idea: 'Cambio seco, sin transicion. El mas ligero y el que mejor aguanta conexiones lentas.' },
     { clave: 'barrido', servido: true, etiqueta: 'Barrido',
-      kb: { led: 355, vallas: 426, totem: 392, rider: 342, paradas: 538 },
+      kb: { led: 355, vallas: 426, totem: 392, rider: 342 },
       idea: 'Una linea vertical descubre la foto siguiente, como el giro de una valla rotativa.' },
     { clave: 'persiana', servido: true, etiqueta: 'Persiana',
-      kb: { led: 405, vallas: 477, totem: 458, rider: 409, paradas: 602 },
+      kb: { led: 405, vallas: 477, totem: 458, rider: 409 },
       idea: 'La foto nueva entra en franjas horizontales. El mas llamativo de los ligeros.' },
     { clave: 'fundido', servido: true, etiqueta: 'Fundido',
-      kb: { led: 667, vallas: 888, totem: 789, rider: 697, paradas: 1174 },
+      kb: { led: 667, vallas: 888, totem: 789, rider: 697 },
       idea: 'Una foto se disuelve en la siguiente. El mas neutro: no compite con el texto.' },
     { clave: 'deslizar', servido: true, etiqueta: 'Deslizar',
-      kb: { led: 669, vallas: 860, totem: 758, rider: 634, paradas: 1120 },
+      kb: { led: 669, vallas: 860, totem: 758, rider: 634 },
       idea: 'La foto nueva empuja a la anterior. Sensacion de recorrido entre soportes.' },
     { clave: 'destello', servido: true, etiqueta: 'Destello',
-      kb: { led: 672, vallas: 890, totem: 817, rider: 699, paradas: 1205 },
+      kb: { led: 672, vallas: 890, totem: 817, rider: 699 },
       idea: 'Un brillo diagonal cruza la foto antes del cambio. Lee metalico, va con promociones.' },
     { clave: 'zoom', servido: false, etiqueta: 'Zoom',
-      kb: { led: 1784, vallas: 2511, totem: 2188, rider: 1820, paradas: 3418 },
+      kb: { led: 1784, vallas: 2511, totem: 2188, rider: 1820 },
       idea: 'Acercamiento lento sobre cada foto. PESA MUCHO y no tiene arreglo: el acercamiento ' +
             'cambia la imagen entera en cada paso y la compresion no puede reutilizar nada. En ' +
-            'Paradas son 3,4 MB, que en datos moviles no se abre. El zoom de las etiquetas de ' +
+            'Vallas son 2,5 MB, que en datos moviles no se abre. El zoom de las etiquetas de ' +
             'oferta es otra animacion distinta y si es ligera (25 KB).' },
   ];
 
@@ -247,7 +239,7 @@
     ],
     agencia: [
       { clave: 'directo',    etiqueta: 'Directo',    texto: '📊 Inventario OOH/DOOH Caracas \u00b7 disponibilidad actualizada' },
-      { clave: 'beneficio',  etiqueta: 'Beneficio',  texto: '🎯 Cinco frentes con m\u00e9tricas comparables para tu pr\u00f3ximo mix' },
+      { clave: 'beneficio',  etiqueta: 'Beneficio',  texto: '🎯 Cuatro frentes con m\u00e9tricas comparables para tu pr\u00f3ximo mix' },
       { clave: 'curiosidad', etiqueta: 'Curiosidad', texto: '📈 Tu pr\u00f3ximo Share of Voice, en una sola tabla' },
     ],
     nuevo: [
@@ -274,12 +266,12 @@
       nombre: 'Agencias y grandes cuentas',
       desc: 'Ficha de disponibilidad: medidas, tráfico y estado. Datos primero, sin rodeos.',
       asunto: 'Disponibilidad OOH/DOOH · Caracas',
-      preheader: 'Medidas, tráfico y estado de cada espacio: pantallas LED, vallas, tótems, paradas y 250 riders.',
+      preheader: 'Medidas, tráfico y estado de cada espacio: pantalla LED, vallas, tótem y 250 riders.',
       titulo: 'Inventario disponible', sub: 'Centauro ADS · Phygital + DOOH + Digital',
-      intro: 'Te comparto el estado del inventario con las medidas y el tráfico de cada espacio, para que puedas cerrar el plan de medios sin pedir las fichas por separado.',
+      intro: 'Te comparto la disponibilidad, con las medidas y el tráfico de cada espacio, para que puedas cerrar el plan de medios sin pedir las fichas por separado.',
       cierre: 'Si necesitas un espacio que no aparezca aquí, dímelo y lo busco.',
       cta: 'Pedir tarifas y disponibilidad',
-      orden: ['led', 'vallas', 'rider', 'totem', 'paradas'],
+      orden: ['led', 'vallas', 'rider', 'totem'],
       bloque: 'disponibilidad',
     },
     nuevo: {
@@ -291,7 +283,7 @@
       intro: 'Dar el salto a la publicidad exterior no es cuestión de presupuesto, es cuestión de orden. Esta es la ruta que seguimos con las marcas que empiezan de cero.',
       cierre: 'No hace falta ser experto para empezar. Cuéntame qué vendes y te preparo una propuesta a la medida.',
       cta: 'Cuéntame tu negocio',
-      orden: ['totem', 'paradas', 'led', 'vallas', 'rider'],
+      orden: ['totem', 'led', 'vallas', 'rider'],
       bloque: 'ruta',
     },
     phygital: {
@@ -303,7 +295,7 @@
       intro: 'El problema ya no es que no te vean. Es que te ven y siguen caminando. Phygital convierte ese impacto en una acción que puedes medir en el teléfono.',
       cierre: '¿Armamos algo que rompa el molde este mes? Con quince minutos basta para plantearlo.',
       cta: 'Agendar 15 minutos',
-      orden: ['led', 'totem', 'rider', 'paradas', 'vallas'],
+      orden: ['led', 'totem', 'rider', 'vallas'],
       bloque: 'puente',
     },
   };
@@ -552,7 +544,7 @@
     const caja = dark ? C.ink2 : C.sand, linea = dark ? C.line : C.rule;
     const acento = dark ? C.orange : C.orangeInk;
     const pasos = [
-      { n: '1', tit: 'Que te conozcan', med: 'Pantallas LED y t\u00f3tems',
+      { n: '1', tit: 'Que te conozcan', med: 'Pantalla LED y t\u00f3tem digital',
         obj: 'El movimiento y el brillo detienen la mirada. Explicas qu\u00e9 vendes a quien pasa por la zona.',
         res: 'Atracci\u00f3n y ventas a corto plazo', id: 'totem' },
       { n: '2', tit: 'Que te recuerden', med: 'Vallas de gran formato',
@@ -700,25 +692,59 @@
   // Complementos: los servicios que el diseno del asesor no ensena con imagen se anaden
   // al final, con foto mas pequena. Asi ninguno queda fuera del correo aunque su
   // composicion original solo destacara uno o tres.
-  function complementos(st, yaMostrados) {
+  // "cuatro frentes", no "4 frentes", dentro de una frase.
+  function cuantos(n) {
+    return ['cero', 'un', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete'][n] || String(n);
+  }
+
+  // La tarjeta de un complemento: foto, nombre, cobertura y enlace.
+  function textoComplemento(st, s, k) {
+    return '<div style="font-family:' + FH + ';font-size:14px;font-weight:800;color:' + k.texto + ';padding:8px 0 2px 0;">' + esc(s.nombre) + '</div>' +
+      '<div style="font-family:' + FB + ';font-size:12px;line-height:17px;color:' + k.apagado + ';">' + esc(s.cobertura) + '</div>' +
+      '<div style="padding:6px 0 0 0;"><a href="' + esc(linkFor(st, s)) + '" style="font-family:' + FH + ';font-size:11px;font-weight:800;color:' + k.acento + ';text-decoration:none;">Ver presentaci\u00f3n &rarr;</a></div>';
+  }
+
+  // opts.titulo === false quita el "Tambien disponible" de encima (la Guia no lo lleva).
+  //
+  // Con cuatro productos los complementos salen en numero impar -tres en Inventario y
+  // Phygital, uno en la Guia- y una tarjeta sola en una rejilla de dos columnas se queda
+  // huerfana a media anchura. La que sobra va en horizontal, foto y texto lado a lado,
+  // con dos tablas align="left": a 600 px caben juntas y en el movil la segunda baja
+  // sola debajo de la foto. Es la misma tecnica que ya usa la rejilla del Catalogo.
+  function complementos(st, yaMostrados, opts) {
     const faltan = activos(st).filter(s => yaMostrados.indexOf(s.id) < 0);
     if (!faltan.length) return '';
     const k = paleta(esOscuro(st));
     let filas = '';
     for (let i = 0; i < faltan.length; i += 2) {
       const par = faltan.slice(i, i + 2);
+      if (par.length === 1) {
+        const s = par[0];
+        filas += '<tr><td colspan="2" valign="top" style="padding:0 0 16px 0;">' +
+          '<table role="presentation" width="266" align="left" cellpadding="0" cellspacing="0" border="0"><tr>' +
+            '<td valign="top" style="padding:0 16px 8px 0;">' + fotoServicio(st, s, 250) + '</td></tr></table>' +
+          '<table role="presentation" width="260" align="left" cellpadding="0" cellspacing="0" border="0"><tr>' +
+            '<td valign="top">' + textoComplemento(st, s, k) + '</td></tr></table>' +
+          '</td></tr>';
+        continue;
+      }
       filas += '<tr>' + par.map(s =>
         '<td width="50%" valign="top" style="padding:0 8px 16px 0;">' +
-          fotoServicio(st, s, 250) +
-          '<div style="font-family:' + FH + ';font-size:14px;font-weight:800;color:' + k.texto + ';padding:8px 0 2px 0;">' + esc(s.nombre) + '</div>' +
-          '<div style="font-family:' + FB + ';font-size:12px;line-height:17px;color:' + k.apagado + ';">' + esc(s.cobertura) + '</div>' +
-          '<div style="padding:6px 0 0 0;"><a href="' + esc(linkFor(st, s)) + '" style="font-family:' + FH + ';font-size:11px;font-weight:800;color:' + k.acento + ';text-decoration:none;">Ver presentaci\u00f3n &rarr;</a></div>' +
-        '</td>').join('') +
-        (par.length === 1 ? '<td width="50%"></td>' : '') + '</tr>';
+          fotoServicio(st, s, 250) + textoComplemento(st, s, k) +
+        '</td>').join('') + '</tr>';
     }
-    return epigrafe(st, 'Tambi\u00e9n disponible', k.acento) +
+    const titulo = (opts && opts.titulo === false) ? '' : epigrafe(st, 'Tambi\u00e9n disponible', k.acento);
+    return titulo +
       '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">' + filas + '</table>';
   }
+
+  // Valores de catalogo que cambiaron y que un estado guardado puede llevar todavia.
+  const RENOMBRADOS = {
+    led: [
+      { campo: 'nombre', antes: 'Pantallas LED (DOOH)' },
+      { campo: 'cobertura', antes: 'Ubicaci\u00f3n: Chacao y Las Mercedes' },
+    ],
+  };
 
   // Rellena lo que falte en un estado guardado antes de que exista un campo nuevo.
   //
@@ -733,6 +759,23 @@
     if (st.efecto === undefined) st.efecto = base.efecto;
     if (!st.efectosPorServicio) st.efectosPorServicio = {};
     if (!st.banco) st.banco = {};
+    // Paradas salio del catalogo (2026-09-21). El estado guardado lleva una COPIA de los
+    // servicios, asi que hay que quitarla tambien de ahi: si no, seguiria saliendo en los
+    // correos de quien ya uso la herramienta. Vale para cualquier servicio que se retire.
+    if (Array.isArray(st.servicios)) {
+      const vigentes = SERVICIOS.map(function (x) { return x.id; });
+      st.servicios = st.servicios.filter(function (x) { return vigentes.indexOf(x.id) >= 0; });
+      // Textos de catalogo que cambiaron: solo si siguen con el valor de antes. Si alguien
+      // los edito a mano, se queda lo suyo.
+      st.servicios.forEach(function (x) {
+        const actual = SERVICIOS.filter(function (y) { return y.id === x.id; })[0];
+        (RENOMBRADOS[x.id] || []).forEach(function (r) {
+          if (x[r.campo] === r.antes) x[r.campo] = actual[r.campo];
+        });
+      });
+    }
+    delete st.banco.paradas;
+    if (st.efectosPorServicio) delete st.efectosPorServicio.paradas;
     // La firma paso de un 'cargo' escrito a mano a un rol elegible, y gano la
     // eleccion de correo. Se rellenan aqui para no tocar CONTENT_VERSION: subirlo
     // cambia la clave de localStorage y borraria todo lo escrito a mano.
@@ -1043,7 +1086,7 @@
       '<div style="font-family:' + FH + ';font-size:40px;line-height:1.02;font-weight:800;letter-spacing:-.035em;color:' + k.texto + ';">' +
         'Tu pr\u00f3ximo <span style="color:' + k.acento + ';">Share of Voice</span>, en una sola tabla.</div>' +
       '<div style="font-family:' + FB + ';font-size:15px;line-height:1.6;color:' + k.apagado + ';padding:16px 0 0 0;">' +
-        'Sin brief educativo. Sin rodeos. Los cinco frentes que operamos en Caracas, con m\u00e9tricas comparables, ' +
+        'Sin brief educativo. Sin rodeos. Los ' + cuantos(activos(st).length) + ' frentes que operamos en Caracas, con m\u00e9tricas comparables, ' +
         'para que tu equipo de medios calcule el mix sin llamar a nadie.</div>',
       pad + 'padding-bottom:26px;'));
 
@@ -1065,7 +1108,7 @@
         '<div style="font-family:' + FH + ';font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:' + k.apagado + ';padding:4px 0 0 0;">' + esc(l) + '</div></td>';
     };
     P.push(row('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
-      cifra('120K impactos / d\u00eda', 'LED') + cifra('250 motos LED', 'Rider') + cifra('5 frentes', 'activos') +
+      cifra('120K impactos / d\u00eda', 'LED') + cifra('250 motos LED', 'Rider') + cifra(activos(st).length + ' frentes', 'activos') +
       '</tr></table>', pad + 'padding-bottom:26px;'));
 
     // La tabla de inventario: el corazon de su diseno.
@@ -1075,21 +1118,18 @@
       pad + 'padding-bottom:16px;'));
 
     const INVENTARIO = [
-      { n: '01', id: 'led', t: 'Pantallas LED \u00b7 DOOH', badge: a.slotsLed,
-        d: 'Chacao, Av. Francisco de Miranda \u00b7 4\u00d78 m \u00b7 rotaci\u00f3n por franjas horarias',
+      { n: '01', id: 'led', t: 'Pantalla LED \u00b7 DOOH', badge: a.slotsLed,
+        d: 'Chacao, Av. Francisco de Miranda \u00b7 ' + FICHA.led.medida + ' \u00b7 rotaci\u00f3n por franjas horarias',
         m: [['Impactos', '120.000/d\u00eda'], ['Formato', 'Video / MP4']] },
       { n: '02', id: 'vallas', t: 'Vallas \u00b7 OOH nacional', badge: '',
         d: 'Caracas y arterias viales \u00b7 gran formato \u00b7 brand recall de largo plazo',
         m: [['Rotaci\u00f3n', 'Alta vial'], ['Cobertura', 'Nacional']] },
       { n: '03', id: 'rider', t: 'Rider Clon \u00b7 movilidad LED', badge: 'TRACKING',
-        d: 'Caracas \u00b7 San Antonio \u00b7 Valencia \u00b7 caja LED 42\u00d759 cm \u00b7 GPS en vivo',
+        d: 'Caracas \u00b7 San Antonio \u00b7 Valencia \u00b7 caja LED ' + FICHA.rider.medida + ' \u00b7 GPS en vivo',
         m: [['Flota', '250 motos'], ['Turno', '8 h / d\u00eda']] },
       { n: '04', id: 'totem', t: 'T\u00f3tem digital \u00b7 indoor', badge: '',
-        d: 'C.C. San Ignacio \u00b7 1440\u00d72560 px \u00b7 audiencia cautiva premium',
+        d: 'C.C. San Ignacio \u00b7 ' + FICHA.totem.medida + ' \u00b7 audiencia cautiva premium',
         m: [['Salidas', '240/d\u00eda'], ['Ambiente', 'Indoor A+']] },
-      { n: '05', id: 'paradas', t: 'Paradas \u00b7 mobiliario urbano', badge: '',
-        d: 'Las Mercedes \u00b7 Av. Libertador \u00b7 2\u00d72,4 m \u00b7 audiencia peatonal',
-        m: [['Spots', '34.000/mes'], ['Contacto', 'Peatonal']] },
     ];
     const vivos = activos(st).map(function (x) { return x.id; });
     let tabla = '';
@@ -1171,8 +1211,8 @@
       '<div style="font-family:' + FH + ';font-size:36px;line-height:1.06;font-weight:800;letter-spacing:-.03em;color:' + k.texto + ';">' +
         'Que te conozcan. <span style="color:' + k.acento + ';">Que te recuerden.</span> Que te compren.</div>' +
       '<div style="font-family:' + FB + ';font-size:15px;line-height:1.6;color:' + k.apagado + ';padding:16px 0 0 0;">' +
-        'Esa es la secuencia. Tres fases, en ese orden, es c\u00f3mo crecen las marcas que aparecen en las calles de ' +
-        'Caracas. Te la explicamos sin tecnicismos y sin comprometerte a nada.</div>',
+        'Esa es la secuencia. Tres fases, en ese orden, es c\u00f3mo crecen las marcas que aparecen en las calles. ' +
+        'Te la explicamos sin tecnicismos y sin comprometerte a nada.</div>',
       // El aire de arriba lo daba el epigrafe que habia aqui. Al quitarlo, el titular de
       // 36 px se quedaba a 22 px de la cabecera; esto le devuelve el respiro.
       pad + 'padding-top:12px;padding-bottom:26px;'));
@@ -1248,7 +1288,7 @@
         pad + 'padding-bottom:28px;'));
     }
 
-    const compF = complementos(st, ['totem', 'led', 'rider']);
+    const compF = complementos(st, ['totem', 'led', 'rider'], { titulo: false });
     if (compF) P.push(row(compF, pad + 'padding-bottom:26px;'));
 
     if (on(st, 'firma')) {

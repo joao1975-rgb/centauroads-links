@@ -197,7 +197,9 @@
 
   function load() { try { const raw = localStorage.getItem(KEY); return raw ? JSON.parse(raw) : null; } catch (e) { return null; } }
   function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) { /* sin almacenamiento: seguimos en memoria */ } }
-  let st = load() || M.defaultState();
+  // Normalizar al cargar: el panel se construye antes del primer render, y sin esto
+  // un servicio retirado (Paradas) seguiria apareciendo en sus editores.
+  let st = M.normaliza(load() || M.defaultState());
   let noImg = false;
 
   const ENVIO = [
@@ -394,7 +396,7 @@
     pinta();
 
     // Excepciones por servicio. El encargo pedia poder elegir POR servicio, no solo uno
-    // para todo: una parada de autobus y una pantalla LED no se lucen con lo mismo.
+    // para todo: una valla y una pantalla LED no se lucen con lo mismo.
     g.appendChild(el('p', 'hint', 'Abajo, si un servicio concreto se luce con otro efecto, se le pone el suyo.'));
     M.SERVICIOS.forEach(sv => {
       const fila = el('label', 'fld');
@@ -429,7 +431,7 @@
   }
 
   // Banco de imagenes por servicio: que fotos entran en el carrusel, tres huecos para
-  // anadir mas y el video. Un servicio por bloque plegable, que si no son cinco listas
+  // anadir mas y el video. Un servicio por bloque plegable, que si no son cuatro listas
   // abiertas a la vez y no se encuentra nada.
   function buildBanco() {
     const g = el('div', 'grp');
