@@ -89,7 +89,7 @@
   }
 
   const FICHA = {
-    led:     { ubic: 'Chacao · Av. F. de Miranda',   medida: '1080 × 1920 px',        trafico: '120.000 impactos/día', desde: '1.500' },
+    led:     { ubic: 'Chacao · Av. F. de Miranda',   medida: '1024 × 2048 px',        trafico: '120.000 impactos/día', desde: '1.500' },
     vallas:  { ubic: 'Caracas y nivel nacional',      medida: 'Según ubicación',   trafico: 'Alta rotación vial',   desde: '' },
     totem:   { ubic: 'C.C. San Ignacio',              medida: '1440 × 2560 px', trafico: '240 salidas/día',      desde: '300' },
     rider:   { ubic: 'Caracas · San Antonio · Valencia', medida: '0,42 × 0,59 m',  trafico: '250 motos · 8 h/día',  desde: '1.500' },
