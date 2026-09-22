@@ -30,12 +30,18 @@
       slug: 'vallas', canva: 'https://canva.link/fgsgrl8vj329ue0',
       img: 'svc_vallas.jpg', alt: 'Valla de Centauro ADS bajo el elevado de Las Mercedes, Caracas',
       cover: 'cover_vallas.jpg', altCover: 'Portada: Disponibilidad de vallas Gran Caracas' },
-    { id: 'led', nombre: 'Pantalla LED (DOOH)', eyebrow: 'Digital outdoor', cta: 'Consultar disponibilidad',
-      cobertura: 'Ubicación: Chacao',
+    { id: 'led', nombre: 'Pantalla LED Chacao', eyebrow: 'Digital outdoor', cta: 'Consultar disponibilidad',
+      cobertura: 'Ubicación: Chacao · Av. Francisco de Miranda',
       nota: 'Servicio de videos (por cotizar) · Alquiler y venta de pantallas LED',
       slug: 'pantallas-led', canva: 'https://canva.link/p69pybf8jctaq8d',
       img: 'svc_led.jpg', alt: 'Pantalla LED vertical de Chacao, Av. Francisco de Miranda con Calle Elice',
       cover: 'cover_led.jpg', altCover: 'Portada: Circuito pantallas LED Chacao y Las Mercedes' },
+    { id: 'mercedes', nombre: 'Pantalla LED Las Mercedes', eyebrow: 'Digital outdoor', cta: 'Consultar disponibilidad',
+      cobertura: 'Ubicación: Las Mercedes · Av. Paseo Enrique Erazo',
+      nota: 'Formato horizontal · transmisión 24 horas',
+      slug: 'pantalla-las-mercedes', canva: 'https://canva.link/p69pybf8jctaq8d',
+      img: 'svc_mercedes.jpg', alt: 'Pantalla LED horizontal bajo el elevado de la Av. Paseo Enrique Erazo, Las Mercedes',
+      cover: 'cover_mercedes.jpg', altCover: 'Ficha técnica: Pantalla LED Las Mercedes' },
     { id: 'totem', nombre: 'Tótem digital', eyebrow: 'Outdoor · Indoor', cta: 'Consultar disponibilidad',
       cobertura: 'Ubicación: C.C. San Ignacio', nota: 'Alquiler y venta de tótems digitales',
       slug: 'totem-san-ignacio', canva: 'https://canva.link/p5gmvy032ba3sbm',
@@ -51,7 +57,7 @@
   // ── Grupos de la plantilla D (taxonomía del flyer "Servicios de publicidad exterior") ──
   const GRUPOS = [
     { id: 'vallas', eyebrow: 'Gran formato', titulo: 'Vallas (OOH)', servicios: ['vallas'] },
-    { id: 'dooh', eyebrow: 'Digital outdoor', titulo: 'Pantalla LED y Tótem (DOOH)', servicios: ['led', 'totem'] },
+    { id: 'dooh', eyebrow: 'Digital outdoor', titulo: 'Pantallas LED y Tótem (DOOH)', servicios: ['led', 'mercedes', 'totem'] },
     { id: 'movil', eyebrow: 'Movilidad', titulo: 'Publicidad móvil · Rider Clon', servicios: ['rider'] },
   ];
 
@@ -90,6 +96,7 @@
 
   const FICHA = {
     led:     { ubic: 'Chacao · Av. F. de Miranda',   medida: '1024 × 2048 px',        trafico: '120.000 impactos/día', desde: '1.500' },
+    mercedes: { ubic: 'Las Mercedes · Av. P. Enrique Erazo', medida: '1920 × 1200 px', trafico: '95.000 vehículos/día', desde: '' },
     vallas:  { ubic: 'Caracas y nivel nacional',      medida: 'Según ubicación',   trafico: 'Alta rotación vial',   desde: '' },
     totem:   { ubic: 'C.C. San Ignacio',              medida: '1440 × 2560 px', trafico: '240 salidas/día',      desde: '300' },
     rider:   { ubic: 'Caracas · San Antonio · Valencia', medida: '0,42 × 0,59 m',  trafico: '250 motos · 8 h/día',  desde: '1.500' },
@@ -124,6 +131,7 @@
                // su marca de agua y el permiso de uso comercial NO esta concedido. Por eso
                // el video viene apagado de serie y el panel lo avisa.
                aviso: 'Fotogramas de @nanopopcast: llevan marca de agua y el permiso de uso comercial sigue pendiente.' },
+    mercedes: { fotos: ['svc_mercedes.jpg', 'svc_mercedes_alt.jpg'], videos: [] },
     totem:   { fotos: ['svc_totem.jpg', 'svc_totem_alt.jpg', 'svc_totem_alt2.jpg'], videos: [] },
     rider:   { fotos: ['svc_rider.jpg', 'svc_rider_alt.jpg', 'svc_rider_alt2.jpg'], videos: [] },
   };
@@ -179,25 +187,25 @@
   // generarlo y subirlo antes de usarlo, y el panel lo dice.
   const EFECTOS = [
     { clave: 'corte', servido: true, etiqueta: 'Corte',
-      kb: { led: 245, vallas: 310, totem: 301, rider: 250 },
+      kb: { led: 245, mercedes: 198, vallas: 310, totem: 301, rider: 250 },
       idea: 'Cambio seco, sin transicion. El mas ligero y el que mejor aguanta conexiones lentas.' },
     { clave: 'barrido', servido: true, etiqueta: 'Barrido',
-      kb: { led: 355, vallas: 426, totem: 392, rider: 342 },
+      kb: { led: 355, mercedes: 320, vallas: 426, totem: 392, rider: 342 },
       idea: 'Una linea vertical descubre la foto siguiente, como el giro de una valla rotativa.' },
     { clave: 'persiana', servido: true, etiqueta: 'Persiana',
-      kb: { led: 405, vallas: 477, totem: 458, rider: 409 },
+      kb: { led: 405, mercedes: 356, vallas: 477, totem: 458, rider: 409 },
       idea: 'La foto nueva entra en franjas horizontales. El mas llamativo de los ligeros.' },
     { clave: 'fundido', servido: true, etiqueta: 'Fundido',
-      kb: { led: 667, vallas: 888, totem: 789, rider: 697 },
+      kb: { led: 667, mercedes: 597, vallas: 888, totem: 789, rider: 697 },
       idea: 'Una foto se disuelve en la siguiente. El mas neutro: no compite con el texto.' },
     { clave: 'deslizar', servido: true, etiqueta: 'Deslizar',
-      kb: { led: 669, vallas: 860, totem: 758, rider: 634 },
+      kb: { led: 669, mercedes: 563, vallas: 860, totem: 758, rider: 634 },
       idea: 'La foto nueva empuja a la anterior. Sensacion de recorrido entre soportes.' },
     { clave: 'destello', servido: true, etiqueta: 'Destello',
-      kb: { led: 672, vallas: 890, totem: 817, rider: 699 },
+      kb: { led: 672, mercedes: 581, vallas: 890, totem: 817, rider: 699 },
       idea: 'Un brillo diagonal cruza la foto antes del cambio. Lee metalico, va con promociones.' },
     { clave: 'zoom', servido: false, etiqueta: 'Zoom',
-      kb: { led: 1784, vallas: 2511, totem: 2188, rider: 1820 },
+      kb: { led: 1784, mercedes: 1590, vallas: 2511, totem: 2188, rider: 1820 },
       idea: 'Acercamiento lento sobre cada foto. PESA MUCHO y no tiene arreglo: el acercamiento ' +
             'cambia la imagen entera en cada paso y la compresion no puede reutilizar nada. En ' +
             'Vallas son 2,5 MB, que en datos moviles no se abre. El zoom de las etiquetas de ' +
@@ -239,7 +247,7 @@
     ],
     agencia: [
       { clave: 'directo',    etiqueta: 'Directo',    texto: '📊 Inventario OOH/DOOH Caracas \u00b7 disponibilidad actualizada' },
-      { clave: 'beneficio',  etiqueta: 'Beneficio',  texto: '🎯 Cuatro frentes con m\u00e9tricas comparables para tu pr\u00f3ximo mix' },
+      { clave: 'beneficio',  etiqueta: 'Beneficio',  texto: '🎯 Cinco frentes con m\u00e9tricas comparables para tu pr\u00f3ximo mix' },
       { clave: 'curiosidad', etiqueta: 'Curiosidad', texto: '📈 Tu pr\u00f3ximo Share of Voice, en una sola tabla' },
     ],
     nuevo: [
@@ -266,12 +274,12 @@
       nombre: 'Agencias y grandes cuentas',
       desc: 'Ficha de disponibilidad: medidas, tráfico y estado. Datos primero, sin rodeos.',
       asunto: 'Disponibilidad OOH/DOOH · Caracas',
-      preheader: 'Medidas, tráfico y estado de cada espacio: pantalla LED, vallas, tótem y 250 riders.',
+      preheader: 'Medidas, tráfico y estado de cada espacio: dos pantallas LED, vallas, tótem y 250 riders.',
       titulo: 'Inventario disponible', sub: 'Centauro ADS · Phygital + DOOH + Digital',
       intro: 'Te comparto la disponibilidad, con las medidas y el tráfico de cada espacio, para que puedas cerrar el plan de medios sin pedir las fichas por separado.',
       cierre: 'Si necesitas un espacio que no aparezca aquí, dímelo y lo busco.',
       cta: 'Pedir tarifas y disponibilidad',
-      orden: ['led', 'vallas', 'rider', 'totem'],
+      orden: ['led', 'mercedes', 'vallas', 'rider', 'totem'],
       bloque: 'disponibilidad',
     },
     nuevo: {
@@ -283,7 +291,7 @@
       intro: 'Dar el salto a la publicidad exterior no es cuestión de presupuesto, es cuestión de orden. Esta es la ruta que seguimos con las marcas que empiezan de cero.',
       cierre: 'No hace falta ser experto para empezar. Cuéntame qué vendes y te preparo una propuesta a la medida.',
       cta: 'Cuéntame tu negocio',
-      orden: ['totem', 'led', 'vallas', 'rider'],
+      orden: ['totem', 'led', 'mercedes', 'vallas', 'rider'],
       bloque: 'ruta',
     },
     phygital: {
@@ -295,7 +303,7 @@
       intro: 'El problema ya no es que no te vean. Es que te ven y siguen caminando. Phygital convierte ese impacto en una acción que puedes medir en el teléfono.',
       cierre: '¿Armamos algo que rompa el molde este mes? Con quince minutos basta para plantearlo.',
       cta: 'Agendar 15 minutos',
-      orden: ['led', 'totem', 'rider', 'vallas'],
+      orden: ['led', 'mercedes', 'totem', 'rider', 'vallas'],
       bloque: 'puente',
     },
   };
@@ -741,8 +749,8 @@
   // Valores de catalogo que cambiaron y que un estado guardado puede llevar todavia.
   const RENOMBRADOS = {
     led: [
-      { campo: 'nombre', antes: 'Pantallas LED (DOOH)' },
-      { campo: 'cobertura', antes: 'Ubicaci\u00f3n: Chacao y Las Mercedes' },
+      { campo: 'nombre', antes: ['Pantallas LED (DOOH)', 'Pantalla LED (DOOH)'] },
+      { campo: 'cobertura', antes: ['Ubicaci\u00f3n: Chacao y Las Mercedes', 'Ubicaci\u00f3n: Chacao'] },
     ],
   };
 
@@ -765,12 +773,19 @@
     if (Array.isArray(st.servicios)) {
       const vigentes = SERVICIOS.map(function (x) { return x.id; });
       st.servicios = st.servicios.filter(function (x) { return vigentes.indexOf(x.id) >= 0; });
+      // Los servicios nuevos del catalogo entran tambien, en la posicion del catalogo: sin
+      // esto, quien ya uso la herramienta no veria nunca un servicio anadido despues.
+      const guardados = st.servicios.map(function (x) { return x.id; });
+      SERVICIOS.forEach(function (nuevo, pos) {
+        if (guardados.indexOf(nuevo.id) >= 0) return;
+        st.servicios.splice(Math.min(pos, st.servicios.length), 0, Object.assign({ on: true }, nuevo));
+      });
       // Textos de catalogo que cambiaron: solo si siguen con el valor de antes. Si alguien
       // los edito a mano, se queda lo suyo.
       st.servicios.forEach(function (x) {
         const actual = SERVICIOS.filter(function (y) { return y.id === x.id; })[0];
         (RENOMBRADOS[x.id] || []).forEach(function (r) {
-          if (x[r.campo] === r.antes) x[r.campo] = actual[r.campo];
+          if (r.antes.indexOf(x[r.campo]) >= 0) x[r.campo] = actual[r.campo];
         });
       });
     }
@@ -1118,16 +1133,19 @@
       pad + 'padding-bottom:16px;'));
 
     const INVENTARIO = [
-      { n: '01', id: 'led', t: 'Pantalla LED \u00b7 DOOH', badge: a.slotsLed,
+      { n: '01', id: 'led', t: 'Pantalla LED Chacao \u00b7 DOOH', badge: a.slotsLed,
         d: 'Chacao, Av. Francisco de Miranda \u00b7 ' + FICHA.led.medida + ' \u00b7 rotaci\u00f3n por franjas horarias',
         m: [['Impactos', '120.000/d\u00eda'], ['Formato', 'Video / MP4']] },
-      { n: '02', id: 'vallas', t: 'Vallas \u00b7 OOH nacional', badge: '',
+      { n: '02', id: 'mercedes', t: 'Pantalla LED Las Mercedes \u00b7 DOOH', badge: '',
+        d: 'Av. Paseo Enrique Erazo \u00b7 ' + FICHA.mercedes.medida + ' \u00b7 horizontal, 24 horas',
+        m: [['Tr\u00e1fico', '95.000 veh\u00edculos/d\u00eda'], ['Formato', 'Video / MP4 \u00b7 30 s']] },
+      { n: '03', id: 'vallas', t: 'Vallas \u00b7 OOH nacional', badge: '',
         d: 'Caracas y arterias viales \u00b7 gran formato \u00b7 brand recall de largo plazo',
         m: [['Rotaci\u00f3n', 'Alta vial'], ['Cobertura', 'Nacional']] },
-      { n: '03', id: 'rider', t: 'Rider Clon \u00b7 movilidad LED', badge: 'TRACKING',
+      { n: '04', id: 'rider', t: 'Rider Clon \u00b7 movilidad LED', badge: 'TRACKING',
         d: 'Caracas \u00b7 San Antonio \u00b7 Valencia \u00b7 caja LED ' + FICHA.rider.medida + ' \u00b7 GPS en vivo',
         m: [['Flota', '250 motos'], ['Turno', '8 h / d\u00eda']] },
-      { n: '04', id: 'totem', t: 'T\u00f3tem digital \u00b7 indoor', badge: '',
+      { n: '05', id: 'totem', t: 'T\u00f3tem digital \u00b7 indoor', badge: '',
         d: 'C.C. San Ignacio \u00b7 ' + FICHA.totem.medida + ' \u00b7 audiencia cautiva premium',
         m: [['Salidas', '240/d\u00eda'], ['Ambiente', 'Indoor A+']] },
     ];
