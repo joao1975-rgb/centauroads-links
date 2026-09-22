@@ -1,7 +1,15 @@
 <!--
 SYNC IMPACT REPORT
-Versión: (plantilla sin ratificar) → 1.0.0
-Tipo de cambio: MAJOR — primera ratificación; se sustituyen todos los marcadores de la plantilla.
+Versión: 1.0.0 → 1.1.0
+Tipo de cambio: MINOR — se redefine una regla del principio II sin retirar el principio.
+
+Enmienda 1.1.0 (2026-09-22): el principio II exigía subir `CONTENT_VERSION` al cambiar un valor
+por defecto. Esa regla resultó ser dañina: `CONTENT_VERSION` forma parte de la clave de
+`localStorage`, de modo que subirla descarta el estado guardado y borra el trabajo escrito a mano
+por el usuario. Ocurrió una vez, con textos ya redactados. La regla se sustituye por la práctica
+que el código aplica desde entonces: **migrar el estado guardado en `normaliza()`**, que corrige
+los valores retirados sin descartar lo que la persona escribió. `CONTENT_VERSION` se reserva para
+cambios de forma del estado que no se puedan migrar.
 
 Principios definidos (ninguno renombrado, ninguno eliminado):
   I.   El acortador no se toca
@@ -58,8 +66,13 @@ multiplican: el **formato** (A Cartelera, B Catálogo, C Nota, D Móvil) decide 
 - Un segmento de cliente nuevo es una entrada en `PERFILES`, **nunca** una plantilla duplicada.
 - El HTML de un correo no se escribe a mano en ningún sitio: se genera. Los ficheros
   `plantilla-*.html` son salida del `build`, no fuente.
-- Al cambiar contenido por defecto DEBE subirse `CONTENT_VERSION`, o el estado guardado en el
-  navegador del usuario gana a las correcciones y reaparecen datos viejos.
+- Al cambiar contenido por defecto DEBE migrarse el estado guardado en `normaliza()`: los
+  valores retirados se sustituyen por los vigentes y los elementos nuevos del catálogo entran en
+  su sitio. Sin esa migración, el estado del navegador gana a las correcciones y reaparecen datos
+  viejos; con ella, lo que la persona escribió a mano sobrevive.
+- `CONTENT_VERSION` NO se sube para corregir contenido: forma parte de la clave de almacenamiento
+  y subirla **descarta** el trabajo guardado del usuario. Se reserva para cambios de forma del
+  estado que `normaliza()` no pueda migrar, y entonces se avisa antes.
 
 **Razón**: la alternativa —una plantilla por segmento— multiplica el mantenimiento para cambiar
 solo texto y orden. Ya ocurrió dos veces que datos de contacto retirados reaparecieran en una
@@ -154,4 +167,4 @@ enmienda antes de actuar, no después.
 - **Guía en tiempo de ejecución**: `CLAUDE.md` y las reglas de `~/.claude/rules/` complementan
   esta constitución; donde entren en conflicto sobre este proyecto, manda la constitución.
 
-**Versión**: 1.0.0 | **Ratificada**: 2026-09-19 | **Última enmienda**: 2026-09-19
+**Versión**: 1.1.0 | **Ratificada**: 2026-09-19 | **Última enmienda**: 2026-09-22

@@ -391,6 +391,25 @@
           slogan: 'Visibilidad que conecta', linea: 'PHYGITAL DOOH + Digital',
           email: 'equintero@centauroads.com', telefono: '+58 412 100 3559', ig: '@centauroads',
           web: 'linktr.ee/centauroadss', contacto: 'mercadeo@centauroads.com', direccion: 'Caracas, Venezuela' },
+        // Entrega a medida (formato H).
+        // Esto NO es el catalogo: es la presentacion propia que ya se le armo a un cliente.
+        // `url` e `img` los rellena el panel con los datos de esa entrega; los valores de
+        // aqui son el marcador de posicion con el que se ve la plantilla en seco.
+        //
+        // `texto` y `corto` son el MISMO mensaje en dos longitudes, no dos redacciones que
+        // mantener (FR-118): el largo va al correo, el corto a WhatsApp.
+        entrega: {
+          on: true,
+          titulo: 'Propuesta para tu marca',
+          meta: 'PROPUESTA \u00b7 A MEDIDA',
+          url: '',
+          img: 'cover_led.jpg',
+          alt: 'Portada de la propuesta preparada para el cliente',
+          texto: 'Preparamos esta propuesta pensando en tu marca: los espacios que le convienen, d\u00f3nde se ve y qu\u00e9 pasa cuando la gente pasa por delante.\n\n\u00c1brela con calma y me dices qu\u00e9 te parece. Si hay algo que ajustar, lo ajustamos.',
+          corto: 'Te dejo la propuesta que preparamos para tu marca. \u00c1brela con calma y me dices qu\u00e9 te parece.',
+          cta: 'Ver la propuesta',
+          acompanan: 'Lo que la acompa\u00f1a',
+        },
         pie: { on: true, texto: 'Recibes este correo porque solicitaste información sobre espacios publicitarios de Centauro ADS.' },
       },
       servicios: SERVICIOS.map(s => Object.assign({ on: true }, s)),
@@ -413,6 +432,10 @@
   const usaPortadas = st => st.imgSet === 'portadas';
   const svcImg = (st, s) => imgFor(st, usaPortadas(st) && s.cover ? s.cover : s.img);
   const svcAlt = (st, s) => (usaPortadas(st) && s.altCover ? s.altCover : s.alt);
+  // La portada de una entrega puede venir de tres sitios: del servidor que la guarda
+  // (/media/entregas/7/og.jpg), de una direccion completa, o del juego de imagenes local
+  // cuando es el marcador de posicion. Se distingue por la forma, no por una bandera mas.
+  const entregaImg = (st, v) => (/^(https?:)?\/\//.test(v) || String(v).charAt(0) === '/') ? v : imgFor(st, v);
   const activos = st => st.bloques.servicios.on ? st.servicios.filter(s => s.on) : [];
   const on = (st, k) => !!(st.bloques[k] && st.bloques[k].on);
   const B = (st, k) => st.bloques[k];
@@ -724,8 +747,15 @@
     if (!faltan.length) return '';
     const k = paleta(esOscuro(st));
     let filas = '';
-    for (let i = 0; i < faltan.length; i += 2) {
-      const par = faltan.slice(i, i + 2);
+    // opts.columnas === 1 fuerza una tarjeta por fila. Dos columnas son <td> hermanos, y un
+    // <td> no baja debajo de su hermano en el movil sin media queries, que el correo no tiene:
+    // a 375 px las dos tarjetas se reparten el ancho y quedan ilegibles. La variante de una
+    // columna usa dos tablas align='left' -la misma tecnica que ya usaba la tarjeta impar-,
+    // que a 600 px van lado a lado y en el movil se apilan solas. La Entrega la usa porque
+    // ensena los cinco servicios; A-G siguen con dos columnas y no se mueven.
+    const paso = (opts && opts.columnas === 1) ? 1 : 2;
+    for (let i = 0; i < faltan.length; i += paso) {
+      const par = faltan.slice(i, i + paso);
       if (par.length === 1) {
         const s = par[0];
         filas += '<tr><td colspan="2" valign="top" style="padding:0 0 16px 0;">' +
@@ -741,7 +771,11 @@
           fotoServicio(st, s, 250) + textoComplemento(st, s, k) +
         '</td>').join('') + '</tr>';
     }
-    const titulo = (opts && opts.titulo === false) ? '' : epigrafe(st, 'Tambi\u00e9n disponible', k.acento);
+    // opts.titulo: false lo quita, una cadena lo sustituye, ausente deja el de siempre.
+    // La Entrega necesita decir "Lo que la acompana", no "Tambien disponible": alli los
+    // servicios no son alternativas, son lo que va con la propuesta que ya se le armo.
+    const rotulo = (opts && typeof opts.titulo === 'string') ? opts.titulo : 'Tambi\u00e9n disponible';
+    const titulo = (opts && opts.titulo === false) ? '' : epigrafe(st, rotulo, k.acento);
     return titulo +
       '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">' + filas + '</table>';
   }
@@ -1071,6 +1105,23 @@
   function renderText(st0) {
     const st = aplicaAsunto(aplicaPerfil(normaliza(st0)));
     const L = [];
+    // La Entrega no es el catalogo: lo que se lee en texto plano es la propuesta, no la
+    // lista de espacios. Se separa aqui y no en una funcion aparte para que quien copie
+    // "solo texto" obtenga siempre lo que esta viendo.
+    if (st.plantilla === 'H') {
+      const e = B(st, 'entrega');
+      if (on(st, 'saludo')) L.push(fill(B(st, 'saludo').texto, st), '');
+      L.push(e.titulo.toUpperCase(), '');
+      L.push(fill(e.texto, st), '');
+      if (e.url) L.push(e.cta + ': ' + e.url, '');
+      if (activos(st).length) {
+        L.push(e.acompanan + ':');
+        activos(st).forEach(s => L.push('\u2022 ' + s.nombre + ' \u2014 ' + s.cobertura + ' \u2014 ' + linkFor(st, s)));
+        L.push('');
+      }
+      if (on(st, 'firma')) L.push.apply(L, pieDeFirma(st));
+      return L.join('\n');
+    }
     if (on(st, 'saludo')) L.push(fill(B(st, 'saludo').texto, st), '');
     if (on(st, 'intro')) L.push(fill(B(st, 'intro').texto, st), '');
     if (on(st, 'titulo')) L.push(B(st, 'titulo').texto.toUpperCase(), '');
@@ -1080,7 +1131,35 @@
     if (on(st, 'pasos')) { const b = B(st, 'pasos'); L.push(b.titulo, b.texto, ''); }
     if (on(st, 'presupuesto')) { const b = B(st, 'presupuesto'); L.push(b.titulo + ':'); lines(b.items).forEach((t, i) => L.push((i + 1) + ') ' + t)); L.push(''); }
     if (on(st, 'cierre')) L.push(B(st, 'cierre').texto, '');
-    if (on(st, 'firma')) { const f = B(st, 'firma'); const dirs = correosDe(f); L.push(f.nombre, cargoDe(f), dirs[0] + ' · ' + f.telefono); dirs.slice(1).forEach(function (d) { L.push(d); }); L.push(f.ig + ' · ' + webHref(f.web) + ' · ' + f.direccion); }
+    if (on(st, 'firma')) L.push.apply(L, pieDeFirma(st));
+    return L.join('\n');
+  }
+
+  // La firma en texto plano. La usan el texto del correo, el de la Entrega y el de WhatsApp:
+  // tres sitios es uno de mas para copiarla a mano.
+  function pieDeFirma(st) {
+    const f = B(st, 'firma'), dirs = correosDe(f), L = [];
+    L.push(f.nombre, cargoDe(f), dirs[0] + ' \u00b7 ' + f.telefono);
+    dirs.slice(1).forEach(function (d) { L.push(d); });
+    L.push(f.ig + ' \u00b7 ' + webHref(f.web) + ' \u00b7 ' + f.direccion);
+    return L;
+  }
+
+  // El mismo mensaje, para WhatsApp (FR-116, FR-118).
+  //
+  // Dos reglas que no son de estilo sino de como funciona WhatsApp: solo previsualiza el
+  // PRIMER enlace del mensaje, y solo si va donde lo encuentre pronto. Por eso el enlace
+  // abre el mensaje y por eso no se anaden mas: cada enlace de mas es una tarjeta menos.
+  function renderWhatsApp(st0) {
+    const st = aplicaAsunto(aplicaPerfil(normaliza(st0)));
+    const e = B(st, 'entrega');
+    const L = [];
+    if (e.url) L.push(e.url, '');
+    if (on(st, 'saludo')) L.push(fill(B(st, 'saludo').texto, st));
+    L.push(fill(e.corto, st), '');
+    const f = B(st, 'firma');
+    L.push(f.nombre + ' \u00b7 ' + cargoDe(f));
+    L.push(correosDe(f)[0] + ' \u00b7 ' + f.telefono);
     return L.join('\n');
   }
 
@@ -1435,6 +1514,70 @@
     return doc(st, k.fondo, P.join(''));
   }
 
+  // -- Formato H - "Entrega" (la presentacion propia del cliente) ---------------------
+  //
+  // Los formatos A-G responden a una solicitud: ensenan el catalogo. Este entrega lo que
+  // vino despues, cuando el cliente ya mostro interes y el equipo le armo SU presentacion.
+  // Por eso el orden se invierte: primero la propuesta, y los servicios del catalogo van
+  // al final, como lo que la acompana.
+  //
+  // Se arma con los mismos bloques que el resto -cabecera, epigrafe, boton, complementos,
+  // firma, pie- porque una plantilla escrita a mano seria una segunda fuente de verdad, y
+  // este proyecto ya pago dos veces ese precio (constitucion, principio II).
+  function plantillaH(st) {
+    const o = esOscuro(st), k = paleta(o), P = [];
+    const e = B(st, 'entrega');
+    const pad = 'padding-left:32px;padding-right:32px;background:' + k.panel + ';';
+    // Sin enlace todavia -la plantilla en seco- el boton no debe llevar a ninguna parte.
+    const url = e.url || '#';
+
+    P.push(row(cabeceraAsesor(st, P, e.meta),
+      'padding:26px 32px 22px 32px;background:' + k.panel + ';'));
+
+    P.push(row(
+      epigrafe(st, 'Tu propuesta') +
+      '<div style="font-family:' + FH + ';font-size:34px;line-height:1.08;font-weight:800;' +
+        'letter-spacing:-.03em;color:' + k.texto + ';">' + esc(e.titulo) + '</div>',
+      pad + 'padding-bottom:22px;'));
+
+    let cuerpo = '';
+    if (on(st, 'saludo')) {
+      cuerpo += '<div style="font-family:' + FB + ';font-size:15px;line-height:1.65;color:' + k.texto + ';">' +
+        nl2br(fill(B(st, 'saludo').texto, st)) + '</div>';
+    }
+    cuerpo += '<div style="font-family:' + FB + ';font-size:15px;line-height:1.65;color:' + k.apagado + ';' +
+      'padding:10px 0 0 0;">' + nl2br(fill(e.texto, st)) + '</div>';
+    P.push(row(cuerpo, pad + 'padding-bottom:24px;'));
+
+    // La portada, enlazada a la propia presentacion. El texto alternativo tiene que bastar
+    // con las imagenes bloqueadas, que es como la abre medio Outlook (principio III).
+    if (e.img) {
+      P.push(row(
+        '<a href="' + esc(url) + '"><img src="' + esc(entregaImg(st, e.img)) + '" width="536"' +
+        ' alt="' + esc(e.alt) + '" style="display:block;width:536px;max-width:100%;height:auto;' +
+        'border:0;border-radius:10px;color:' + k.texto + ';font-family:' + FB + ';font-size:13px;' +
+        'line-height:18px;"></a>',
+        pad + 'padding-bottom:22px;'));
+    }
+
+    P.push(row(botonAsesor(st, e.cta, url), pad + 'padding-bottom:28px;'));
+
+    // Los servicios que acompanan la propuesta. Ninguno mostrado antes, asi que entran todos
+    // los que sigan activos: quitarlos es apagarlos en el panel.
+    const compH = complementos(st, [], { titulo: e.acompanan, columnas: 1 });
+    if (compH) P.push(row(compH, pad + 'padding-bottom:26px;'));
+
+    if (on(st, 'firma')) {
+      P.push(row(firma(st, o),
+        'padding:24px 32px 26px 32px;background:' + k.panel + ';border-top:1px solid ' + k.linea + ';'));
+    }
+    if (on(st, 'pie')) {
+      P.push(row('<div style="font-family:' + FB + ';font-size:11px;line-height:16px;color:' + k.apagado + ';">' +
+        nl2br(B(st, 'pie').texto) + '</div>', 'padding:14px 32px 0 32px;'));
+    }
+    return doc(st, k.fondo, P.join(''));
+  }
+
   const TEMPLATES = {
     A: { nombre: 'Cartelera', desc: 'Oscura, misma identidad que los decks. Para primer envío.', fn: plantillaA },
     B: { nombre: 'Catálogo', desc: 'Clara, tarjetas en dos columnas. Para lectura rápida.', fn: plantillaB },
@@ -1443,6 +1586,7 @@
     E: { nombre: 'Inventario', desc: 'Asesor de diseño · para agencias. Tabla de inventario con métricas comparables, sin brief educativo. Claro u oscuro.', fn: plantillaE },
     F: { nombre: 'Guía', desc: 'Asesor de diseño · para cliente nuevo. Tres fases en orden: que te conozcan, que te recuerden, que te compren. Claro u oscuro.', fn: plantillaF },
     G: { nombre: 'Phygital', desc: 'Asesor de diseño · la escena de las 9:00 AM. La calle capta, el móvil cierra. Claro u oscuro.', fn: plantillaG },
+    H: { nombre: 'Entrega', desc: 'Para entregar la presentación propia de un cliente: su enlace, sus imágenes y los servicios que la acompañan. Claro u oscuro.', fn: plantillaH },
   };
   function pick(st) {
     if (st.plantilla && TEMPLATES[st.plantilla]) return st.plantilla;
@@ -1451,5 +1595,5 @@
   }
   const render = (st, key) => TEMPLATES[key || pick(st)].fn(aplicaAsunto(aplicaPerfil(normaliza(st))));
 
-  return { C, SERVICIOS, GRUPOS, TEMPLATES, IMG_SETS, PERFILES, ASUNTOS, asuntosDe, EFECTOS, efectoDe, pesoDe, rangoPeso, ROLES, CORREOS, cargoDe, correosDe, BANCO, bancoDe, fotosDe, comandoCarrusel, FICHA, CONTENT_VERSION, defaultState, render, renderText, pick, aplicaPerfil, aplicaAsunto, normaliza };
+  return { C, SERVICIOS, GRUPOS, TEMPLATES, IMG_SETS, PERFILES, ASUNTOS, asuntosDe, EFECTOS, efectoDe, pesoDe, rangoPeso, ROLES, CORREOS, cargoDe, correosDe, BANCO, bancoDe, fotosDe, comandoCarrusel, FICHA, CONTENT_VERSION, defaultState, render, renderText, renderWhatsApp, pick, aplicaPerfil, aplicaAsunto, normaliza };
 });

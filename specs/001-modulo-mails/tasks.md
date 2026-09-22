@@ -2,6 +2,22 @@
 
 **Fecha**: 2026-09-19 | **Plan**: [plan.md](./plan.md) | **Spec**: [spec.md](./spec.md)
 
+**Estado a 2026-09-22**: 14 de 57 hechas, todas de la fase 2. Verificado contra el código, no
+contra la memoria.
+
+| Bloque | Estado |
+|---|---|
+| Fase 1 · Setup (T001-T004) | Hecha salvo **T003**: hay pruebas en `tests/` pero `pytest` no está declarado, así que una máquina limpia no puede ejecutarlas |
+| Fase 2 · Migración e identidad (T005-T014, T017) | **Hecha**. `app/auth/` completo, modelos ampliados de forma aditiva, `app/migracion.py` llamado al arrancar, pruebas de acortador, migración y acceso en verde |
+| Fase 2 · Panel (T015-T016) | **Abiertas**. No hay pantalla de entrada y `app/main.py` sigue autenticando con la clave compartida (`require_admin`) |
+| Fase 2 · Contenido a datos (T018-T021) | **Aplazadas**: dependen del puerto a Jinja2 |
+| Fase 3 · El motor en Python (T022-T037) | **Aplazadas a propósito**. La [002](../002-entregas/plan.md), decisión D1, mantiene `render.js` como motor único y deja el puerto para cuando el servidor tenga que renderizar por su cuenta, es decir, para el envío automático |
+| Fases 4-6 (T038-T057) | Sin empezar. La 002 cubre el seguimiento y los avisos **de las entregas**; estas siguen siendo las del catálogo |
+
+Lo que hoy usa el equipo no es este módulo: es el compositor estático de `app/static/email/`,
+publicado por `prototipos/mail/build.js`. Eso no es un descuido, es el estado real, y la 002 lo
+toma como punto de partida en vez de fingir que la fase 3 está hecha.
+
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]** = puede hacerse en paralelo con otras marcadas [P] (ficheros distintos, sin dependencia).
@@ -17,10 +33,10 @@ identidad en `app/auth/`, las pruebas en `tests/`.
 
 ## Phase 1: Setup
 
-- [ ] **T001** Crear el esqueleto de paquetes: `app/mails/__init__.py`, `app/auth/__init__.py` y el árbol de carpetas del plan (`datos/`, `plantillas/bloques/`, `panel/`).
-- [ ] **T002** Añadir a `requirements.txt` las dependencias de etapa 1: `itsdangerous`, `google-auth`, `argon2-cffi`, `httpx`. **No** añadir las de etapa 2 todavía.
+- [x] **T001** Crear el esqueleto de paquetes: `app/mails/__init__.py`, `app/auth/__init__.py` y el árbol de carpetas del plan (`datos/`, `plantillas/bloques/`, `panel/`).
+- [x] **T002** Añadir a `requirements.txt` las dependencias de etapa 1: `itsdangerous`, `google-auth`, `argon2-cffi`, `httpx`. **No** añadir las de etapa 2 todavía.
 - [ ] **T003** [P] Añadir `pytest` y `pytest-asyncio` como dependencias de desarrollo, con su configuración mínima.
-- [ ] **T004** [P] Copiar los ocho `prototipos/mail/plantilla-*.html` actuales a `tests/golden/` como ficheros de referencia, y dejar anotado en un README de esa carpeta de qué versión del motor JS salieron.
+- [x] **T004** [P] Copiar los ocho `prototipos/mail/plantilla-*.html` actuales a `tests/golden/` como ficheros de referencia, y dejar anotado en un README de esa carpeta de qué versión del motor JS salieron.
 
 ---
 
@@ -30,22 +46,22 @@ identidad en `app/auth/`, las pruebas en `tests/`.
 
 ### Migración de datos — la tarea de mayor riesgo del proyecto
 
-- [ ] **T005** Escribir `tests/test_migracion.py` **antes** que la migración: crea una base de datos con el esquema actual, mete enlaces y clics, y afirma que tras migrar siguen ahí con los mismos contadores. Debe fallar ahora mismo.
-- [ ] **T006** Ampliar `app/models.py` de forma aditiva: `Click.contact_token` y las cinco columnas nullable de `Delivery` descritas en [data-model.md](./data-model.md). No tocar ninguna columna existente.
-- [ ] **T007** Añadir los modelos nuevos: `Contact`, `PanelUser`, `SenderAccount`, `SenderPermission`, `Alert`, con el índice único `(contact_id, link_id, ventana_inicio)` en `alerts`.
-- [ ] **T008** Implementar la migración idempotente en `app/migracion.py`: inspecciona columnas reales, añade solo las que faltan, crea las tablas nuevas. Sin borrados, sin renombrados, sin cambios de tipo.
-- [ ] **T009** Llamar a la migración al arrancar en `app/main.py`, antes de servir tráfico. Verificar que T005 ahora pasa.
-- [ ] **T010** Escribir `tests/test_acortador.py`: las 13 rutas existentes responden lo mismo que antes del cambio. Es la red que protege el Principio I.
+- [x] **T005** Escribir `tests/test_migracion.py` **antes** que la migración: crea una base de datos con el esquema actual, mete enlaces y clics, y afirma que tras migrar siguen ahí con los mismos contadores. Debe fallar ahora mismo.
+- [x] **T006** Ampliar `app/models.py` de forma aditiva: `Click.contact_token` y las cinco columnas nullable de `Delivery` descritas en [data-model.md](./data-model.md). No tocar ninguna columna existente.
+- [x] **T007** Añadir los modelos nuevos: `Contact`, `PanelUser`, `SenderAccount`, `SenderPermission`, `Alert`, con el índice único `(contact_id, link_id, ventana_inicio)` en `alerts`.
+- [x] **T008** Implementar la migración idempotente en `app/migracion.py`: inspecciona columnas reales, añade solo las que faltan, crea las tablas nuevas. Sin borrados, sin renombrados, sin cambios de tipo.
+- [x] **T009** Llamar a la migración al arrancar en `app/main.py`, antes de servir tráfico. Verificar que T005 ahora pasa.
+- [x] **T010** Escribir `tests/test_acortador.py`: las 13 rutas existentes responden lo mismo que antes del cambio. Es la red que protege el Principio I.
 
 ### Identidad del panel
 
-- [ ] **T011** [P] `app/auth/sesion.py`: cookie de sesión firmada con caducidad, clave leída del entorno y **validada al arrancar** (falla si no está).
-- [ ] **T012** [P] `app/auth/google.py`: verificar el identificador de Google Sign-In y **rechazar** toda cuenta que no sea del dominio `centauroads.com` (FR-001a).
-- [ ] **T013** [P] `app/auth/local.py`: alta y verificación de usuarios de excepción con hash argon2 (FR-001b). Nunca guardar ni registrar la contraseña en claro.
-- [ ] **T014** `app/auth/dependencias.py`: dependencias de FastAPI para usuario actual, rol y permiso sobre cuenta remitente. Aquí vive la regla de FR-004a: **una cuenta `personal` solo la usa su titular**.
+- [x] **T011** [P] `app/auth/sesion.py`: cookie de sesión firmada con caducidad, clave leída del entorno y **validada al arrancar** (falla si no está).
+- [x] **T012** [P] `app/auth/google.py`: verificar el identificador de Google Sign-In y **rechazar** toda cuenta que no sea del dominio `centauroads.com` (FR-001a).
+- [x] **T013** [P] `app/auth/local.py`: alta y verificación de usuarios de excepción con hash argon2 (FR-001b). Nunca guardar ni registrar la contraseña en claro.
+- [x] **T014** `app/auth/dependencias.py`: dependencias de FastAPI para usuario actual, rol y permiso sobre cuenta remitente. Aquí vive la regla de FR-004a: **una cuenta `personal` solo la usa su titular**.
 - [ ] **T015** Pantalla de entrada al panel con los dos caminos, y cierre de sesión.
 - [ ] **T016** Sustituir la clave única compartida de las rutas de administración por la dependencia de usuario. Mantenerla temporalmente como acceso de emergencia, con un aviso explícito en el registro cada vez que se use.
-- [ ] **T017** Pruebas de acceso: sin sesión no se entra; una cuenta de Google ajena al dominio se rechaza; una persona sin permiso sobre `equintero@` no puede usarla.
+- [x] **T017** Pruebas de acceso: sin sesión no se entra; una cuenta de Google ajena al dominio se rechaza; una persona sin permiso sobre `equintero@` no puede usarla.
 
 ### Contenido a datos
 

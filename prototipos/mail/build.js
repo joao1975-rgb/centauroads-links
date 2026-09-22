@@ -15,7 +15,7 @@ const M = require('./render.js');
 
 const here = __dirname;
 const imgDir = path.join(here, 'img');
-const slug = { A: 'cartelera', B: 'catalogo', C: 'nota', D: 'movil', E: 'inventario', F: 'guia', G: 'phygital' };
+const slug = { A: 'cartelera', B: 'catalogo', C: 'nota', D: 'movil', E: 'inventario', F: 'guia', G: 'phygital', H: 'entrega' };
 
 // 1. Plantillas estáticas: con fotos reales (por defecto) y con portadas de Canva (sufijo -portadas)
 for (const key of Object.keys(M.TEMPLATES)) {
@@ -95,8 +95,48 @@ for (const f of fs.readdirSync(here).filter(n => /^plantilla-.*\.html$/.test(n) 
   for (const v of PROHIBIDO) if (txt.includes(v)) { console.error('FALLO', f, 'contiene dato retirado:', v); fallos++; }
   for (const v of OBLIGATORIO) if (!txt.includes(v)) { console.error('FALLO', f, 'no contiene:', v); fallos++; }
 }
-if (fallos) { console.error(fallos + ' fallo(s) de contenido. Corrige render.js (y sube CONTENT_VERSION).'); process.exit(1); }
+if (fallos) { console.error(fallos + ' fallo(s) de contenido. Corrige render.js y migra el estado guardado en normaliza().'); process.exit(1); }
 console.log('OK guardia de contenido: contacto vigente en todos los entregables');
+
+// 3b. Guardia byte a byte: las plantillas A-G no pueden cambiar sin que alguien lo decida.
+//
+// La fase 1 de la 002 parte el motor en bloques y recetas. Un refactor que cambie una sola coma
+// de la salida no es un refactor: es un cambio de contenido disfrazado. Esta guardia es la red
+// que lo detecta el mismo segundo en que ocurre (FR-126, SC-105).
+//
+// Actualizar la referencia es un acto deliberado, no un atajo para que deje de fallar:
+//   GOLDEN_UPDATE=1 node build.js
+{
+  const goldenDir = path.join(here, '..', '..', 'tests', 'golden');
+  const actualizar = process.env.GOLDEN_UPDATE === '1';
+  const generadas = fs.readdirSync(here).filter(n => /^plantilla-.*\.html$/.test(n)).sort();
+  const distintas = [];
+  const faltan = [];
+  for (const f of generadas) {
+    const ref = path.join(goldenDir, f);
+    if (!fs.existsSync(ref)) { faltan.push(f); continue; }
+    if (!fs.readFileSync(path.join(here, f)).equals(fs.readFileSync(ref))) distintas.push(f);
+  }
+  // Una plantilla que estaba en la referencia y ya no se genera tambien es un cambio.
+  const sobran = fs.readdirSync(goldenDir)
+    .filter(n => /^plantilla-.*\.html$/.test(n) && !generadas.includes(n));
+
+  if (actualizar) {
+    for (const f of generadas) fs.copyFileSync(path.join(here, f), path.join(goldenDir, f));
+    for (const f of sobran) fs.unlinkSync(path.join(goldenDir, f));
+    console.log('OK referencia actualizada a mano:', generadas.length, 'plantillas');
+  } else if (distintas.length || faltan.length || sobran.length) {
+    for (const f of distintas) console.error('FALLO la plantilla cambio:', f);
+    for (const f of faltan) console.error('FALLO no hay referencia de:', f);
+    for (const f of sobran) console.error('FALLO ya no se genera:', f);
+    console.error('Las plantillas A-G no pueden cambiar (FR-126). Si el cambio es querido:');
+    console.error('  git diff --no-index tests/golden/<f> prototipos/mail/<f>   # mira que cambio');
+    console.error('  GOLDEN_UPDATE=1 node build.js                             # y entonces actualiza');
+    process.exit(1);
+  } else {
+    console.log('OK guardia byte a byte:', generadas.length, 'plantillas identicas a la referencia');
+  }
+}
 
 // 4. Versión publicable como página privada de Claude (Artifact): mismo compositor SIN el envoltorio exterior
 //    (doctype/html/head/body), que la plataforma añade. OJO: quitar solo el envoltorio; el motor contiene

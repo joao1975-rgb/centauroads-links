@@ -46,7 +46,7 @@ N/A y, si falla, justifícala en "Complexity Tracking" o cambia el diseño.
 | # | Puerta | Cómo se comprueba | Estado |
 |---|--------|-------------------|--------|
 | I | **El acortador no se toca** | ¿El diseño cambia o retira alguna ruta existente? ¿Toca el esquema de la BD o el volumen `links-data`? Si toca datos, ¿hay prueba de apertura de una BD creada por el código anterior? | [ ] |
-| II | **Un solo motor de contenido** | ¿El HTML de correo sale de `render.js` y no se escribe a mano en ningún sitio? ¿Un segmento nuevo es una entrada en `PERFILES` y no una plantilla duplicada? ¿Sube `CONTENT_VERSION` si cambia contenido por defecto? | [ ] |
+| II | **Un solo motor de contenido** | ¿El HTML de correo sale de `render.js` y no se escribe a mano en ningún sitio? ¿Un segmento nuevo es una entrada en `PERFILES` y no una plantilla duplicada? ¿Migra el estado guardado en `normaliza()` si cambia contenido por defecto, en vez de subir `CONTENT_VERSION`? | [ ] |
 | III | **Verificado renderizado** | ¿El plan incluye revisar el resultado a 600 px y a ~375 px? ¿Contraste ≥ 4.5:1 en texto normal? ¿El correo se lee con las imágenes bloqueadas? | [ ] |
 | IV | **Nada sin confirmar** | ¿Aparece algún precio, dato de tráfico o marca cliente sin confirmación explícita? ¿Se respeta "a cotizar" donde no hay tarifa? | [ ] |
 | V | **Repositorio público** | ¿Hay algún secreto en el código en vez de en variables de entorno? ¿El arranque valida que existan? | [ ] |
