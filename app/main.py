@@ -19,6 +19,7 @@ from pydantic import BaseModel
 from .database import engine, get_db, Base, SessionLocal
 from . import models, schemas
 from .migracion import migrar
+from .auth import superadmin
 
 # ---------------------------------------------------------------------------
 # Crear tablas y poner el esquema al día
@@ -114,10 +115,9 @@ def require_admin(
     verify_admin(x_admin_key or admin_key)
 
 def check_superadmin(user: str, password: str):
-    if not SUPERADMIN_USER or not SUPERADMIN_PASS:
-        raise HTTPException(status_code=503, detail="Superadmin no configurado (SUPERADMIN_USER / SUPERADMIN_PASS)")
-    if not (secrets.compare_digest(user, SUPERADMIN_USER) and secrets.compare_digest(password, SUPERADMIN_PASS)):
-        raise HTTPException(status_code=401, detail="Credenciales inválidas")
+    # La comprobacion vive en app/auth/superadmin.py: la usan tambien las rutas del panel, y dos
+    # copias de lo mismo acaban divergiendo justo en el detalle que importa (compare_digest).
+    superadmin.verifica(user, password)
 
 # Resolver la clave al arrancar: si no existe, se genera y se avisa por log una sola vez.
 get_admin_password()

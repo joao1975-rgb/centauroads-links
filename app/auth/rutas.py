@@ -39,7 +39,7 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from .. import models
-from . import google, local, sesion
+from . import google, local, sesion, superadmin
 from .dependencias import usuario_actual, solo_admin
 
 log = logging.getLogger("centaurads.auth")
@@ -204,6 +204,98 @@ def baja_usuario(usuario_id: int, db: Session = Depends(get_db),
     db.commit()
     log.info("%s retira el acceso de %s", quien.email, usuario.email)
     return {"ok": True, "email": usuario.email}
+
+
+# ---------------------------------------------------------------------------
+# Contraseñas
+#
+# Hasta la 002 había una ruta para **entrar** con contraseña y ninguna para **ponerla**. Eso
+# dejaba FR-001b -usuarios de excepción con contraseña propia- sin forma de cumplirse, y con
+# Google todavía sin configurar hacía el panel entero inalcanzable.
+#
+# Tres caminos, y cada uno existe por un motivo distinto:
+#
+#   arranque en frío    con la credencial de superadmin, porque todavía no hay ningún
+#                       administrador dentro que pueda hacerlo
+#   un administrador    la operación normal: alguien entra al equipo y se le da acceso
+#   cada quien la suya  una contraseña que puso otra persona la conoce otra persona
+#
+# La contraseña **nunca** se registra en el log, ni siquiera truncada. Lo que se registra es
+# quién se la cambió a quién, que es lo que hace falta para auditar.
+# ---------------------------------------------------------------------------
+
+class ContrasenaNueva(BaseModel):
+    password: str = Field(min_length=1)
+
+
+class ContrasenaPropia(BaseModel):
+    actual: str = Field(min_length=1)
+    nueva: str = Field(min_length=1)
+
+
+class ArranqueContrasena(BaseModel):
+    """La credencial de superadmin viaja en el cuerpo, como en el resto de rutas de superadmin."""
+    user: str = Field(min_length=1)
+    password: str = Field(min_length=1)
+    email: str = Field(min_length=3, max_length=200)
+    nueva: str = Field(min_length=1)
+
+
+def _pon_contrasena(usuario: models.PanelUser, nueva: str) -> None:
+    try:
+        usuario.password_hash = local.hashear(nueva)
+    except local.ContrasenaDebil as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/api/panel/arranque/contrasena")
+def contrasena_de_arranque(datos: ArranqueContrasena, db: Session = Depends(get_db)):
+    """
+    La primera contraseña, cuando aún no ha entrado nadie.
+
+    Solo sirve para cuentas que **ya están en la lista** (las que puso `PANEL_BOOTSTRAP`, o las
+    que añadió un administrador). No da de alta a nadie: si esta ruta pudiera crear cuentas, la
+    credencial de superadmin sería una puerta trasera al panel en vez de una llave de emergencia.
+    """
+    superadmin.verifica(datos.user, datos.password)
+    usuario = _autorizado(db, datos.email)
+    if not usuario:
+        raise HTTPException(
+            status_code=404,
+            detail="Ese correo no está en la lista de autorizados. Añádelo primero "
+                   "(PANEL_BOOTSTRAP o un administrador).")
+    _pon_contrasena(usuario, datos.nueva)
+    db.commit()
+    log.warning("contraseña de %s fijada con la credencial de superadmin", usuario.email)
+    return {"ok": True, "email": usuario.email}
+
+
+@router.post("/api/panel/usuarios/{usuario_id}/contrasena")
+def contrasena_de_otro(usuario_id: int, datos: ContrasenaNueva,
+                       db: Session = Depends(get_db),
+                       quien: models.PanelUser = Depends(solo_admin)):
+    """Un administrador le pone contraseña a alguien de la lista."""
+    usuario = db.query(models.PanelUser).filter(models.PanelUser.id == usuario_id).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail="No encontrado")
+    _pon_contrasena(usuario, datos.password)
+    db.commit()
+    log.info("%s fijó la contraseña de %s", quien.email, usuario.email)
+    return {"ok": True, "email": usuario.email}
+
+
+@router.post("/api/auth/contrasena")
+def cambia_mi_contrasena(datos: ContrasenaPropia, db: Session = Depends(get_db),
+                         usuario: models.PanelUser = Depends(usuario_actual)):
+    """
+    Cambiar la propia. Exige la actual: una sesión robada no debe poder dejar fuera a su dueño.
+    """
+    if not usuario.password_hash or not local.verificar(usuario.password_hash, datos.actual):
+        raise HTTPException(status_code=403, detail="La contraseña actual no es correcta")
+    _pon_contrasena(usuario, datos.nueva)
+    db.commit()
+    log.info("%s cambió su propia contraseña", usuario.email)
+    return {"ok": True}
 
 
 # ---------------------------------------------------------------------------
