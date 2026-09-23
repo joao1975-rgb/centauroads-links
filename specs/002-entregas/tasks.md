@@ -90,21 +90,39 @@ Las cinco mutaciones se detectan ahora.
 
 ## Phase 3: El modo Entrega en el panel 🎯 *aquí ya se entregan propuestas de verdad*
 
-- [ ] **T124** [US5] Ampliar `app/auth/google.py`: entra quien tenga fila **activa** en `panel_users`, sea del dominio o un Gmail personal (FR-119). El rechazo no revela si la cuenta está en la lista.
-- [ ] **T125** [US5] `tests/test_acceso_lista.py`: un Gmail de la lista entra; uno que no está, no; uno desactivado, tampoco, aunque su sesión anterior siguiera viva.
-- [ ] **T126** [US5] Administración de la lista de autorizados en el panel, con el aviso escrito de que **retirar a alguien es un paso obligatorio de su baja**, porque su Gmail sigue existiendo fuera de la empresa (FR-120).
-- [ ] **T127** [US1] Modo Entrega en `compositor.html`, paso 1: enlace de Canva y título, con comprobación de que el enlace resuelve antes de seguir (FR-101, escenario 4 de US1).
-- [ ] **T128** [US2] Paso 2: soltar el PDF o las imágenes, miniaturas con su rótulo, elegir de 2 a 4 y ordenarlas. Aviso visible en las que llevan precio.
-- [ ] **T129** [US2] Botón **"Pedírselo a Claude"**: escribe la instrucción con el enlace y las páginas, la copia y abre Claude en otra pestaña. La herramienta no guarda credenciales de Claude ni depende de él (FR-113).
-- [ ] **T130** [US1] Paso 3: contacto **obligatorio**, con creación rápida sin salir del flujo (FR-102). Avisar si ese contacto ya tiene una entrega.
-- [ ] **T131** [US1] Paso 4: texto de entrega editable, servicios que la acompañan, cuenta remitente limitada a las permitidas y cargo de la firma (FR-103, FR-104, FR-105).
-- [ ] **T132** [US1] Paso 5: vista previa a 600 px y a ~375 px y **"Copiar para Gmail"**. El envío no existe en esta versión: lo dice la interfaz, no solo la especificación (FR-115).
-- [ ] **T133** [US3] **"Copiar para WhatsApp"**: texto corto con **un solo** enlace, al principio del mensaje, y la portada aparte para adjuntarla (FR-116).
-- [ ] **T134** [US1] Listado de entregas: recuperar un borrador, volver a copiar una entregada sin rehacerla (FR-107).
-- [ ] **T135** [US1] **Verificación visual obligatoria**: la entrega renderizada a 600 px, a 375 px y **con las imágenes bloqueadas**, en Gmail y en Outlook. No se cierra la fase sin esto (principio III).
-- [ ] **T136** [US3] Prueba real de pegado: pegar el enlace en una conversación de WhatsApp y comprobar que sale la tarjeta con imagen a la primera (SC-104).
+- [x] **T124** [US5] `google.py` pasa a decir solo **quién eres**; la puerta es la lista. Y faltaba lo más básico, que no estaba en esta lista de tareas: **no había ninguna ruta que abriera sesión**, así que la API de entregas era inalcanzable. Añadidas pantalla de entrada, Google, contraseña, salida y `PANEL_BOOTSTRAP` para el arranque en frío.
+- [x] **T125** [US5] `tests/test_acceso_lista.py`, 17 pruebas. Una mutación coló al principio: la prueba del rechazo comparaba los dos mensajes **entre sí**, así que uno que revelara el estado pasaba si lo revelaba en ambos casos. Ahora exige además que el texto no hable de la cuenta.
+- [x] **T126** [US5] API de la lista: alta, baja y listado, solo para rol admin. La baja es `activo = False`, nunca borrar la fila. Nadie puede retirarse el acceso a sí mismo. Queda por poner **la pantalla** de administración; hoy se administra por API.
+- [x] **T127** [US1] Paso 01, con «Comprobar el enlace» contra `POST /api/entregas/comprobar-enlace`. El servidor solo llama a canva.com y canva.link: comprobar una dirección que escribe otra persona significa que el servidor hace la petición, y sin esa lista cerrada sería una puerta a la red interna.
+- [x] **T128** [US2] Paso 03 (ver la nota de orden abajo): soltar el PDF **o varias imágenes**, miniaturas con rótulo y distintivo de precio, elegir de 2 a 4 en orden. Al usarlo apareció un defecto: cada subida reemplaza a la anterior, así que aceptando un fichero por subida la vía de imágenes sueltas **nunca** podía llegar al mínimo de dos páginas.
+- [x] **T129** [US2] «¿Sin el PDF? Pedírselo a Claude»: copia la instrucción con el enlace y abre Claude. El servidor no guarda credenciales de Claude ni habla con él.
+- [x] **T130** [US1] Contacto obligatorio, con creación rápida en el mismo paso y `GET /api/contactos` para elegir uno existente. **Queda pendiente** avisar de que ese contacto ya tiene otra entrega.
+- [x] **T131** [US1] Paso 04: texto largo, texto corto de WhatsApp y texto del botón, editables; los servicios que la acompañan, con sus interruptores; y la firma con su cargo y su correo.
+- [x] **T132** [US1] Paso 05 con «Copiar para Gmail» y el aviso escrito de que **el envío es manual**: la herramienta no manda correos, y lo dice la interfaz.
+- [x] **T133** [US3] «Copiar para WhatsApp», en la barra y en el paso 05, visible solo en modo Entrega.
+- [ ] **T134** [US1] Listado de entregas para recuperar un borrador (FR-107). **Sin hacer.** La API existe (`GET /api/entregas`); falta la pantalla. Hoy el compositor recuerda la última entrega en el navegador, que sirve para seguir donde lo dejaste pero no para retomar la de otra persona.
+- [x] **T135** [US1] Verificación visual hecha sobre la aplicación levantada de verdad. Y de paso apareció algo peor que un fallo de la entrega: el conmutador **«Sin imágenes» del compositor no servía**. Las ocultaba con `display:none`, que esconde también el texto alternativo, de modo que daba por buena una plantilla que con las imágenes bloqueadas se quedaba muda. Ahora quita el `src`, que es lo que hace Outlook. Comprobado: la entrega sigue leyéndose y sigue siendo de Centauro ADS.
+- [ ] **T136** [US3] Prueba real de pegado en WhatsApp. **Te toca a ti**: hay que pegarlo en una conversación real. Verificado hasta donde se puede sin eso: la página del cliente sirve `og:title`, `og:description` y `og:image` a 1200×630, y lleva **un solo** enlace saliente.
 
-**Punto de control**: el equipo entrega propuestas desde cualquier computadora, sin instalar nada.
+**Cambio de orden, y por qué.** El contacto pasa del paso 3 al 2. Es obligatorio para crear la
+entrega en el servidor (FR-102), y sin entrega creada no hay dónde subir el PDF; pedirlo después
+obligaría a interrumpir a mitad del paso de las páginas. FR-102 exige que sea obligatorio y que se
+pueda crear sin salir del flujo, no que vaya en un sitio concreto.
+
+**Punto de control**: alcanzado para el camino principal. Probado de extremo a extremo sobre la
+aplicación levantada: entrar, crear la entrega, subir tres imágenes, elegirlas, armar el carrusel
+y ver la página del cliente con su tarjeta. Quedan **T134** (listado de entregas) y **T136** (el
+pegado real en WhatsApp, que solo puedes hacer tú).
+
+**Tres defectos que solo aparecieron al usarlo**, y que ninguna prueba había cogido:
+
+- La aplicación **no arrancaba** con `PANEL_BOOTSTRAP` puesto: usaba un logger que en ese punto
+  del fichero aún no existía. Habría reventado en producción, no aquí. Ahora hay una prueba que
+  importa la aplicación entera en otro proceso con esa variable.
+- El panel **no se reconstruía** al cambiar de plantilla, así que el modo Entrega no aparecía.
+  Hasta ahora todas las plantillas compartían panel y nadie lo había necesitado.
+- Sin sesión, el panel **se quedaba callado**: lista de contactos vacía y un error críptico al
+  guardar. Ahora lo dice y ofrece el enlace para entrar.
 
 ---
 

@@ -176,6 +176,36 @@ def test_el_arranque_en_frio_no_resucita_a_quien_se_dio_de_baja(db, monkeypatch)
     assert not usuario.activo, "un reinicio no puede devolverle el acceso a quien se dio de baja"
 
 
+def test_la_aplicacion_arranca_con_panel_bootstrap_puesto(tmp_path):
+    """
+    Importar `app.main` **entera**, en un proceso aparte, con la variable puesta.
+
+    Esta prueba existe por un fallo concreto: el arranque en frío usaba un logger que en ese
+    punto del fichero todavía no existía, así que con `PANEL_BOOTSTRAP` puesto la aplicación no
+    arrancaba. Ninguna prueba se enteró —ninguna pone esa variable— y lo descubrió levantar el
+    servidor a mano.
+
+    La lección no es «acordarse del logger», es que **el arranque es código** y hay que
+    ejecutarlo con las variables que tendrá en producción.
+    """
+    import os
+    import subprocess
+    import sys
+
+    entorno = dict(
+        os.environ,
+        PANEL_BOOTSTRAP="arranque@ejemplo.test",
+        DATABASE_URL="sqlite:///" + (tmp_path / "arranque.db").as_posix(),
+        DATA_DIR=str(tmp_path / "datos"),
+        SESSION_SECRET="solo-para-esta-prueba",
+    )
+    r = subprocess.run([sys.executable, "-c", "import app.main"],
+                       env=entorno, capture_output=True, text=True, timeout=120,
+                       cwd=str(__import__("pathlib").Path(__file__).resolve().parent.parent))
+    assert r.returncode == 0, (
+        "la aplicación no arranca:" + chr(10) + r.stderr[-1500:])
+
+
 # --- Administrar la lista -------------------------------------------------------------
 
 @pytest.fixture()

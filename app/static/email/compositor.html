@@ -57,6 +57,35 @@
   .fld input:focus, .fld textarea:focus { border-color:var(--purple-l); outline:none; }
   .hint { font-size:12px; color:var(--orange); margin:0 0 10px; }
 
+  /* Modo Entrega. Los numeros no son adorno: es una secuencia y el orden importa. */
+  .paso h2 { display:flex; align-items:baseline; gap:8px; }
+  .paso h2 .n { font:700 11px/1 var(--mono); color:var(--purple-l); }
+  .paso h2 .n[data-hecho="1"] { color:var(--ok); }
+  .suelta { border:1px dashed var(--control); border-radius:var(--radius); padding:20px 14px;
+            text-align:center; color:var(--dim); font-size:13px; cursor:pointer;
+            background:var(--bg); }
+  .suelta:hover, .suelta.encima { border-color:var(--purple-l); color:var(--text); }
+  .suelta b { color:var(--text); font-weight:700; }
+  .minis { display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:8px;
+           margin:10px 0 4px; }
+  .mini { position:relative; border:2px solid var(--border); border-radius:8px; overflow:hidden;
+          background:var(--card); padding:0; text-align:left; cursor:pointer; }
+  .mini img { display:block; width:100%; aspect-ratio:4/3; object-fit:cover; }
+  .mini .rot { display:block; padding:5px 6px; font-size:11px; line-height:1.3; color:var(--dim);
+               overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .mini[aria-pressed="true"] { border-color:var(--purple-l); }
+  .mini .ord { position:absolute; top:5px; left:5px; min-width:18px; height:18px; border-radius:9px;
+               background:var(--purple); color:#fff; font:700 11px/18px var(--mono);
+               text-align:center; }
+  .mini .precio { position:absolute; top:5px; right:5px; background:var(--orange); color:#141016;
+                  font:700 10px/1 var(--mono); padding:3px 5px; border-radius:4px; }
+  .aviso-precio { font-size:12px; color:var(--orange); background:#2A1C10; border-radius:8px;
+                  padding:9px 11px; margin:8px 0 0; }
+  .fila-bt { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 10px; }
+  .estado { font-size:12px; color:var(--dim); margin:0 0 10px; }
+  .estado.mal { color:#F4A6B4; }
+  .estado.bien { color:var(--ok); }
+
   /* perfil del destinatario: la decisión que más cambia el mensaje, arriba del todo */
   .pf { display:block; width:100%; text-align:left; border:1px solid var(--border); background:var(--card);
         border-radius:var(--radius); padding:10px 12px; margin:0 0 6px; transition:border-color .12s, background .12s; }
@@ -150,6 +179,7 @@
   <div class="acts">
     <button class="btn" id="copyText" type="button">Copiar texto</button>
     <button class="btn" id="copyHtml" type="button">Copiar HTML</button>
+    <button class="btn" id="copyWa" type="button" hidden>Copiar para WhatsApp</button>
     <button class="btn primary" id="copyGmail" type="button">Copiar para pegar en Gmail</button>
   </div>
 </header>
@@ -529,8 +559,333 @@
     return g;
   }
 
+  // -- Modo Entrega ---------------------------------------------------------------------
+  //
+  // Cinco pasos, en orden. El contacto va el segundo y no el tercero: es obligatorio para crear
+  // la entrega en el servidor (FR-102), y sin entrega creada no hay donde subir el PDF.
+  //
+  // Sin servidor -abierto como fichero suelto o como artefacto- el modo sigue sirviendo para
+  // ver el formato: se pegan el enlace y la imagen a mano. Lo que no se puede es subir el PDF ni
+  // guardar la entrega, y eso se dice, no se deja adivinar.
+  const HAY_SERVIDOR = /^https?:$/.test(location.protocol);
+  let paginasSubidas = [];   // lo que devolvio la subida: {indice, url, rotulo, aviso_precio}
+  let elegidas = [];         // indices elegidos, EN ORDEN
+
+  function api(ruta, opciones) {
+    return fetch(ruta, Object.assign({ credentials: 'same-origin' }, opciones || {}))
+      .then(r => r.json().then(d => {
+        if (!r.ok) throw new Error(d.detail || 'Error del servidor');
+        return d;
+      }));
+  }
+
+  function pasoEl(numero, titulo, hecho) {
+    const g = el('div', 'grp paso');
+    const h = el('h2');
+    const n = el('span', 'n', numero); n.setAttribute('data-hecho', hecho ? '1' : '0');
+    h.appendChild(n); h.appendChild(el('span', null, titulo));
+    g.appendChild(h);
+    return g;
+  }
+
+  function botonEl(texto, clase, alPulsar) {
+    const b = el('button', 'btn' + (clase ? ' ' + clase : ''), texto);
+    b.type = 'button'; b.addEventListener('click', alPulsar);
+    return b;
+  }
+
+  function estadoEl(texto, clase) { return el('p', 'estado' + (clase ? ' ' + clase : ''), texto); }
+
+  function buildEntrega() {
+    const E = st.bloques.entrega;
+    const frag = document.createDocumentFragment();
+
+    if (!HAY_SERVIDOR) {
+      const nota = el('div', 'grp');
+      nota.appendChild(el('p', 'hint',
+        'Esta copia no habla con el servidor: puedes ver el formato pegando el enlace y la ' +
+        'imagen a mano, pero para subir el PDF y guardar la entrega hay que abrirla en ' +
+        'links.centauroads.com.'));
+      frag.appendChild(nota);
+    } else {
+      // Sin sesion, todo lo que llama al servidor responde 401. Sin este aviso el panel se
+      // queda callado: la lista de contactos sale vacia y el primer boton falla con un mensaje
+      // que no explica nada. Decirlo cuanto antes ahorra el rodeo.
+      const nota = el('div', 'grp'); nota.id = 'aviso-sesion'; nota.hidden = true;
+      const p = el('p', 'hint', 'No has entrado al panel: guardar y subir no van a funcionar. ');
+      const a = el('a', null, 'Entrar');
+      a.href = '/panel/entrar?destino=' + encodeURIComponent(location.pathname);
+      a.style.color = 'var(--purple-l)';
+      p.appendChild(a); nota.appendChild(p); frag.appendChild(nota);
+      api('/api/auth/yo').catch(() => { const n = $('#aviso-sesion'); if (n) n.hidden = false; });
+    }
+
+    // 01 - La presentacion
+    const p1 = pasoEl('01', 'La presentación', !!E.url);
+    p1.appendChild(inputEl('bloques.entrega.url', 'Enlace de Canva del cliente', 'text'));
+    p1.appendChild(inputEl('bloques.entrega.titulo', 'Título de la propuesta', 'text'));
+    if (HAY_SERVIDOR) {
+      const est = estadoEl('');
+      const fila = el('div', 'fila-bt');
+      fila.appendChild(botonEl('Comprobar el enlace', null, () => {
+        if (!E.url) { est.className = 'estado mal'; est.textContent = 'Primero pega el enlace.'; return; }
+        est.className = 'estado'; est.textContent = 'Comprobando…';
+        api('/api/entregas/comprobar-enlace', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: E.url }),
+        }).then(r => {
+          if (r.ok === true) { est.className = 'estado bien'; est.textContent = 'El enlace abre.'; }
+          else if (r.ok === null) { est.className = 'estado'; est.textContent = r.motivo; }
+          else { est.className = 'estado mal'; est.textContent = r.motivo || 'El enlace no abre.'; }
+        }).catch(e => { est.className = 'estado mal'; est.textContent = e.message; });
+      }));
+      p1.appendChild(fila); p1.appendChild(est);
+    }
+    frag.appendChild(p1);
+
+    // 02 - Para quien
+    const p2 = pasoEl('02', 'Para quién', !!st.entregaId);
+    p2.appendChild(el('p', 'fld-l',
+      'Obligatorio. Sin contacto no se sabe quién abrió la propuesta, y sin eso no hay aviso.'));
+    if (HAY_SERVIDOR) {
+      const selWrap = el('label', 'fld');
+      selWrap.appendChild(el('span', 'fld-l', 'Contacto'));
+      const sel = el('select');
+      const vacia = el('option', null, '— elige un contacto —'); vacia.value = ''; sel.appendChild(vacia);
+      const nueva = el('option', null, '+ crear uno nuevo'); nueva.value = 'nuevo'; sel.appendChild(nueva);
+      selWrap.appendChild(sel);
+      api('/api/contactos').then(cs => {
+        cs.forEach(c => {
+          const o = el('option', null, c.nombre + (c.empresa ? ' · ' + c.empresa : ''));
+          o.value = String(c.id);
+          if (st.contactId === c.id) o.selected = true;
+          sel.appendChild(o);
+        });
+      }).catch(() => { /* sin sesion: el paso 2 lo dira al guardar */ });
+
+      const nuevoWrap = el('div'); nuevoWrap.hidden = true;
+      const campos = {};
+      [['nombre', 'Nombre'], ['email', 'Correo'], ['empresa', 'Empresa']].forEach(par => {
+        const w = el('label', 'fld'); w.appendChild(el('span', 'fld-l', par[1]));
+        const i = el('input'); i.type = par[0] === 'email' ? 'email' : 'text';
+        campos[par[0]] = i; w.appendChild(i); nuevoWrap.appendChild(w);
+      });
+      sel.addEventListener('change', () => {
+        nuevoWrap.hidden = sel.value !== 'nuevo';
+        st.contactId = (sel.value && sel.value !== 'nuevo') ? Number(sel.value) : null;
+        save();
+      });
+      p2.appendChild(selWrap); p2.appendChild(nuevoWrap);
+
+      const est2 = estadoEl(st.entregaId ? 'Entrega guardada (#' + st.entregaId + ').' : '',
+                            st.entregaId ? 'bien' : '');
+      const fila2 = el('div', 'fila-bt');
+      fila2.appendChild(botonEl(st.entregaId ? 'Actualizar la entrega' : 'Guardar la entrega',
+                                'primary', () => guardaEntrega(campos, sel, est2)));
+      p2.appendChild(fila2); p2.appendChild(est2);
+    }
+    frag.appendChild(p2);
+
+    // 03 - Las paginas
+    const p3 = pasoEl('03', 'Las páginas', elegidas.length >= 2);
+    if (HAY_SERVIDOR) {
+      const suelta = el('div', 'suelta');
+      suelta.innerHTML = 'Suelta aquí el <b>PDF que descarga Canva</b>, o varias imágenes';
+      const fichero = el('input'); fichero.type = 'file';
+      fichero.accept = '.pdf,image/*'; fichero.multiple = true; fichero.hidden = true;
+      suelta.addEventListener('click', () => fichero.click());
+      ['dragover', 'dragenter'].forEach(ev => suelta.addEventListener(ev, e => {
+        e.preventDefault(); suelta.classList.add('encima');
+      }));
+      ['dragleave', 'drop'].forEach(ev => suelta.addEventListener(ev, () => suelta.classList.remove('encima')));
+      suelta.addEventListener('drop', e => {
+        e.preventDefault();
+        if (e.dataTransfer.files && e.dataTransfer.files.length) sube(e.dataTransfer.files);
+      });
+      fichero.addEventListener('change', () => { if (fichero.files.length) sube(fichero.files); });
+      p3.appendChild(suelta); p3.appendChild(fichero);
+
+      const filaC = el('div', 'fila-bt');
+      filaC.appendChild(botonEl('¿Sin el PDF? Pedírselo a Claude', null, pideAClaude));
+      p3.appendChild(filaC);
+
+      const est3 = estadoEl(''); est3.id = 'est-paginas'; p3.appendChild(est3);
+      const rejilla = el('div', 'minis'); rejilla.id = 'minis'; p3.appendChild(rejilla);
+      if (paginasSubidas.length) pintaMinis(rejilla, est3);
+
+      p3.appendChild(el('p', 'aviso-precio',
+        'El aviso de precio solo detecta precios escritos como texto. Si en la presentación el ' +
+        'precio es parte de una imagen, no se detecta: míralas antes de entregar.'));
+    } else {
+      p3.appendChild(inputEl('bloques.entrega.img', 'Dirección de la imagen de portada', 'text'));
+    }
+    frag.appendChild(p3);
+
+    // 04 - El mensaje
+    const p4 = pasoEl('04', 'El mensaje', true);
+    p4.appendChild(inputEl('bloques.entrega.texto', 'Texto de la entrega (correo)', 'textarea'));
+    p4.appendChild(inputEl('bloques.entrega.corto', 'Versión corta (WhatsApp)', 'textarea'));
+    p4.appendChild(inputEl('bloques.entrega.cta', 'Texto del botón', 'text'));
+    p4.appendChild(el('p', 'fld-l',
+      'Los servicios que la acompañan se eligen en «Espacios que la acompañan», más abajo.'));
+    frag.appendChild(p4);
+
+    // 05 - Llevartela
+    const p5 = pasoEl('05', 'Llevártela', false);
+    p5.appendChild(el('p', 'fld-l',
+      'El envío es manual: esta herramienta no manda correos. Copia, pega en Gmail y envía tú.'));
+    const fila5 = el('div', 'fila-bt');
+    fila5.appendChild(botonEl('Copiar para Gmail', 'primary', () => $('#copyGmail').click()));
+    fila5.appendChild(botonEl('Copiar para WhatsApp', null, copiaWhatsApp));
+    p5.appendChild(fila5);
+    if (HAY_SERVIDOR) {
+      const est5 = estadoEl('');
+      const fila6 = el('div', 'fila-bt');
+      fila6.appendChild(botonEl('Marcar como entregada', null, () => {
+        if (!st.entregaId) {
+          est5.className = 'estado mal'; est5.textContent = 'Guarda la entrega primero.'; return;
+        }
+        api('/api/entregas/' + st.entregaId + '/entregada', { method: 'POST' })
+          .then(() => { est5.className = 'estado bien'; est5.textContent = 'Anotada como entregada.'; })
+          .catch(e => { est5.className = 'estado mal'; est5.textContent = e.message; });
+      }));
+      p5.appendChild(fila6); p5.appendChild(est5);
+    }
+    frag.appendChild(p5);
+
+    return frag;
+  }
+
+  function guardaEntrega(campos, sel, est) {
+    const E = st.bloques.entrega;
+    if (!E.url || !E.titulo) {
+      est.className = 'estado mal'; est.textContent = 'Faltan el enlace y el título (paso 1).'; return;
+    }
+    const cuerpo = {
+      titulo: E.titulo, canva_url: E.url, texto: E.texto || '',
+      servicios: st.servicios.filter(x => x.on).map(x => x.id).join(','),
+    };
+    if (sel.value === 'nuevo') {
+      if (!campos.nombre.value.trim()) {
+        est.className = 'estado mal'; est.textContent = 'El contacto necesita al menos un nombre.'; return;
+      }
+      cuerpo.contacto = { nombre: campos.nombre.value.trim(), email: campos.email.value.trim(),
+                          empresa: campos.empresa.value.trim(), origen: '' };
+    } else if (st.contactId) {
+      cuerpo.contact_id = st.contactId;
+    } else {
+      est.className = 'estado mal'; est.textContent = 'Elige un contacto o crea uno.'; return;
+    }
+    est.className = 'estado'; est.textContent = 'Guardando…';
+    const ruta = st.entregaId ? '/api/entregas/' + st.entregaId : '/api/entregas';
+    api(ruta, { method: st.entregaId ? 'PUT' : 'POST',
+                headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo) })
+      .then(d => {
+        st.entregaId = d.id; st.contactId = d.contact_id; save();
+        est.className = 'estado bien';
+        est.textContent = 'Guardada (#' + d.id + '). Enlace del cliente: ' + location.origin + d.enlace;
+        buildPanel();
+      })
+      .catch(e => { est.className = 'estado mal'; est.textContent = e.message; });
+  }
+
+  function sube(ficheros) {
+    const est = $('#est-paginas');
+    if (!st.entregaId) {
+      est.className = 'estado mal';
+      est.textContent = 'Guarda la entrega en el paso 2 antes de subir las páginas.';
+      return;
+    }
+    const lista = Array.prototype.slice.call(ficheros);
+    est.className = 'estado';
+    est.textContent = 'Leyendo ' + (lista.length === 1 ? lista[0].name : lista.length + ' ficheros') + '…';
+    const datos = new FormData();
+    lista.forEach(f => datos.append('fichero', f));
+    api('/api/entregas/' + st.entregaId + '/paginas', { method: 'POST', body: datos })
+      .then(d => {
+        paginasSubidas = d.paginas; elegidas = [];
+        est.className = 'estado';
+        est.textContent = d.paginas.length + ' páginas. Elige de 2 a 4, en el orden que quieras.';
+        pintaMinis($('#minis'), est);
+      })
+      .catch(e => { est.className = 'estado mal'; est.textContent = e.message; });
+  }
+
+  function pintaMinis(rejilla, est) {
+    rejilla.innerHTML = '';
+    paginasSubidas.forEach(pg => {
+      const b = el('button', 'mini'); b.type = 'button';
+      const pos = elegidas.indexOf(pg.indice);
+      b.setAttribute('aria-pressed', String(pos >= 0));
+      const img = el('img'); img.src = pg.url; img.alt = pg.rotulo; b.appendChild(img);
+      b.appendChild(el('span', 'rot', pg.rotulo));
+      if (pos >= 0) b.appendChild(el('span', 'ord', String(pos + 1)));
+      if (pg.aviso_precio) {
+        const t = el('span', 'precio', 'precio');
+        t.title = 'Esta página parece llevar un precio escrito';
+        b.appendChild(t);
+      }
+      b.addEventListener('click', () => {
+        const i = elegidas.indexOf(pg.indice);
+        if (i >= 0) elegidas.splice(i, 1);
+        else if (elegidas.length < 4) elegidas.push(pg.indice);
+        else { est.className = 'estado mal'; est.textContent = 'Como mucho 4 páginas.'; return; }
+        pintaMinis(rejilla, est);
+        if (elegidas.length >= 2) armaCarrusel(est);
+      });
+      rejilla.appendChild(b);
+    });
+  }
+
+  function armaCarrusel(est) {
+    est.className = 'estado'; est.textContent = 'Armando el carrusel…';
+    api('/api/entregas/' + st.entregaId + '/paginas', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ indices: elegidas }),
+    }).then(d => {
+      // La imagen del correo pasa a ser la del servidor, en direccion absoluta: es lo que
+      // descargara el proxy de Gmail.
+      st.bloques.entrega.img = location.origin + (d.carrusel || d.portada || '');
+      save();
+      est.className = 'estado bien';
+      est.textContent = 'Carrusel listo con ' + elegidas.length + ' páginas.';
+      touch();
+    }).catch(e => { est.className = 'estado mal'; est.textContent = e.message; });
+  }
+
+  function pideAClaude() {
+    const E = st.bloques.entrega;
+    const orden = 'Con el conector de Canva, exporta en JPG a 1200 px de ancho las páginas 1, 2 y 3 ' +
+      'de esta presentación y dame los enlaces de descarga: ' + (E.url || '<pega aquí el enlace>');
+    navigator.clipboard.writeText(orden).then(
+      () => {
+        toast('Instrucción copiada. Pégala en Claude.');
+        window.open('https://claude.ai/new', '_blank', 'noopener');
+      },
+      () => toast('No se pudo copiar'));
+  }
+
+  function copiaWhatsApp() {
+    const texto = M.renderWhatsApp(prod());
+    navigator.clipboard.writeText(texto).then(
+      () => toast('WhatsApp copiado · un solo enlace, al principio'),
+      () => toast('No se pudo copiar'));
+  }
+
   function buildPanel() {
     const p = $('#panel'); p.innerHTML = '';
+    $('#copyWa').hidden = st.plantilla !== 'H';
+    if (st.plantilla === 'H') {
+      p.appendChild(buildEntrega());
+      const g = el('div', 'grp'); g.appendChild(el('h2', null, 'Espacios que la acompañan'));
+      st.servicios.forEach((sv, i) => g.appendChild(servicioEl(sv, i)));
+      p.appendChild(g);
+      const gb = el('div', 'grp'); gb.appendChild(el('h2', null, 'Saludo, firma y pie'));
+      BLOQUES.filter(d => ['saludo', 'firma', 'pie'].indexOf(d.k) >= 0)
+        .forEach(d => gb.appendChild(blockEl(d)));
+      p.appendChild(gb);
+      return;
+    }
     p.appendChild(buildPerfil());
     p.appendChild(buildAsuntos());
     p.appendChild(buildEfectos());
@@ -548,11 +903,13 @@
     Object.keys(M.TEMPLATES).forEach(k => {
       const b = el('button', null, k + ' · ' + M.TEMPLATES[k].nombre); b.type = 'button'; b.title = M.TEMPLATES[k].desc;
       b.setAttribute('aria-pressed', String(st.plantilla === k));
-      b.addEventListener('click', () => { st.plantilla = k; buildSeg(); touch(); });
+      // buildPanel tambien: el modo Entrega tiene su propio panel, y hasta ahora todas las
+      // plantillas compartian el mismo, asi que nadie lo reconstruia al cambiar de plantilla.
+      b.addEventListener('click', () => { st.plantilla = k; buildSeg(); buildPanel(); touch(); });
       seg.appendChild(b);
     });
     const d = el('button', 'dice', '⚄ Aleatoria'); d.type = 'button'; d.title = 'Elige otra plantilla al azar (rotación)';
-    d.addEventListener('click', () => { const ks = Object.keys(M.TEMPLATES).filter(k => k !== st.plantilla); st.plantilla = ks[Math.floor(Math.random() * ks.length)]; buildSeg(); touch(); });
+    d.addEventListener('click', () => { const ks = Object.keys(M.TEMPLATES).filter(k => k !== st.plantilla); st.plantilla = ks[Math.floor(Math.random() * ks.length)]; buildSeg(); buildPanel(); touch(); });
     seg.appendChild(d);
   }
 
@@ -569,9 +926,15 @@
       if (window.IMG_DATA) return 'src="' + (st.assetBaseProd || '') + '/' + n + '"';
       return m;
     });
+    // "Sin imagenes" tiene que ensenar lo que ve de verdad quien las tiene bloqueadas: el TEXTO
+    // ALTERNATIVO en el hueco de cada foto. Antes se hacia con `img{display:none}`, que las
+    // esconde y esconde tambien el alt: daba por buena una plantilla que con las imagenes
+    // bloqueadas se quedaba muda. Quitando el `src` el navegador pinta el alt, que es justo lo
+    // que hace Outlook (constitucion, principio III).
+    const cuerpo = noImg ? html.replace(/\ssrc="[^"]*"/g, '') : html;
     const extra = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&display=swap"><base target="_blank">' +
-      (noImg ? '<style>img{display:none!important}</style>' : '');
-    $('#preview').srcdoc = html.replace('</head>', extra + '</head>');
+      (noImg ? '<style>img{border:1px dashed #9895A7!important;min-height:22px}</style>' : '');
+    $('#preview').srcdoc = cuerpo.replace('</head>', extra + '</head>');
     $('#meta-tpl').textContent = 'Plantilla ' + key + ' · ' + M.TEMPLATES[key].nombre + ' · ' + M.PERFILES[st.perfil].nombre + ' · ' + (st.imgSet === 'portadas' ? 'portadas Canva' : 'fotos reales');
     $('#meta-size').textContent = Math.round(M.render(prod(), key).length / 1024) + ' KB HTML';
     $('#meta-subj').textContent = M.aplicaPerfil(st).asunto;

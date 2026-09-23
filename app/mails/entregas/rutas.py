@@ -1,11 +1,9 @@
 """
 Las rutas de las entregas a medida.
 
-Tres grupos, con públicos distintos:
+Todo lo de aquí exige sesión del panel:
 
-  `/api/entregas…`               el panel. Exige sesión de persona, no la clave compartida.
-  `/media/entregas/{id}/{f}`     las imágenes, servidas desde el volumen. Público.
-  `/p/{slug}`                    la página que ve el cliente, y la que lee WhatsApp. Público.
+  `/api/entregas…`  el panel. Exige sesión de persona, no la clave compartida.
 
 ## Por qué cada entrega crea un enlace del acortador
 
@@ -14,9 +12,8 @@ presentación, sus clics se registran donde ya se registran, y la regla de aviso
 repetido funciona sobre `alerts` sin una línea nueva. El acortador no se toca y hace el trabajo
 (constitución, principio I).
 
-`/p/{slug}` existe aparte porque WhatsApp necesita una **página** con etiquetas Open Graph para
-dibujar la tarjeta; una redirección 307 no le da nada que enseñar. Esa página registra el clic
-igual y lleva a la presentación.
+Lo que ve el cliente —sus imágenes y la página de su propuesta— vive en `publicas.py`, porque
+ahí no hay sesión y las reglas son otras.
 
 ## El envío es manual, y aquí se nota
 
@@ -25,14 +22,12 @@ manual el copiar y pegar en el mail"*. Marcar una entrega como entregada es un g
 persona que ya la pegó y la envió, no un envío.
 """
 
-import html
 import logging
 import secrets
 from datetime import datetime, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
-from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -40,6 +35,7 @@ from ...database import get_db
 from ... import models
 from ...auth.dependencias import usuario_actual, exigir_cuenta
 from . import almacen, carrusel, paginas as mod_paginas
+from .publicas import _existe, _url_media
 
 log = logging.getLogger("centaurads.entregas")
 router = APIRouter()
@@ -140,14 +136,6 @@ def _busca(db: Session, entrega_id: int) -> models.Entrega:
     return entrega
 
 
-def _url_media(entrega_id: int, nombre: str) -> str:
-    return "/media/entregas/%d/%s" % (entrega_id, nombre)
-
-
-def _existe(entrega_id: int, nombre: str) -> Optional[str]:
-    return _url_media(entrega_id, nombre) if almacen.resuelve(entrega_id, nombre) else None
-
-
 def _a_salida(db: Session, entrega: models.Entrega) -> EntregaSalida:
     return EntregaSalida(
         id=entrega.id,
@@ -173,6 +161,72 @@ def _a_salida(db: Session, entrega: models.Entrega) -> EntregaSalida:
 # ---------------------------------------------------------------------------
 # API del panel
 # ---------------------------------------------------------------------------
+
+# Dominios de Canva a los que el servidor acepta llamar. Es una lista corta y cerrada a
+# propósito: comprobar una dirección que escribe otra persona significa que **el servidor** hace
+# la petición, y sin esta restricción cualquiera podría usarlo para llamar a la red interna.
+_DOMINIOS_CANVA = ("canva.com", "canva.link", "canva.site")
+
+
+class Enlace(BaseModel):
+    url: str = Field(min_length=1, max_length=500)
+
+
+@router.post("/api/entregas/comprobar-enlace")
+def comprobar_enlace(datos: Enlace, _: models.PanelUser = Depends(usuario_actual)):
+    """
+    ¿Ese enlace de Canva resuelve? (FR-101, escenario 4 de US1)
+
+    Se comprueba **antes** de armar el correo, no después de enviarlo: un enlace muerto en una
+    propuesta a medida se descubre cuando el cliente ya no puede abrirla.
+
+    Un fallo aquí no bloquea nada. Devuelve el veredicto y quien decide es la persona: el enlace
+    puede ser correcto y Canva estar lento, y no es asunto de esta herramienta impedirlo.
+    """
+    from urllib.parse import urlparse
+    from urllib.request import Request, urlopen
+    from urllib.error import HTTPError, URLError
+
+    partes = urlparse(datos.url.strip())
+    if partes.scheme != "https":
+        return {"ok": False, "motivo": "El enlace tiene que empezar por https://"}
+    anfitrion = (partes.hostname or "").lower()
+    if not any(anfitrion == d or anfitrion.endswith("." + d) for d in _DOMINIOS_CANVA):
+        return {"ok": False,
+                "motivo": "No parece un enlace de Canva. Se comprueban canva.com y canva.link."}
+
+    peticion = Request(datos.url.strip(), method="GET",
+                       headers={"User-Agent": "CentauroADS-Links/1.0"})
+    try:
+        with urlopen(peticion, timeout=6) as r:
+            return {"ok": 200 <= r.status < 400, "estado": r.status}
+    except HTTPError as e:
+        if e.code in (401, 403):
+            return {"ok": False, "estado": e.code,
+                    "motivo": "Canva responde que la presentación no es pública. "
+                              "Compruébalo en «Compartir» antes de entregarla."}
+        return {"ok": False, "estado": e.code, "motivo": "Canva responde %d" % e.code}
+    except (URLError, TimeoutError, OSError) as e:
+        # No se pudo comprobar no es lo mismo que está roto, y decirlo así evita que alguien
+        # cambie un enlace correcto por culpa de un corte de red.
+        log.info("no se pudo comprobar %s: %s", datos.url, e)
+        return {"ok": None, "motivo": "No se pudo comprobar ahora mismo. Ábrelo tú para estar seguro."}
+
+
+@router.get("/api/contactos")
+def buscar_contactos(q: str = "", db: Session = Depends(get_db),
+                     _: models.PanelUser = Depends(usuario_actual)):
+    """Los contactos, para elegir uno sin salir del flujo. `q` filtra por nombre o empresa."""
+    consulta = db.query(models.Contact)
+    if q.strip():
+        patron = "%" + q.strip() + "%"
+        consulta = consulta.filter(
+            models.Contact.nombre.ilike(patron) | models.Contact.empresa.ilike(patron)
+            | models.Contact.email.ilike(patron))
+    filas = consulta.order_by(models.Contact.nombre).limit(50).all()
+    return [{"id": c.id, "nombre": c.nombre, "email": c.email or "",
+             "empresa": c.empresa or ""} for c in filas]
+
 
 @router.post("/api/entregas", response_model=EntregaSalida)
 def crear(datos: EntregaEntrada,
@@ -253,20 +307,32 @@ def actualizar(entrega_id: int, datos: EntregaEntrada,
 
 
 @router.post("/api/entregas/{entrega_id}/paginas")
-async def subir(entrega_id: int, fichero: UploadFile = File(...),
+async def subir(entrega_id: int, fichero: List[UploadFile] = File(...),
                 db: Session = Depends(get_db),
                 usuario: models.PanelUser = Depends(usuario_actual)):
     """
-    Sube el PDF (o una imagen) y devuelve sus páginas como miniaturas elegibles.
+    Sube el PDF —o varias imágenes— y devuelve las páginas como miniaturas elegibles.
 
     Todavía no se elige nada: esto solo rasteriza y guarda. La elección va en el `PUT`.
+
+    **Admite varios ficheros a la vez, y no es un capricho.** Cada subida reemplaza a la anterior,
+    así que aceptando uno solo la vía de imágenes sueltas (FR-109) nunca podía llegar al mínimo de
+    dos páginas: la segunda imagen borraba a la primera. Un PDF aporta sus páginas; cada imagen,
+    una. Lo descubrió intentar usarlo, no leerlo.
     """
     entrega = _busca(db, entrega_id)
-    datos = await fichero.read()
-    try:
-        encontradas = mod_paginas.lee(datos)
-    except mod_paginas.FicheroNoValido as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    encontradas = []
+    for subido in fichero:
+        datos = await subido.read()
+        try:
+            encontradas.extend(mod_paginas.lee(datos))
+        except mod_paginas.FicheroNoValido as e:
+            raise HTTPException(status_code=400, detail=str(e))
+    if len(encontradas) > mod_paginas.LIMITE_PAGINAS:
+        raise HTTPException(
+            status_code=400,
+            detail="Entre todo suman %d páginas y el límite son %d."
+                   % (len(encontradas), mod_paginas.LIMITE_PAGINAS))
 
     almacen.borra_entrega(entrega.id)
     entrega.paginas.clear()
@@ -367,108 +433,3 @@ def marcar_entregada(entrega_id: int, canal: str = "email",
     db.commit()
     db.refresh(entrega)
     return _a_salida(db, entrega)
-
-
-# ---------------------------------------------------------------------------
-# Públicas
-# ---------------------------------------------------------------------------
-
-@router.get("/media/entregas/{entrega_id}/{fichero}")
-def media(entrega_id: int, fichero: str):
-    """
-    Las imágenes de una entrega, servidas desde el volumen.
-
-    `almacen.resuelve` valida el nombre y comprueba que el fichero resultante no se sale de la
-    carpeta de esa entrega. Aquí solo queda decidir el 404.
-    """
-    destino = almacen.resuelve(entrega_id, fichero)
-    if not destino:
-        raise HTTPException(status_code=404, detail="No encontrado")
-    # Los ficheros de una entrega no cambian una vez escritos: si cambian las páginas, cambia la
-    # entrega entera. Se pueden cachear con tranquilidad.
-    return FileResponse(destino, headers={"Cache-Control": "public, max-age=31536000, immutable"})
-
-
-_PAGINA = """<!DOCTYPE html>
-<html lang="es"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{titulo}</title>
-<meta property="og:type" content="website">
-<meta property="og:title" content="{titulo}">
-<meta property="og:description" content="{bajada}">
-<meta property="og:site_name" content="Centauro ADS">
-{og_imagen}
-<meta name="twitter:card" content="summary_large_image">
-<style>
-  :root {{ color-scheme: light; }}
-  body {{ margin:0; background:#F6F4F1; color:#1B1720;
-         font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }}
-  .caja {{ max-width:620px; margin:0 auto; padding:48px 20px 64px; }}
-  .marca {{ font-size:11px; font-weight:800; letter-spacing:.24em; text-transform:uppercase;
-           color:#6B4B78; }}
-  h1 {{ font-size:clamp(28px,6vw,40px); line-height:1.1; letter-spacing:-.02em; margin:14px 0 18px; }}
-  p {{ color:#4A4351; margin:0 0 26px; }}
-  img {{ display:block; width:100%; height:auto; border-radius:12px; margin:0 0 28px; }}
-  a.ir {{ display:inline-block; background:#85439A; color:#fff; text-decoration:none;
-         font-weight:800; padding:15px 30px; border-radius:10px; }}
-  a.ir:hover {{ background:#6B3480; }}
-  footer {{ margin-top:40px; font-size:13px; color:#6F6878; }}
-</style>
-</head><body><main class="caja">
-  <div class="marca">Centauro ADS</div>
-  <h1>{titulo}</h1>
-  <p>{bajada}</p>
-  {imagen}
-  <a class="ir" href="{destino}" rel="noopener">Ver la propuesta &rarr;</a>
-  <footer>Visibilidad que conecta &middot; Caracas, Venezuela</footer>
-</main></body></html>"""
-
-
-@router.get("/p/{slug}", response_class=HTMLResponse)
-def previa(slug: str, request: Request, db: Session = Depends(get_db)):
-    """
-    La página que ve el cliente y la que lee WhatsApp para dibujar su tarjeta.
-
-    Registra el clic igual que el acortador, y por las mismas razones. Si el registro fallara, la
-    página se sirve de todos modos: el cliente no puede quedarse sin su propuesta porque a
-    nosotros nos falle la contabilidad.
-    """
-    enlace = db.query(models.Link).filter(
-        models.Link.slug == slug, models.Link.is_active.is_(True)).first()
-    if not enlace:
-        raise HTTPException(status_code=404, detail="No encontrado")
-    entrega = db.query(models.Entrega).filter(models.Entrega.link_id == enlace.id).first()
-    if not entrega:
-        raise HTTPException(status_code=404, detail="No encontrado")
-
-    try:
-        ip = request.headers.get("X-Forwarded-For")
-        ip = ip.split(",")[0].strip() if ip else (
-            request.headers.get("X-Real-IP")
-            or (request.client.host if request.client else "unknown"))
-        db.add(models.Click(
-            link_id=enlace.id, ip=ip,
-            user_agent=request.headers.get("user-agent", ""),
-            referer=request.headers.get("referer", ""),
-            contact_token=request.query_params.get("c") or None,
-        ))
-        enlace.click_count = (enlace.click_count or 0) + 1
-        enlace.last_clicked_at = datetime.now(timezone.utc)
-        db.commit()
-    except Exception:
-        db.rollback()
-        log.exception("no se pudo registrar la apertura de %s", slug)
-
-    e = html.escape
-    bajada = " ".join((entrega.texto or "").split())[:200] or \
-        "La propuesta que preparamos para tu marca."
-    portada = _existe(entrega.id, "og.jpg")
-    base = str(request.base_url).rstrip("/")
-    return HTMLResponse(_PAGINA.format(
-        titulo=e(entrega.titulo),
-        bajada=e(bajada),
-        destino=e(entrega.canva_url),
-        og_imagen=('<meta property="og:image" content="%s%s">' % (e(base), e(portada))
-                   if portada else ""),
-        imagen=('<img src="%s" alt="%s">' % (e(portada), e(entrega.titulo))) if portada else "",
-    ))

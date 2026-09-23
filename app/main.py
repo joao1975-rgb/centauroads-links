@@ -63,10 +63,12 @@ app.include_router(router_entregas)
 
 # Con la lista de autorizados vacia no entra nadie, ni siquiera para anadir al primero.
 # PANEL_BOOTSTRAP asegura esos correos como administradores. Es configuracion, no un secreto.
+# `asegura_bootstrap` ya registra por su cuenta a quien da de alta. Aqui no se vuelve a
+# registrar: el logger de este modulo se define MAS ABAJO, y usarlo desde aqui hacia que la
+# aplicacion no arrancara -NameError- en cuanto la variable tuviera algo. Las pruebas no lo
+# cogian porque no la ponen; lo cogio levantar la aplicacion de verdad.
 with SessionLocal() as _db:
-    _creados = asegura_bootstrap(_db)
-if _creados:
-    log.info("PANEL_BOOTSTRAP: %d cuenta(s) de panel aseguradas al arrancar", _creados)
+    asegura_bootstrap(_db)
 
 # ---------------------------------------------------------------------------
 # Autenticación de administración
