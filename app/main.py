@@ -16,7 +16,7 @@ import os
 import logging
 from pydantic import BaseModel
 
-from .database import engine, get_db, Base
+from .database import engine, get_db, Base, SessionLocal
 from . import models, schemas
 from .migracion import migrar
 
@@ -50,13 +50,23 @@ templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 
 # ---------------------------------------------------------------------------
-# Entregas a medida (002)
-#   Se monta aqui, y no al final, para que quede claro que sus rutas existen antes que el
+# Identidad del panel (001) y entregas a medida (002)
+#   Se montan aqui, y no al final, para que quede claro que sus rutas existen antes que el
 #   catch-all "/{slug}". No colisionan -las suyas tienen dos segmentos- pero el orden en el
 #   fichero es lo que lo cuenta a quien lo lea.
 # ---------------------------------------------------------------------------
+from .auth.rutas import router as router_auth, asegura_bootstrap  # noqa: E402
 from .mails.entregas import router as router_entregas  # noqa: E402
+
+app.include_router(router_auth)
 app.include_router(router_entregas)
+
+# Con la lista de autorizados vacia no entra nadie, ni siquiera para anadir al primero.
+# PANEL_BOOTSTRAP asegura esos correos como administradores. Es configuracion, no un secreto.
+with SessionLocal() as _db:
+    _creados = asegura_bootstrap(_db)
+if _creados:
+    log.info("PANEL_BOOTSTRAP: %d cuenta(s) de panel aseguradas al arrancar", _creados)
 
 # ---------------------------------------------------------------------------
 # Autenticación de administración

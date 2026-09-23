@@ -22,9 +22,12 @@ incluye `/`, `\\` ni `.`— y por destino, resolviendo la ruta real y exigiendo 
 la carpeta de esa entrega. Lo segundo es lo que atrapa lo que la primera no previó.
 """
 
+import logging
 import os
 import re
 from typing import Optional
+
+log = logging.getLogger("centaurads.entregas")
 
 # Mismo criterio que `app/database.py`, que hace `os.makedirs("data")` relativo al directorio de
 # trabajo: en el contenedor es `/app`, de modo que esto resuelve a `/app/data`, el volumen.
@@ -110,9 +113,19 @@ def borra_entrega(entrega_id: int) -> int:
         return 0
     borrados = 0
     for nombre in os.listdir(base):
-        if nombre_valido(nombre):
+        if not nombre_valido(nombre):
+            continue
+        try:
             os.remove(os.path.join(base, nombre))
             borrados += 1
-    if not os.listdir(base):
-        os.rmdir(base)
+        except OSError:
+            # Un fichero que el sistema no deja borrar ahora mismo no puede tumbar la petición:
+            # quien llama viene a rehacer el carrusel, y `guarda()` lo sobrescribirá igual. Se
+            # registra para que no pase inadvertido si se vuelve costumbre.
+            log.warning("no se pudo borrar %s de la entrega %s", nombre, entrega_id)
+    try:
+        if not os.listdir(base):
+            os.rmdir(base)
+    except OSError:
+        pass
     return borrados

@@ -319,7 +319,13 @@ def elegir(entrega_id: int, seleccion: Seleccion,
             raise HTTPException(
                 status_code=400,
                 detail="La página %d ya no está; vuelve a subir el PDF" % i)
-        imagenes.append(Image.open(destino).convert("RGB"))
+        # Con `Image.open` a secas, PIL deja el fichero **abierto** hasta que se recoge el
+        # objeto. En Windows eso impide borrarlo después —lo descubrió una prueba, con un
+        # «Acceso denegado» al rearmar el carrusel— y en Linux no falla pero va acumulando
+        # descriptores en un servidor que no se reinicia. `convert` ya devuelve una copia
+        # independiente, así que el original se puede cerrar en cuanto se sale del `with`.
+        with Image.open(destino) as bruta:
+            imagenes.append(bruta.convert("RGB"))
         elegidas.append(i)
 
     tira = carrusel.arma(imagenes)

@@ -226,7 +226,7 @@ def test_el_rol_admin_si_administra(db, gente):
     assert cliente.get("/solo-admin").status_code == 200
 
 
-# --- Google: la restricción de dominio -------------------------------------------------
+# --- Google: identidad, no autorización -------------------------------------------------
 
 def test_sin_client_id_no_se_ofrece_google(monkeypatch):
     from app.auth import google
@@ -241,10 +241,17 @@ def test_sin_configurar_rechaza_cualquier_token(monkeypatch):
         google.verificar_identidad("lo-que-sea")
 
 
-def test_una_cuenta_de_otro_dominio_se_rechaza(monkeypatch):
+def test_una_cuenta_de_gmail_se_identifica_sin_problema(monkeypatch):
     """
-    El corazón de FR-001a. Se simula que Google valida el identificador y devuelve una cuenta de
-    gmail.com: aunque la firma sea buena, esa persona no es del equipo.
+    **Esta prueba cambió de sentido en la 002, a propósito.**
+
+    Antes comprobaba FR-001a: una cuenta que no fuera de `@centauroads.com` se rechazaba aquí
+    mismo. Ya no. El equipo entra con su propia cuenta de Gmail, la misma que usa en Canva
+    (FR-119), y este módulo pasó a hacer una sola cosa: decir **quién eres**.
+
+    La puerta no desapareció, se movió a la lista de autorizados, y está probada en
+    `tests/test_acceso_lista.py`. Ahí se comprueba que este mismo gmail, auténtico y todo, no
+    entra si nadie lo ha autorizado.
     """
     from app.auth import google
     monkeypatch.setenv("GOOGLE_CLIENT_ID", "cliente-de-prueba")
@@ -253,9 +260,8 @@ def test_una_cuenta_de_otro_dominio_se_rechaza(monkeypatch):
         lambda *a, **k: {"iss": "https://accounts.google.com", "email_verified": True,
                          "email": "cualquiera@gmail.com", "name": "Cualquiera"},
     )
-    with pytest.raises(google.IdentidadRechazada) as e:
-        google.verificar_identidad("token")
-    assert "centauroads.com" in str(e.value)
+    quien = google.verificar_identidad("token")
+    assert quien["email"] == "cualquiera@gmail.com"
 
 
 def test_una_cuenta_del_dominio_se_acepta(monkeypatch):

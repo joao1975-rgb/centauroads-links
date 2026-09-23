@@ -24,6 +24,11 @@ import tempfile
 # sistema y ocupa unos kilobytes, y tenerlo a mano ayuda cuando algo falla y hay que mirar la BD.
 _TMP = tempfile.mkdtemp(prefix="centaurads-tests-")
 
+# Las imagenes de las entregas viven en DATA_DIR. Sin esto, las pruebas escribian en el `data/`
+# real del proyecto, al lado de la base de datos de desarrollo: dejaban basura y, lo que es peor,
+# el resultado dependia de lo que hubiera dejado la ejecucion anterior.
+os.environ.setdefault("DATA_DIR", os.path.join(_TMP, "datos"))
+
 os.environ.setdefault(
     "DATABASE_URL",
     "sqlite:///" + os.path.join(_TMP, "pruebas.db").replace("\\", "/"),

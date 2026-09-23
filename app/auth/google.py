@@ -1,13 +1,26 @@
 """
-Entrada con la cuenta de Google del dominio (FR-001a).
+Entrada con Google: **quién eres**, no si puedes pasar.
 
-Es el camino principal: `centauroads.com` está en Google Workspace, así que el alta y la baja de
-una persona se hacen desde el admin de Google y aquí no hay contraseñas que guardar. Si alguien
-pierde el portátil, se le corta el acceso en un solo sitio.
+Este fichero hace una sola cosa: comprobar que el identificador lo firmó Google, que no ha
+caducado y que el correo está verificado. Devuelve de quién es. Nada más.
 
-Lo único delicado de este fichero es lo que NO hace: no se fía del correo que venga en el cuerpo
-de la petición. El navegador puede decir lo que quiera. La única fuente válida es el identificador
-firmado por Google, verificado contra sus claves públicas, y de ahí se saca el correo.
+Lo único delicado es lo que NO hace: no se fía del correo que venga en el cuerpo de la petición.
+El navegador puede decir lo que quiera. La única fuente válida es el identificador firmado por
+Google, verificado contra sus claves públicas.
+
+## Por qué ya no comprueba el dominio
+
+Hasta la 002 esto exigía que el correo terminara en `@centauroads.com` (FR-001a). Ya no, y el
+cambio es deliberado: el equipo entra con **su propia cuenta de Gmail**, la misma con la que usa
+Canva (FR-119). Muchos no tienen cuenta del dominio.
+
+La puerta no desaparece, se mueve: pasa a ser una **lista de autorizados**, que es
+`panel_users` con `activo` en cierto. Eso es más estricto que un dominio, no menos —hay que
+añadir a cada persona a mano— y tiene una consecuencia que conviene tener presente: como la
+cuenta de Gmail sigue existiendo fuera de la empresa, **sacar a alguien de la lista es un paso
+obligatorio de su baja** (FR-120).
+
+Quien decide es `app/auth/rutas.py`, con la base de datos delante. Aquí no hay forma de saberlo.
 """
 
 import os
@@ -17,10 +30,6 @@ from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token as google_id_token
 
 log = logging.getLogger("centaurads.auth")
-
-# El dominio de la empresa. Configurable, pero con el valor correcto por defecto para que no
-# dependa de que alguien se acuerde de ponerlo.
-DOMINIO = os.getenv("GOOGLE_DOMINIO", "centauroads.com").strip().lower()
 
 EMISORES_VALIDOS = {"accounts.google.com", "https://accounts.google.com"}
 
@@ -47,7 +56,10 @@ def verificar_identidad(token: str) -> dict:
     """
     Comprueba el identificador que devuelve Google Sign-In y devuelve a quién pertenece.
 
-    Devuelve {"email", "nombre"}. Lanza IdentidadRechazada si algo no cuadra.
+    Devuelve {"email", "nombre"}. Lanza IdentidadRechazada si el identificador no vale.
+
+    Que el correo sea auténtico **no significa que esa persona pueda entrar**: eso lo decide la
+    lista de autorizados, en `app/auth/rutas.py`.
     """
     if not esta_configurado():
         raise IdentidadRechazada("La entrada con Google no está configurada en este servidor")
@@ -73,12 +85,5 @@ def verificar_identidad(token: str) -> dict:
     email = (datos.get("email") or "").strip().lower()
     if not email:
         raise IdentidadRechazada("El identificador no trae correo")
-
-    # La restricción de dominio. Se comprueba sobre el correo verificado por Google, nunca sobre
-    # lo que diga el cliente. `hd` es la pista de Workspace; el sufijo del correo es la garantía.
-    dominio_cuenta = (datos.get("hd") or "").strip().lower()
-    if not email.endswith("@" + DOMINIO) or (dominio_cuenta and dominio_cuenta != DOMINIO):
-        log.warning("Entrada rechazada: %s no pertenece a %s", email, DOMINIO)
-        raise IdentidadRechazada(f"Solo se admiten cuentas de {DOMINIO}")
 
     return {"email": email, "nombre": datos.get("name", "") or email.split("@")[0]}
