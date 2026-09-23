@@ -50,6 +50,15 @@ templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 
 # ---------------------------------------------------------------------------
+# Entregas a medida (002)
+#   Se monta aqui, y no al final, para que quede claro que sus rutas existen antes que el
+#   catch-all "/{slug}". No colisionan -las suyas tienen dos segmentos- pero el orden en el
+#   fichero es lo que lo cuenta a quien lo lea.
+# ---------------------------------------------------------------------------
+from .mails.entregas import router as router_entregas  # noqa: E402
+app.include_router(router_entregas)
+
+# ---------------------------------------------------------------------------
 # Autenticación de administración
 #   - ADMIN_KEY: clave operativa del panel. Origen: data/admin.key (persistente) > variable ADMIN_KEY >
 #     si no hay ninguna, se genera una aleatoria al arrancar, se guarda en data/admin.key y se avisa por log.

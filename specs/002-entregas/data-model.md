@@ -31,7 +31,7 @@ crea `Base.metadata.create_all`, que es aditivo por definición.
 | `link_id` | `Integer`, FK → `links.id`, indexado | **No** | El enlace del acortador que lleva a la presentación. Es lo que hace que clics, estadísticas y avisos funcionen sin código nuevo |
 | `contact_id` | `Integer`, FK → `contacts.id`, indexado | **No** | A quién se le entrega. **Obligatorio por decisión del propietario**: sin contacto no hay seguimiento ni aviso (FR-102) |
 | `titulo` | `String(200)` | No | Lo que se ve en la tarjeta de WhatsApp y en el asunto sugerido |
-| `canva_url` | `String(500)` | No | El enlace de la presentación del cliente. Duplicado con `links.destination` a propósito: el acortador puede cambiar su destino y la entrega debe conservar el original |
+| `canva_url` | `String(500)` | No | El enlace de la presentación del cliente. Duplicado con `links.target_url` a propósito: el acortador puede cambiar su destino y la entrega debe conservar el original |
 | `texto` | `Text` | No | El texto de entrega, ya editado por la persona. Nace del texto por defecto del motor |
 | `servicios` | `Text` | No | Qué servicios del catálogo la acompañan, como lista de identificadores separados por comas (`"led,mercedes"`). Vacío es legítimo: ninguno |
 | `sender_account_id` | `Integer`, FK → `sender_accounts.id` | Sí | Desde qué cuenta se va a enviar. Nulo mientras la entrega es borrador |

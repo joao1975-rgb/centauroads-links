@@ -135,6 +135,12 @@ transición de barrido, el número de fotogramas es pequeño.
 ~1 MB, o si el bandeado se ve a 600 px, se añade `ffmpeg` al `Dockerfile` y se reutiliza la
 tubería ya probada. La medición es una tarea, no una suposición.
 
+**Medido el 2026-09-23**, con páginas fotográficas reales a 600 px: 2 páginas → 791 KB, 3 → 971 KB,
+4 → 842 KB, todas a 128 colores, entre 4,5 s y 8,3 s. **Pillow basta: FFmpeg no entra en la
+imagen.** El precio es la transición —con cuatro páginas fotográficas el barrido baja a dos
+pasos—, y el margen es estrecho: tres páginas se quedan a 29 KB del techo. Si un deck más pesado
+se pasara, la salida sigue siendo la de arriba.
+
 ### D5 — Cada entrega es un enlace del acortador, y eso no es tocarlo
 
 Cada entrega crea una fila normal en `links`, con destino el enlace de Canva del cliente. Con eso:

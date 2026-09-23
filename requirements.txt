@@ -12,3 +12,10 @@ argon2-cffi==25.1.0
 # publicas de Google al verificar un identificador. Se usa el transporte que la propia
 # biblioteca prueba, en vez de uno propio sobre httpx: no es sitio para hacerlo a mano.
 google-auth[requests]==2.58.0
+
+# Entregas a medida (002). El PDF que exporta Canva se convierte en las imagenes del carrusel.
+#   pypdfium2 y NO PyMuPDF: PyMuPDF es AGPL y este repositorio es publico sin esa licencia
+#   (constitucion, principio V). pypdfium2 es BSD-3/Apache-2.0 y ademas lee el texto de cada
+#   pagina, que es lo que permite rotular la miniatura y avisar de que lleva un precio.
+pypdfium2==5.9.0
+Pillow==12.2.0

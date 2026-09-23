@@ -44,29 +44,47 @@ en `app/mails/entregas/`. Las pruebas, en `tests/`.
 
 **Lo que se vio al mirarlo renderizado** (principio III), y que no es culpa del refactor:
 
-- Las imágenes de **Las Mercedes** dan 404 en producción (`svc_mercedes.jpg`, `cover_mercedes.jpg`). Están en el repositorio y en `app/static/email/`, pero el despliegue del commit `8745a4b` sigue sin aplicarse en EasyPanel. Afecta a **todas** las plantillas, no solo a la Entrega.
-- **Las dos pantallas comparten el enlace de Canva** (`p69pybf8jctaq8d`). Puede ser correcto —el deck se titula «Circuito pantallas LED Chacao y Las Mercedes»— pero conviene confirmarlo antes de entregárselo a un cliente.
+- ~~Las imágenes de **Las Mercedes** dan 404 en producción.~~ **Resuelto el 2026-09-23**: no era del código sino del despliegue, y hubo que desplegar el servicio correcto (`centauro-links`, no `mundial`). Verificado: las cuatro imágenes dan 200 y el `render.js` publicado es byte a byte el del repositorio.
+- ~~Las dos pantallas comparten el enlace de Canva (`p69pybf8jctaq8d`).~~ **Confirmado correcto por el propietario el 2026-09-23**: es un solo deck que cubre las dos pantallas, «Circuito pantallas LED Chacao y Las Mercedes».
 
 ---
 
 ## Phase 2: La entrega en el servidor
 
-- [ ] **T110** Añadir `pypdfium2` y `Pillow` a `requirements.txt`, con el comentario de por qué pypdfium2 y no PyMuPDF (licencia AGPL, repositorio público).
-- [ ] **T111** Añadir a `app/models.py` las clases `Entrega` y `EntregaPagina` de [data-model.md](./data-model.md), con `contact_id` **no nulo**, el índice único `(entrega_id, orden)` y el borrado en cascada. No tocar ninguna clase existente.
-- [ ] **T112** Escribir `tests/test_entregas_api.py` **antes** que las rutas: crear una entrega sin contacto debe ser rechazado; con contacto, debe devolver su enlace. Debe fallar ahora.
-- [ ] **T113** [US1] `app/mails/entregas/almacen.py`: escribir y leer ficheros bajo `/app/data/entregas/<id>/`, con rutas relativas en la base de datos. Comprobar que `.gitignore` cubre `data/`.
-- [ ] **T114** [US2] `app/mails/entregas/paginas.py`: rasterizar el PDF con pypdfium2, una imagen por página, y extraer su texto. Medir el tiempo con un PDF real de 6 páginas.
-- [ ] **T115** [US2] Detección de precio en el texto de cada página, y el `rotulo` a partir de su primer titular. La advertencia de que **un precio en imagen no se detecta** va escrita en la interfaz, no solo en el plan (puerta IV de la constitución).
-- [ ] **T116** [US2] Validación de la subida: solo PDF o imagen, tope de 25 MB y de 20 páginas, con un mensaje que explique el límite (FR-114). Prueba con un fichero que no es ninguna de las dos cosas.
-- [ ] **T117** [US2] `app/mails/entregas/carrusel.py`: de 2 a 4 páginas a GIF con Pillow, barrido, **fotograma 0 = primera página elegida** (FR-111).
-- [ ] **T118** [US2] **Medición, no fe**: pesar el GIF resultante con un PDF real y mirarlo a 600 px. Si pasa de ~1 MB o se ve bandeado, añadir `ffmpeg` al `Dockerfile` y reutilizar la tubería de `carrusel_gif.py`. Anotar el resultado medido en el plan.
-- [ ] **T119** [US1] `app/mails/entregas/rutas.py`: `POST/GET/PUT /api/entregas`, con creación del `Link` asociado y del contacto si no existe. Sin contacto no se crea la entrega.
-- [ ] **T120** [US1] `GET /media/entregas/<id>/<fichero>`: sirve desde el **volumen**, no desde `app/static/`. Cabeceras de caché largas; los ficheros no cambian una vez escritos.
-- [ ] **T121** [US3] `GET /p/{slug}`: página de vista previa con `og:title`, `og:description` y `og:image` apuntando a `og.jpg`, botón hacia la presentación, y registro del clic igual que el acortador (FR-117).
-- [ ] **T122** [US3] Generar `og.jpg` a 1200×630 a partir de la página 0 al guardar el carrusel.
-- [ ] **T123** Verificar que `tests/test_acortador.py` y `tests/test_migracion.py` siguen en verde: dos tablas nuevas no pueden alterar el comportamiento del acortador (principio I).
+- [x] **T110** `pypdfium2==5.9.0` y `Pillow==12.2.0` en `requirements.txt`, con el porqué de pypdfium2 frente a PyMuPDF (AGPL, repositorio público). Se fijan las versiones **probadas aquí**, no las que supuse al escribir el plan.
+- [x] **T111** `Entrega` y `EntregaPagina` en `app/models.py`, con `contact_id` no nulo, `UNIQUE(entrega_id, orden)` y borrado en cascada. Ninguna clase existente tocada. De paso: la columna destino de `links` se llama `target_url`, no `destination` — corregido en el modelo de datos, que decía lo segundo.
+- [x] **T112** `tests/test_entregas_api.py`: **24 pruebas, en verde**, con el contacto obligatorio y los intentos de salirse de `/media` como piezas centrales. Añadido `tests/test_carrusel.py` (10 más) porque el orden de los fotogramas no estaba cubierto.
+- [x] **T113** [US1] `almacen.py`. Doble comprobación en `resuelve()`: por forma (lista de caracteres permitidos) y por destino (`realpath` dentro de la carpeta de la entrega). `.gitignore` ya cubría `data/`.
+- [x] **T114** [US2] `paginas.py`. **Medido**: 6 páginas en 365 ms, a 1200 px de ancho, con su texto leído.
+- [x] **T115** [US2] Detección de precio y rótulo. **Probada con 9 casos, 9 aciertos**: detecta «USD 1500», «desde 1.500 $/mes», «Precio: 300»; y NO se dispara con «1024 × 2048 px», «+95.000 vehículos/día» ni «7,68 × 4,80 m». La advertencia de que un precio en imagen no se detecta viaja en la respuesta de la subida, para que la interfaz la enseñe.
+- [x] **T116** [US2] Validación **por los primeros bytes, no por la extensión**: la extensión la escribe quien sube. Topes de 25 MB y 20 páginas, con mensajes que dicen qué hacer. Comprobado: texto plano y fichero vacío se rechazan.
+- [x] **T117** [US2] `carrusel.py`. **Fotograma 0 comprobado**: coincide con la primera página elegida, diferencia 0.
+- [x] **T118** [US2] **Medido con páginas fotográficas reales**: 2 → 791 KB, 3 → 971 KB, 4 → 842 KB, todas a 128 colores, de 4,5 a 8,3 s. **Pillow basta; FFmpeg no entra en la imagen.** La primera medición salió a 12,1 s y 64 colores: se reordenaron los intentos (recortar transición antes que color) y se añadió una estimación para no codificar seis veces. Margen estrecho: 3 páginas se quedan a 29 KB del techo.
+- [x] **T119** [US1] `rutas.py`: alta, listado, lectura, actualización, subida, selección y «marcar entregada». Sin contacto no se crea, comprobado.
+- [x] **T120** [US1] `GET /media/entregas/<id>/<fichero>` desde el volumen, con caché inmutable, y sus dos capas de guardia probadas por separado.
+- [x] **T121** [US3] `GET /p/{slug}` con sus etiquetas Open Graph, **un solo enlace saliente** y registro del clic que no deja sin página al cliente si falla. Las tres cosas, comprobadas.
+- [x] **T122** [US3] `og.jpg` a **1200×630, 11 KB** comprobados, recortando desde el centro en vez de deformar.
+- [x] **T123** La puerta del principio I, **en verde**: `test_acortador.py` 21/21 y `test_migracion.py` 8/8, sobre un esquema con las dos tablas nuevas. Batería completa: **93 pruebas, 0 fallos**. Y el motor sigue dando «16 plantillas idénticas a la referencia».
 
-**Punto de control**: una entrega existe, tiene imágenes, tiene enlace propio y su tarjeta se ve al pegarla.
+**Punto de control**: alcanzado. Una entrega existe, tiene imágenes, tiene enlace propio y su
+tarjeta se ve al pegarla. **93 pruebas en verde**, incluida la puerta del acortador.
+
+**Lo que hizo falta para creérselo.** Las 82 primeras pruebas pasaron a la primera, lo cual es
+motivo de sospecha, no de alivio. Se rompió el código a propósito en cinco sitios para ver si
+alguna prueba se enteraba, y **dos no se enteraban**:
+
+- El orden de los fotogramas del carrusel: la prueba miraba el orden de las filas en la base de
+  datos, que es otra cosa. De ahí nació `tests/test_carrusel.py`.
+- La segunda capa de la guardia de `/media`: el filtro de nombres ya rechazaba todo lo que llegaba
+  por HTTP, así que la guardia de destino se podía borrar sin que nada fallara. Y la primera
+  corrección tampoco servía —apuntaba a ficheros inexistentes, así que fallaba en el `isfile`—:
+  hubo que dejar un fichero real justo fuera de la carpeta.
+
+Esas pruebas encontraron además **un defecto de verdad**: `dentro_de_presupuesto` comparaba contra
+la constante del módulo en vez de contra el presupuesto que se le había pasado, de modo que decía
+«entra» cuando se le pedía un techo más bajo. Corregido.
+
+Las cinco mutaciones se detectan ahora.
 
 ---
 

@@ -1,0 +1,230 @@
+"""
+De las páginas elegidas al carrusel que viaja en el correo, y a la portada de WhatsApp.
+
+## Dos reglas que no son estéticas
+
+**El fotograma 0 es lo que ve Outlook.** Outlook de escritorio no anima los GIF: enseña el primer
+fotograma y ahí se queda. Así que el fotograma 0 es la primera página elegida, entera y quieta, y
+tiene que entenderse sola (constitución, restricciones de correo HTML).
+
+**El peso tiene un techo.** Un correo que tarda en cargar no lo lee nadie. El presupuesto es ~1 MB
+por pieza, y aquí no se da por supuesto: `arma()` **comprueba el resultado** y, si se pasa, vuelve
+a intentarlo con menos pasos de transición y menos colores, hasta que entra. Es preferible un
+barrido más brusco que un correo que no abre.
+
+## Por qué Pillow y no FFmpeg
+
+El carrusel de las plantillas A-G se arma con FFmpeg, pero en el portátil de quien diseña. Este se
+arma **en el servidor**, y meter FFmpeg en la imagen del contenedor que sirve el acortador son
+unos 70 MB y una dependencia de sistema nueva en la máquina que más importa. Pillow ya hace falta
+para recortar y redimensionar, y sabe escribir GIF animado.
+
+Esa decisión tenía una condición escrita en el plan (D4): **medirlo**. Medido el 2026-09-23, con
+páginas fotográficas reales del inventario a 600 px:
+
+    2 páginas ->  791 KB · 8 pasos de barrido · 128 colores · 4,5 s
+    3 páginas ->  971 KB · 4 pasos            · 128 colores · 6,0 s
+    4 páginas ->  842 KB · 2 pasos            · 128 colores · 8,3 s
+
+Entra en presupuesto sin bajar de 128 colores, así que **no hace falta FFmpeg**. Lo que se paga
+es transición: con cuatro páginas fotográficas el barrido queda en dos pasos, casi un corte. Es el
+intercambio correcto —quien lee pasa 2,2 s en cada página quieta y medio segundo en el barrido—,
+pero conviene saberlo antes de prometer animación.
+
+Queda un margen estrecho: tres páginas se quedan a 29 KB del techo. Si un deck más pesado se
+pasara, el siguiente paso sigue siendo el de D4: añadir `ffmpeg` al `Dockerfile`.
+"""
+
+import io
+from typing import List, Optional
+
+# Anchura real del correo. Las páginas llegan a 1200 px; aquí bajan a 600 para pesar la mitad de
+# la mitad, que en GIF es más que proporcional.
+ANCHO = 600
+PRESUPUESTO_BYTES = 1_000_000
+
+# Cuánto se queda quieta cada página, y cuánto dura cada paso del barrido.
+PAUSA_MS = 2200
+PASO_MS = 90
+
+# Intentos, del más vistoso al más pobre.
+#
+# El orden no es caprichoso, y se decidió **midiendo**. Quien recibe el correo pasa 2,2 s mirando
+# cada página quieta y medio segundo viendo el barrido: la nitidez de las páginas vale más que la
+# suavidad de la transición. Así que primero se recortan pasos y solo al final se bajan colores.
+# `pasos` 0 es corte seco: sin transición, y sigue siendo un carrusel legible.
+_INTENTOS = (
+    (8, 128),
+    (6, 128),
+    (4, 128),
+    (2, 128),
+    (0, 128),
+    (0, 96),
+    (0, 64),
+)
+
+
+class Resultado:
+    """El GIF y cómo se consiguió, para poder contarlo en vez de suponerlo."""
+
+    def __init__(self, datos: bytes, pasos: int, colores: int, intentos: int,
+                 presupuesto: int = PRESUPUESTO_BYTES):
+        self.datos = datos
+        self.pasos = pasos
+        self.colores = colores
+        self.intentos = intentos
+        # El presupuesto con el que se armó ESTE carrusel, no el de por defecto. Comparar contra
+        # la constante del módulo hacía que un resultado dijera «entra» cuando se le había pedido
+        # un techo más bajo: la propiedad mentía en el único caso en que importaba.
+        self.presupuesto = presupuesto
+
+    @property
+    def bytes(self) -> int:
+        return len(self.datos)
+
+    @property
+    def dentro_de_presupuesto(self) -> bool:
+        return self.bytes <= self.presupuesto
+
+    def __repr__(self):
+        return "<Carrusel %d KB, %d pasos, %d colores, %d intento(s)%s>" % (
+            round(self.bytes / 1024), self.pasos, self.colores, self.intentos,
+            "" if self.dentro_de_presupuesto else ", FUERA DE PRESUPUESTO")
+
+
+def _uniforma(imagenes, ancho: int):
+    """
+    Todas las páginas al mismo tamaño, que es lo que un GIF exige.
+
+    Se usa el alto de la primera: es la que manda porque es el fotograma 0. Las demás se ajustan
+    recortando desde el centro, no deformando — una propuesta estirada se nota.
+    """
+    from PIL import Image
+
+    base = imagenes[0]
+    alto = max(1, round(base.height * ancho / base.width))
+    salida = []
+    for im in imagenes:
+        escala = max(ancho / im.width, alto / im.height)
+        nuevo = (max(ancho, round(im.width * escala)), max(alto, round(im.height * escala)))
+        im = im.resize(nuevo, Image.LANCZOS)
+        izq = (im.width - ancho) // 2
+        arr = (im.height - alto) // 2
+        salida.append(im.crop((izq, arr, izq + ancho, arr + alto)).convert("RGB"))
+    return salida
+
+
+def _fotogramas(paginas, pasos: int):
+    """
+    La secuencia completa: cada página quieta, y el barrido que lleva a la siguiente.
+
+    El barrido revela la siguiente página por la izquierda sobre la actual. Es la transición más
+    barata en un GIF: los fotogramas intermedios comparten casi todo con el anterior, y el
+    formato ya sabe no repetir lo que no cambia.
+    """
+    fotogramas, duraciones = [], []
+    total = len(paginas)
+    for i, actual in enumerate(paginas):
+        fotogramas.append(actual)
+        duraciones.append(PAUSA_MS)
+        siguiente = paginas[(i + 1) % total]
+        for p in range(1, pasos + 1):
+            corte = round(actual.width * p / (pasos + 1))
+            mezcla = actual.copy()
+            mezcla.paste(siguiente.crop((0, 0, corte, actual.height)), (0, 0))
+            fotogramas.append(mezcla)
+            duraciones.append(PASO_MS)
+    return fotogramas, duraciones
+
+
+def _escribe(fotogramas, duraciones, colores: int) -> bytes:
+    from PIL import Image
+
+    paleta = [f.convert("P", palette=Image.ADAPTIVE, colors=colores) for f in fotogramas]
+    buf = io.BytesIO()
+    paleta[0].save(buf, format="GIF", save_all=True, append_images=paleta[1:],
+                   duration=duraciones, loop=0, optimize=True, disposal=1)
+    return buf.getvalue()
+
+
+def arma(imagenes: List, ancho: int = ANCHO,
+         presupuesto: int = PRESUPUESTO_BYTES) -> Resultado:
+    """
+    El carrusel de 2 a 4 páginas, garantizado bajo presupuesto o lo más cerca posible.
+
+    `imagenes` son objetos PIL en el orden que eligió la persona. La primera es el fotograma 0.
+    """
+    if len(imagenes) < 2:
+        raise ValueError("el carrusel necesita al menos 2 páginas (FR-110)")
+    if len(imagenes) > 4:
+        raise ValueError("el carrusel admite como mucho 4 páginas (FR-110)")
+
+    paginas = _uniforma(imagenes, ancho)
+
+    def escribe(pasos, colores):
+        fotogramas, duraciones = _fotogramas(paginas, pasos)
+        return _escribe(fotogramas, duraciones, colores), len(fotogramas)
+
+    # Primer intento, el bueno. Con páginas ligeras entra a la primera y aquí se acaba.
+    pasos, colores = _INTENTOS[0]
+    datos, fotogramas = escribe(pasos, colores)
+    ultimo = Resultado(datos, pasos, colores, 1, presupuesto)
+    if ultimo.bytes <= presupuesto:
+        return ultimo
+
+    # No entró. En vez de ir bajando de uno en uno —con páginas fotográficas eso son seis
+    # codificaciones y doce segundos, medidos— se estima con lo que acaba de costar un fotograma
+    # y se salta directamente al candidato que debería caber. Sigue verificándose: la estimación
+    # elige por dónde empezar, no decide.
+    por_fotograma = ultimo.bytes / max(1, fotogramas)
+    resto = list(_INTENTOS[1:])
+    for i, (p, c) in enumerate(resto):
+        previsto = len(paginas) * (1 + p) * por_fotograma * (c / colores)
+        if previsto <= presupuesto:
+            resto = resto[i:]
+            break
+
+    for intento, (pasos, colores) in enumerate(resto, start=2):
+        datos, _ = escribe(pasos, colores)
+        ultimo = Resultado(datos, pasos, colores, intento, presupuesto)
+        if ultimo.bytes <= presupuesto:
+            return ultimo
+
+    # Ni en su forma más pobre entra. Se devuelve igual, con el aviso puesto: quien llama decide
+    # si lo entrega o si toca aplicar la salida de D4 (añadir ffmpeg).
+    return ultimo
+
+
+def portada(imagen, ancho: int = 1200, alto: int = 630, calidad: int = 82) -> bytes:
+    """
+    La imagen de la tarjeta que WhatsApp enseña al pegar el enlace (`og:image`).
+
+    1200 × 630 es la proporción que esperan WhatsApp, Facebook y LinkedIn. Se recorta desde el
+    centro en vez de deformar: una propuesta estirada da mala primera impresión, y esta imagen
+    **es** la primera impresión.
+    """
+    from PIL import Image
+
+    im = imagen.convert("RGB")
+    escala = max(ancho / im.width, alto / im.height)
+    im = im.resize((max(ancho, round(im.width * escala)),
+                    max(alto, round(im.height * escala))), Image.LANCZOS)
+    izq = (im.width - ancho) // 2
+    arr = (im.height - alto) // 2
+    im = im.crop((izq, arr, izq + ancho, arr + alto))
+
+    buf = io.BytesIO()
+    im.save(buf, format="JPEG", quality=calidad, optimize=True, progressive=True)
+    return buf.getvalue()
+
+
+def a_jpeg(imagen, ancho: Optional[int] = None, calidad: int = 85) -> bytes:
+    """Una página suelta como JPEG, para guardarla en el volumen."""
+    from PIL import Image
+
+    im = imagen.convert("RGB")
+    if ancho and im.width > ancho:
+        im = im.resize((ancho, max(1, round(im.height * ancho / im.width))), Image.LANCZOS)
+    buf = io.BytesIO()
+    im.save(buf, format="JPEG", quality=calidad, optimize=True, progressive=True)
+    return buf.getvalue()

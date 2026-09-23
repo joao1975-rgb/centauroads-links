@@ -163,3 +163,87 @@ class Alert(Base):
     ventana_fin = Column(DateTime, nullable=False)
     created_at = Column(DateTime, default=ahora)
     visto_por = Column(Integer, ForeignKey("panel_users.id"), nullable=True)
+
+
+# ---------------------------------------------------------------------------
+# Entregas a medida (002). Tampoco tocan ninguna tabla anterior.
+# ---------------------------------------------------------------------------
+
+
+class Entrega(Base):
+    """
+    Una presentación propia, ya armada para un cliente concreto, y lo que hace falta para
+    entregársela: su enlace, su texto, sus imágenes y a quién va.
+
+    Cada entrega crea además una fila normal en `links`. No es un rodeo: es lo que hace que el
+    acortador, sus clics, sus estadísticas y la regla de aviso de interés sirvan a las entregas
+    sin una línea de código nueva ni un cambio en el acortador (constitución, principio I).
+    """
+    __tablename__ = "entregas"
+
+    id = Column(Integer, primary_key=True, index=True)
+    link_id = Column(Integer, ForeignKey("links.id"), nullable=False, index=True)
+
+    # Obligatorio por decisión del propietario: sin contacto no hay seguimiento ni aviso, que es
+    # la razón de ser de la capacidad (FR-102).
+    contact_id = Column(Integer, ForeignKey("contacts.id"), nullable=False, index=True)
+
+    titulo = Column(String(200), nullable=False)
+    # Duplicado con links.target_url a propósito: el destino de un enlace corto puede cambiarse
+    # desde el panel del acortador, y la entrega debe conservar a qué presentación se refería.
+    canva_url = Column(String(500), nullable=False)
+    texto = Column(Text, nullable=False, default="")
+    # Identificadores del catálogo separados por comas ("led,mercedes"). Vacío es legítimo:
+    # una entrega puede no llevar ningún servicio acompañante.
+    servicios = Column(Text, nullable=False, default="")
+
+    sender_account_id = Column(Integer, ForeignKey("sender_accounts.id"), nullable=True)
+    firma_cargo = Column(String(200), nullable=True)
+    panel_user_id = Column(Integer, ForeignKey("panel_users.id"), nullable=False, index=True)
+
+    # 'borrador' o 'entregada'. Una entrega a medio armar es trabajo de alguien: se guarda y se
+    # recupera, no se pierde porque se cerró la pestaña.
+    estado = Column(String(20), nullable=False, default="borrador")
+    entregada_en = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=ahora)
+    updated_at = Column(DateTime, default=ahora, onupdate=ahora)
+
+    link = relationship("Link")
+    contacto = relationship("Contact")
+    paginas = relationship(
+        "EntregaPagina", back_populates="entrega",
+        cascade="all, delete-orphan", order_by="EntregaPagina.orden",
+    )
+
+
+class EntregaPagina(Base):
+    """
+    Cada imagen sacada de la presentación del cliente, con su sitio en el carrusel.
+
+    `orden` 0 es el fotograma que ve Outlook con las animaciones desactivadas, así que tiene que
+    bastarse solo (constitución, restricciones de correo HTML).
+    """
+    __tablename__ = "entrega_paginas"
+    __table_args__ = (
+        UniqueConstraint("entrega_id", "orden", name="uq_pagina_entrega_orden"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    entrega_id = Column(Integer, ForeignKey("entregas.id"), nullable=False, index=True)
+    orden = Column(Integer, nullable=False)
+
+    # Relativa al volumen ("entregas/7/p0.jpg"), nunca absoluta: mover el volumen no puede
+    # invalidar las filas.
+    ruta = Column(String(300), nullable=False)
+    ancho = Column(Integer, nullable=False, default=0)
+    alto = Column(Integer, nullable=False, default=0)
+
+    origen = Column(String(20), nullable=False, default="pdf")   # pdf | imagen | claude
+    pagina_pdf = Column(Integer, nullable=True)
+    rotulo = Column(String(200), nullable=True)
+    # El texto de esta página parece contener un precio. Ojo: se lee TEXTO. Un precio incrustado
+    # en una imagen no se detecta, y la interfaz tiene que decirlo (principio IV).
+    aviso_precio = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime, default=ahora)
+
+    entrega = relationship("Entrega", back_populates="paginas")
