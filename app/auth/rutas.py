@@ -48,6 +48,12 @@ router = APIRouter()
 # Un rechazo dice siempre esto, pase lo que pase. Ver la nota de arriba.
 _RECHAZO = "Esa cuenta no tiene acceso al panel"
 
+# A dónde se va uno después de entrar. Estaba escrito "/admin/entregas", que **no existe**: quien
+# entraba aterrizaba en un 404 con la sesión ya puesta. Lo descubrió la primera persona que entró
+# de verdad. Ahora es una constante y hay una prueba que comprueba que la ruta responde, porque
+# una dirección escrita a mano en dos sitios es una dirección que algún día deja de existir.
+COMPOSITOR = "/static/email/compositor.html"
+
 
 def _autorizado(db: Session, email: str) -> Optional[models.PanelUser]:
     """La fila activa de esa persona, o None. Aquí está toda la puerta."""
@@ -381,7 +387,7 @@ _BLOQUE_GOOGLE = """<div id="g_id_onload" data-client_id="{client_id}"
 
 
 @router.get("/panel/entrar", response_class=HTMLResponse)
-def pantalla_de_entrada(request: Request, destino: str = "/admin/entregas"):
+def pantalla_de_entrada(request: Request, destino: str = COMPOSITOR):
     """
     La pantalla de entrada. Ofrece Google solo si está configurado: enseñar un botón que fallaría
     al pulsarlo es peor que no enseñarlo.
@@ -390,7 +396,7 @@ def pantalla_de_entrada(request: Request, destino: str = "/admin/entregas"):
     a alguien a entrar y acabar en otro sitio.
     """
     if not destino.startswith("/") or destino.startswith("//"):
-        destino = "/admin/entregas"
+        destino = COMPOSITOR
 
     if google.esta_configurado():
         cid = os.getenv("GOOGLE_CLIENT_ID", "").strip()
@@ -401,6 +407,18 @@ def pantalla_de_entrada(request: Request, destino: str = "/admin/entregas"):
 
     return HTMLResponse(_ENTRADA.format(script_google=script, bloque_google=bloque,
                                         destino=destino))
+
+
+@router.get("/admin/entregas")
+def al_compositor():
+    """
+    El nombre corto del modo Entrega. Redirige al compositor.
+
+    Existe porque esa dirección ya estaba escrita como destino tras entrar, y era mentira: no
+    llevaba a ninguna parte. O se quitaba el nombre o se le daba destino; tiene más valor una
+    dirección que se pueda decir en voz alta que una ruta larga con extensión .html.
+    """
+    return RedirectResponse(url=COMPOSITOR, status_code=307)
 
 
 @router.get("/panel/salir")

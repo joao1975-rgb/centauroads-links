@@ -263,6 +263,28 @@ def test_sin_client_id_no_se_ofrece_el_boton_de_google(cliente, monkeypatch):
     assert "accounts.google.com/gsi/client" not in r.text
 
 
+def test_a_donde_lleva_entrar_existe_de_verdad(cliente):
+    """
+    Entrar y aterrizar en un 404 es entrar mal.
+
+    Esta prueba nació de eso exactamente: el destino por defecto era `/admin/entregas`, una ruta
+    que nunca se creó. La sesión quedaba puesta y la persona veía `{"detail":"Not Found"}`. No lo
+    cogió ninguna prueba porque todas comprobaban el **login**, y ninguna a dónde te deja.
+
+    Comprobar que una dirección responde es barato; descubrirlo con alguien entrando, no.
+    """
+    assert cliente.get(rutas.COMPOSITOR).status_code == 200, (
+        "el compositor no responde en " + rutas.COMPOSITOR)
+
+    r = cliente.get("/panel/entrar")
+    assert rutas.COMPOSITOR in r.text, "la pantalla de entrada no apunta al compositor"
+
+    # Y el nombre corto lleva al mismo sitio.
+    corto = cliente.get("/admin/entregas", follow_redirects=False)
+    assert corto.status_code in (302, 303, 307)
+    assert corto.headers["location"] == rutas.COMPOSITOR
+
+
 def test_el_destino_no_puede_llevar_fuera_del_sitio(cliente):
     """Un enlace preparado no puede hacer que alguien entre y acabe en otra parte."""
     for malo in ("https://otro-sitio.example/robar", "//otro-sitio.example"):
