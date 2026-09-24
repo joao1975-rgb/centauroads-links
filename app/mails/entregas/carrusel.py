@@ -117,7 +117,7 @@ def _uniforma(imagenes, ancho: int):
 
 # Los mismos efectos que el banco de las plantillas A-G. Que se pueda elegir uno y el carrusel
 # haga siempre lo mismo es peor que no poder elegir: promete algo que no cumple.
-EFECTOS = ('corte', 'barrido', 'persiana', 'fundido', 'deslizar', 'destello')
+EFECTOS = ('corte', 'barrido', 'persiana', 'fundido', 'deslizar', 'destello', 'zoom')
 
 
 def _paso(actual, siguiente, efecto: str, t: float):
@@ -135,6 +135,15 @@ def _paso(actual, siguiente, efecto: str, t: float):
 
     if efecto == 'fundido':
         return Image.blend(actual, siguiente, t)
+
+    if efecto == 'zoom':
+        # La siguiente crece desde el centro hasta llenar el marco. Como el fundido, cambia cada
+        # pixel del fotograma, asi que pesa; el presupuesto ya sabe recortarlo.
+        escala = 0.62 + 0.38 * t
+        ai, hi = max(1, round(ancho * escala)), max(1, round(alto * escala))
+        marco = actual.copy()
+        marco.paste(siguiente.resize((ai, hi), Image.LANCZOS), ((ancho - ai) // 2, (alto - hi) // 2))
+        return marco
 
     if efecto == 'destello':
         # Sube a blanco y baja desde la siguiente. El fogonazo va en la mitad del recorrido.

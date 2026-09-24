@@ -759,6 +759,28 @@
       const rejilla = el('div', 'minis'); rejilla.id = 'minis'; p3.appendChild(rejilla);
       if (paginasSubidas.length) pintaMinis(rejilla, est3);
 
+      // El efecto, aqui mismo. El banco de A-G vive en un panel que este modo no pinta, asi que
+      // no habia forma de elegirlo: el servidor recibia el que quedara de otra plantilla. Al
+      // cambiarlo se rehace el carrusel en el acto, que es lo unico que demuestra que se aplico.
+      const efe = el('label', 'fld');
+      efe.appendChild(el('span', 'fld-l', 'Efecto del carrusel'));
+      const selEfe = el('select');
+      M.EFECTOS.forEach(x => {
+        const o = el('option', null, x.etiqueta); o.value = x.clave;
+        o.title = x.idea;
+        if ((st.efecto || 'barrido') === x.clave) o.selected = true;
+        selEfe.appendChild(o);
+      });
+      selEfe.addEventListener('change', () => {
+        st.efecto = selEfe.value; save();
+        if (elegidas.length >= 2) armaCarrusel(est3);
+        else {
+          est3.className = 'estado';
+          est3.textContent = 'Efecto guardado. Elige de 2 a 4 páginas y se arma solo.';
+        }
+      });
+      efe.appendChild(selEfe); p3.appendChild(efe);
+
       p3.appendChild(el('p', 'aviso-precio',
         'El aviso de precio solo detecta precios escritos como texto. Si en la presentación el ' +
         'precio es parte de una imagen, no se detecta: míralas antes de entregar.'));
@@ -904,7 +926,15 @@
         else if (elegidas.length < 4) elegidas.push(pg.indice);
         else { est.className = 'estado mal'; est.textContent = 'Como mucho 4 páginas.'; return; }
         pintaMinis(rejilla, est);
+        // Con una sola elegida no hay carrusel: el correo sigue ensenando la portada quieta. Si
+        // no se dice, parece acabado -y se entrega una imagen fija creyendo que anima.
         if (elegidas.length >= 2) armaCarrusel(est);
+        else {
+          est.className = 'estado mal';
+          est.textContent = elegidas.length
+            ? 'Una sola página es una portada quieta. Elige al menos otra para que anime.'
+            : 'Sin páginas elegidas el correo lleva la portada quieta. Elige de 2 a 4.';
+        }
       });
       rejilla.appendChild(b);
     });

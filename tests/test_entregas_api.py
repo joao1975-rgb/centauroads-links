@@ -247,6 +247,36 @@ def test_elegir_paginas_arma_el_carrusel_y_la_portada(cliente, entrega):
     assert datos["paginas"][0]["url"].endswith("p2.jpg")
 
 
+def test_el_efecto_elegido_llega_al_carrusel(cliente, entrega):
+    """
+    Que `arma()` sepa hacer siete efectos no sirve de nada si la ruta no le pasa el que se pidio.
+    Ese hueco existio: se elegia uno en el panel y siempre salia barrido, y ninguna prueba se
+    enteraba porque todas miraban `arma()` por su cuenta.
+    """
+    cliente.post("/api/entregas/%d/paginas" % entrega["id"],
+                 files={"fichero": ("deck.pdf", io.BytesIO(_pdf(3)), "application/pdf")})
+    gifs = {}
+    for efecto in ("corte", "fundido", "zoom"):
+        cliente.put("/api/entregas/%d/paginas" % entrega["id"],
+                    json={"indices": [0, 1, 2], "efecto": efecto})
+        with open(almacen.resuelve(entrega["id"], "carrusel.gif"), "rb") as f:
+            gifs[efecto] = f.read()
+    assert len(set(gifs.values())) == 3, (
+        "dos efectos distintos dieron el mismo GIF: el elegido no esta llegando al carrusel")
+
+
+def test_un_efecto_que_no_existe_no_deja_sin_carrusel(cliente, entrega):
+    """
+    Mejor una transicion distinta de la pedida que una entrega sin propuesta que mandar.
+    """
+    cliente.post("/api/entregas/%d/paginas" % entrega["id"],
+                 files={"fichero": ("deck.pdf", io.BytesIO(_pdf(3)), "application/pdf")})
+    r = cliente.put("/api/entregas/%d/paginas" % entrega["id"],
+                    json={"indices": [0, 1], "efecto": "remolino"})
+    assert r.status_code == 200, r.text
+    assert r.json()["carrusel"]
+
+
 def test_el_carrusel_entra_en_presupuesto(cliente, entrega):
     """~1 MB por pieza. Un correo que tarda en cargar no lo lee nadie."""
     cliente.post("/api/entregas/%d/paginas" % entrega["id"],

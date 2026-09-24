@@ -709,12 +709,22 @@
   const esOscuro = st => st.tema === 'oscuro';
 
   // Cabecera comun: logo a la izquierda, metadato a la derecha.
-  function cabeceraAsesor(st, P, meta) {
+  // `submeta` es opcional y solo lo usa la Personalizada: el nombre de la empresa, bajo el
+  // rotulo. Sin el, el HTML sale identico al de siempre, que es lo que E, F y G necesitan para
+  // seguir pasando el guardia byte a byte.
+  function cabeceraAsesor(st, P, meta, submeta) {
     const k = paleta(esOscuro(st));
+    // Debajo y no dentro: el rotulo dice de que clase de correo se trata y la empresa dice de
+    // quien es. Juntarlos en una linea de 10px en mayusculas espaciadas haria ilegible lo que
+    // mas importa de los dos.
+    const abajo = submeta
+      ? '<div style="font-family:' + FH + ';font-size:14px;font-weight:800;letter-spacing:-.01em;' +
+        'text-transform:none;color:' + k.texto + ';padding-top:6px;">' + esc(submeta) + '</div>'
+      : '';
     return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
       '<td valign="middle">' + marca(st, esOscuro(st), 150) + '</td>' +
       '<td valign="middle" align="right" style="font-family:' + FH + ';font-size:10px;font-weight:800;' +
-        'letter-spacing:.24em;text-transform:uppercase;color:' + k.apagado + ';">' + esc(meta) + '</td>' +
+        'letter-spacing:.24em;text-transform:uppercase;color:' + k.apagado + ';">' + esc(meta) + abajo + '</td>' +
       '</tr></table>';
   }
 
@@ -1588,7 +1598,7 @@
     // Mientras la entrega no este guardada se usa el de Canva, para poder ver la plantilla.
     const url = e.enlace || e.url || '#';
 
-    P.push(row(cabeceraAsesor(st, P, e.meta),
+    P.push(row(cabeceraAsesor(st, P, e.meta, e.empresa),
       'padding:26px 32px 22px 32px;background:' + k.panel + ';'));
 
     // Sin epigrafe sobre el titulo: el rotulo de la cabecera ya dice de que va esto, y dos
