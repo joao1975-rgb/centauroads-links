@@ -413,6 +413,13 @@
           texto: 'Preparamos esta propuesta para {empresa}: los espacios que le convienen, d\u00f3nde se ve y qu\u00e9 pasa cuando la gente pasa por delante.\n\n\u00c1brela con calma y me dices qu\u00e9 te parece. Si hay algo que ajustar, lo ajustamos.',
           corto: 'Te dejo la propuesta que preparamos para {empresa}. \u00c1brela con calma y me dices qu\u00e9 te parece.',
           cta: 'Ver la propuesta',
+          // Pie propio, y corto a proposito. El de A-G explica por que recibes el correo
+          // -"solicitaste informacion sobre espacios publicitarios"-, que en una entrega
+          // sobra: el cuerpo ya dice exactamente de que va y a quien.
+          // El primer intento fue el nombre y la ciudad, y visto renderizado repetia la
+          // ultima linea de la firma, justo encima. Una invitacion a responder no repite
+          // nada y ademas sirve: es lo que se espera despues de una propuesta.
+          pie: 'Cualquier duda, resp\u00f3ndeme a este mismo correo.',
           acompanan: 'Lo que la acompa\u00f1a',
         },
         pie: { on: true, texto: 'Recibes este correo porque solicitaste información sobre espacios publicitarios de Centauro ADS.' },
@@ -429,7 +436,10 @@
   // huecos y no dos que se separen con el tiempo.
   const fill = (s, st) => String(s || '')
     .replace(/\{destinatario\}/g, st.destinatario || '')
-    .replace(/\{empresa\}/g, (st.bloques && st.bloques.entrega && st.bloques.entrega.empresa) || '');
+    // Sin empresa elegida el hueco NO se queda vacio: 'para : los espacios' es una frase rota,
+    // y se ve en la vista previa antes de elegir contacto. Con el respaldo, la plantilla en
+    // seco se lee igual que antes de que el campo existiera.
+    .replace(/\{empresa\}/g, (st.bloques && st.bloques.entrega && st.bloques.entrega.empresa) || 'tu marca');
   const linkFor = (st, s) => {
     if (!st.linkBase) return s.canva;
     const b = st.linkBase.replace(/\/$/, '');
@@ -855,6 +865,20 @@
   // Sustituye el asunto por el elegido de los tres. Se aplica DESPUES del perfil, porque
   // es una decision mas concreta: el perfil propone y esto dispone.
   function aplicaAsunto(st) {
+    // En la Entrega el asunto ES el titulo de la propuesta: la misma frase dicha una vez. Dejar
+    // el del catalogo en un correo que entrega algo concreto desentona en lo primero que lee el
+    // cliente. La linea de vista previa -la que Gmail ensena al lado- sale del texto corto por
+    // el mismo motivo: si no, la bandeja anuncia una cosa y el correo dice otra.
+    //
+    // `asunto3 = 'propio'` sigue mandando: quien redacta tiene la ultima palabra.
+    if (st.plantilla === 'H' && st.asunto3 !== 'propio') {
+      const h = JSON.parse(JSON.stringify(st));
+      const e = h.bloques.entrega;
+      if (e.titulo) h.asunto = e.titulo;
+      const corto = fill(e.corto || '', h).replace(/[ \t\r\n]+/g, ' ').trim();
+      if (corto) h.preheader = corto;
+      return h;
+    }
     if (!st.asunto3 || st.asunto3 === 'propio') return st;
     const elegido = asuntosDe(st).filter(function (x) { return x.clave === st.asunto3; })[0];
     if (!elegido) return st;
@@ -1584,7 +1608,7 @@
     }
     if (on(st, 'pie')) {
       P.push(row('<div style="font-family:' + FB + ';font-size:11px;line-height:16px;color:' + k.apagado + ';">' +
-        nl2br(B(st, 'pie').texto) + '</div>', 'padding:14px 32px 0 32px;'));
+        nl2br(e.pie) + '</div>', 'padding:14px 32px 0 32px;'));
     }
     return doc(st, k.fondo, P.join(''));
   }

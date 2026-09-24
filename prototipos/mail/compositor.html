@@ -624,6 +624,25 @@
     p1.appendChild(inputEl('bloques.entrega.url', 'Enlace de Canva del cliente', 'text'));
     p1.appendChild(inputEl('bloques.entrega.titulo', 'Título de la propuesta', 'text'));
     p1.appendChild(inputEl('bloques.entrega.meta', 'Rótulo de la esquina', 'text'));
+
+    // El asunto. Por defecto es el titulo -son la misma frase- pero quien redacta manda, asi que
+    // hay un modo para escribirlo aparte. Reconstruye el panel al cambiar para que el campo del
+    // asunto aparezca o desaparezca: un campo que se ignora es peor que no tenerlo.
+    const modo = el('label', 'fld');
+    modo.appendChild(el('span', 'fld-l', 'Asunto del correo'));
+    const selA = el('select');
+    [['auto', 'El mismo que el título'], ['propio', 'Escribirlo aparte']].forEach(par => {
+      const o = el('option', null, par[1]); o.value = par[0];
+      if ((st.asunto3 === 'propio') === (par[0] === 'propio')) o.selected = true;
+      selA.appendChild(o);
+    });
+    selA.addEventListener('change', () => {
+      st.asunto3 = selA.value === 'propio' ? 'propio' : 'directo';
+      touch(); buildPanel();
+    });
+    modo.appendChild(selA);
+    p1.appendChild(modo);
+    if (st.asunto3 === 'propio') p1.appendChild(inputEl('asunto', 'Asunto', 'text'));
     if (HAY_SERVIDOR) {
       const est = estadoEl('');
       const fila = el('div', 'fila-bt');
