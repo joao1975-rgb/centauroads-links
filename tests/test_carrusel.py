@@ -90,6 +90,48 @@ def test_las_paginas_siguientes_aparecen_en_el_carrusel():
         "la segunda página no aparece en ningún fotograma"
 
 
+# --- Los efectos ----------------------------------------------------------------------
+
+def test_cada_efecto_produce_un_carrusel_distinto():
+    """
+    Poder elegir un efecto y que el carrusel haga siempre lo mismo es peor que no poder elegir:
+    promete algo que no cumple. Aqui se comprueba que cada uno produce bytes distintos.
+    """
+    paginas = [_pagina(ROJA), _pagina(VERDE), _pagina(AZUL)]
+    salidas = {}
+    for efecto in carrusel.EFECTOS:
+        salidas[efecto] = carrusel.arma(paginas, efecto=efecto).datos
+    assert len(set(salidas.values())) == len(carrusel.EFECTOS), (
+        'hay efectos que producen el mismo GIF: ' + repr(list(salidas)))
+
+
+def test_corte_no_tiene_fotogramas_intermedios():
+    """Un corte seco es eso: tantos fotogramas como paginas, ni uno mas."""
+    paginas = [_pagina(ROJA), _pagina(VERDE), _pagina(AZUL)]
+    gif = Image.open(io.BytesIO(carrusel.arma(paginas, efecto='corte').datos))
+    assert gif.n_frames == len(paginas)
+
+
+def test_un_efecto_inventado_cae_en_barrido():
+    """
+    Mejor una transicion distinta de la pedida que quedarse sin carrusel: quien entrega tiene una
+    propuesta que mandar, y el nombre del efecto es lo de menos.
+    """
+    paginas = [_pagina(ROJA), _pagina(VERDE)]
+    inventado = carrusel.arma(paginas, efecto='remolino')
+    barrido = carrusel.arma(paginas, efecto='barrido')
+    assert inventado.datos == barrido.datos
+
+
+def test_el_fotograma_cero_no_depende_del_efecto():
+    """Sea cual sea la transicion, lo que ve Outlook es la primera pagina."""
+    paginas = [_pagina(AZUL), _pagina(ROJA)]
+    for efecto in carrusel.EFECTOS:
+        gif = Image.open(io.BytesIO(carrusel.arma(paginas, efecto=efecto).datos))
+        gif.seek(0)
+        assert _cerca(_color_medio(gif), AZUL), 'el efecto %s cambio el fotograma 0' % efecto
+
+
 # --- El presupuesto se cumple, no se promete ------------------------------------------
 
 def test_el_carrusel_entra_en_presupuesto():

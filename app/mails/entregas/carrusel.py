@@ -68,7 +68,8 @@ class Resultado:
     """El GIF y cómo se consiguió, para poder contarlo en vez de suponerlo."""
 
     def __init__(self, datos: bytes, pasos: int, colores: int, intentos: int,
-                 presupuesto: int = PRESUPUESTO_BYTES):
+                 presupuesto: int = PRESUPUESTO_BYTES, efecto: str = 'barrido'):
+        self.efecto = efecto
         self.datos = datos
         self.pasos = pasos
         self.colores = colores
@@ -114,25 +115,76 @@ def _uniforma(imagenes, ancho: int):
     return salida
 
 
-def _fotogramas(paginas, pasos: int):
-    """
-    La secuencia completa: cada página quieta, y el barrido que lleva a la siguiente.
+# Los mismos efectos que el banco de las plantillas A-G. Que se pueda elegir uno y el carrusel
+# haga siempre lo mismo es peor que no poder elegir: promete algo que no cumple.
+EFECTOS = ('corte', 'barrido', 'persiana', 'fundido', 'deslizar', 'destello')
 
-    El barrido revela la siguiente página por la izquierda sobre la actual. Es la transición más
-    barata en un GIF: los fotogramas intermedios comparten casi todo con el anterior, y el
-    formato ya sabe no repetir lo que no cambia.
+
+def _paso(actual, siguiente, efecto: str, t: float):
     """
+    Un fotograma intermedio entre dos páginas, con `t` de 0 a 1.
+
+    Cada efecto es una forma distinta de contar lo mismo -que hay otra página detrás- y se elige
+    por gusto, no por técnica. El único que se comporta distinto de verdad es `fundido`: mezcla
+    los dos fotogramas enteros, así que ningún píxel se repite entre uno y el siguiente y el GIF
+    no puede ahorrarse nada. Por eso pesa más, y por eso el presupuesto lo recorta antes.
+    """
+    from PIL import Image
+
+    ancho, alto = actual.size
+
+    if efecto == 'fundido':
+        return Image.blend(actual, siguiente, t)
+
+    if efecto == 'destello':
+        # Sube a blanco y baja desde la siguiente. El fogonazo va en la mitad del recorrido.
+        blanco = Image.new('RGB', (ancho, alto), (255, 255, 255))
+        if t < 0.5:
+            return Image.blend(actual, blanco, t * 2)
+        return Image.blend(blanco, siguiente, (t - 0.5) * 2)
+
+    if efecto == 'deslizar':
+        # Las dos se mueven a la vez: la actual sale por la izquierda y la siguiente entra.
+        corte = round(ancho * t)
+        marco = Image.new('RGB', (ancho, alto))
+        marco.paste(actual, (-corte, 0))
+        marco.paste(siguiente, (ancho - corte, 0))
+        return marco
+
+    if efecto == 'persiana':
+        # Ocho franjas horizontales que se abren a la vez. Cuesta lo mismo que el barrido:
+        # lo que cambia es por dónde entra.
+        marco = actual.copy()
+        franjas = 8
+        alto_franja = max(1, alto // franjas)
+        visible = max(1, round(alto_franja * t))
+        for f in range(franjas):
+            y = f * alto_franja
+            marco.paste(siguiente.crop((0, y, ancho, min(y + visible, alto))), (0, y))
+        return marco
+
+    # 'barrido' y cualquier otro: la siguiente se revela por la izquierda. Es la transición más
+    # barata en un GIF, porque los fotogramas comparten casi todo con el anterior.
+    corte = round(ancho * t)
+    marco = actual.copy()
+    if corte > 0:
+        marco.paste(siguiente.crop((0, 0, corte, alto)), (0, 0))
+    return marco
+
+
+def _fotogramas(paginas, pasos: int, efecto: str = 'barrido'):
+    """La secuencia completa: cada página quieta, y la transición que lleva a la siguiente."""
     fotogramas, duraciones = [], []
     total = len(paginas)
+    # 'corte' es un cambio seco por definición: no tiene fotogramas intermedios.
+    if efecto == 'corte':
+        pasos = 0
     for i, actual in enumerate(paginas):
         fotogramas.append(actual)
         duraciones.append(PAUSA_MS)
         siguiente = paginas[(i + 1) % total]
         for p in range(1, pasos + 1):
-            corte = round(actual.width * p / (pasos + 1))
-            mezcla = actual.copy()
-            mezcla.paste(siguiente.crop((0, 0, corte, actual.height)), (0, 0))
-            fotogramas.append(mezcla)
+            fotogramas.append(_paso(actual, siguiente, efecto, p / (pasos + 1)))
             duraciones.append(PASO_MS)
     return fotogramas, duraciones
 
@@ -148,7 +200,7 @@ def _escribe(fotogramas, duraciones, colores: int) -> bytes:
 
 
 def arma(imagenes: List, ancho: int = ANCHO,
-         presupuesto: int = PRESUPUESTO_BYTES) -> Resultado:
+         presupuesto: int = PRESUPUESTO_BYTES, efecto: str = 'barrido') -> Resultado:
     """
     El carrusel de 2 a 4 páginas, garantizado bajo presupuesto o lo más cerca posible.
 
@@ -161,14 +213,17 @@ def arma(imagenes: List, ancho: int = ANCHO,
 
     paginas = _uniforma(imagenes, ancho)
 
+    if efecto not in EFECTOS:
+        efecto = 'barrido'
+
     def escribe(pasos, colores):
-        fotogramas, duraciones = _fotogramas(paginas, pasos)
+        fotogramas, duraciones = _fotogramas(paginas, pasos, efecto)
         return _escribe(fotogramas, duraciones, colores), len(fotogramas)
 
     # Primer intento, el bueno. Con páginas ligeras entra a la primera y aquí se acaba.
     pasos, colores = _INTENTOS[0]
     datos, fotogramas = escribe(pasos, colores)
-    ultimo = Resultado(datos, pasos, colores, 1, presupuesto)
+    ultimo = Resultado(datos, pasos, colores, 1, presupuesto, efecto)
     if ultimo.bytes <= presupuesto:
         return ultimo
 
@@ -186,7 +241,7 @@ def arma(imagenes: List, ancho: int = ANCHO,
 
     for intento, (pasos, colores) in enumerate(resto, start=2):
         datos, _ = escribe(pasos, colores)
-        ultimo = Resultado(datos, pasos, colores, intento, presupuesto)
+        ultimo = Resultado(datos, pasos, colores, intento, presupuesto, efecto)
         if ultimo.bytes <= presupuesto:
             return ultimo
 

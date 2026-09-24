@@ -714,7 +714,7 @@
       const est2 = estadoEl(st.entregaId ? 'Entrega guardada (#' + st.entregaId + ').' : '',
                             st.entregaId ? 'bien' : '');
       const fila2 = el('div', 'fila-bt');
-      fila2.appendChild(botonEl(st.entregaId ? 'Actualizar la entrega' : 'Guardar la entrega',
+      fila2.appendChild(botonEl(st.entregaId ? 'Actualizar Personalizada' : 'Guardar Personalizada',
                                 'primary', () => guardaEntrega(campos, sel, est2)));
       p2.appendChild(fila2); p2.appendChild(est2);
     }
@@ -827,10 +827,15 @@
         // correo seguia con el nombre de ejemplo del catalogo y nadie se enteraba hasta verlo.
         if (d.contacto_nombre) st.destinatario = d.contacto_nombre;
         st.bloques.entrega.empresa = d.contacto_empresa || '';
-        save();
+        // El enlace que se manda al cliente. Sin esto el correo llevaba a Canva y la apertura
+        // no se registraba en ninguna parte.
+        st.bloques.entrega.enlace = location.origin + d.enlace;
+        save(); touch();
         est.className = 'estado bien';
         est.textContent = 'Guardada (#' + d.id + '). Enlace del cliente: ' + location.origin + d.enlace;
-        buildPanel();
+        // Se repinta el panel y se rehace la vista previa en el acto: nadie deberia tener que
+        // pulsar F5 para ver lo que acaba de guardar.
+        buildPanel(); renderPreview();
       })
       .catch(e => { est.className = 'estado mal'; est.textContent = e.message; });
   }
@@ -850,6 +855,13 @@
     api('/api/entregas/' + st.entregaId + '/paginas', { method: 'POST', body: datos })
       .then(d => {
         paginasSubidas = d.paginas; elegidas = [];
+        // En cuanto hay paginas, el correo ensena la primera. Antes se quedaba con el marcador
+        // de posicion hasta elegir dos, y mientras tanto mostraba una foto del catalogo como si
+        // fuera la propuesta del cliente.
+        if (d.paginas.length) {
+          st.bloques.entrega.img = location.origin + d.paginas[0].url;
+          save(); touch();
+        }
         est.className = 'estado';
         est.textContent = d.paginas.length + ' páginas. Elige de 2 a 4, en el orden que quieras.';
         pintaMinis($('#minis'), est);
@@ -887,7 +899,8 @@
     est.className = 'estado'; est.textContent = 'Armando el carrusel…';
     api('/api/entregas/' + st.entregaId + '/paginas', {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ indices: elegidas }),
+      // El efecto que este elegido en el banco de animacion, el mismo que usan A-G.
+      body: JSON.stringify({ indices: elegidas, efecto: st.efecto || 'barrido' }),
     }).then(d => {
       // La imagen del correo pasa a ser la del servidor, en direccion absoluta: es lo que
       // descargara el proxy de Gmail.

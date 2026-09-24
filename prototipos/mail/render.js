@@ -407,8 +407,14 @@
           // La empresa del cliente. La rellena el panel con el contacto elegido; sin ella el
           // texto queda hablando de nadie.
           empresa: '',
+          // `url` es el enlace de Canva -el destino-; `enlace` es el propio de la entrega, que
+          // es el que se manda. Son distintos a proposito: mandar el de Canva se salta el
+          // registro de aperturas, el aviso de interes y la tarjeta de WhatsApp.
           url: '',
-          img: 'cover_led.jpg',
+          enlace: '',
+          // Sin imagen elegida NO hay imagen. Antes habia aqui una foto del catalogo, y en una
+          // propuesta personalizada eso es ensenarle al cliente algo que no es suyo.
+          img: '',
           alt: 'Portada de la propuesta preparada para el cliente',
           texto: 'Preparamos esta propuesta para {empresa}: los espacios que le convienen, d\u00f3nde se ve y qu\u00e9 pasa cuando la gente pasa por delante.\n\n\u00c1brela con calma y me dices qu\u00e9 te parece. Si hay algo que ajustar, lo ajustamos.',
           corto: 'Te dejo la propuesta que preparamos para {empresa}. \u00c1brela con calma y me dices qu\u00e9 te parece.',
@@ -1162,7 +1168,7 @@
       if (on(st, 'saludo')) L.push(fill(B(st, 'saludo').texto, st), '');
       L.push(e.titulo.toUpperCase(), '');
       L.push(fill(e.texto, st), '');
-      if (e.url) L.push(e.cta + ': ' + e.url, '');
+      if (e.enlace || e.url) L.push(e.cta + ': ' + (e.enlace || e.url), '');
       if (activos(st).length) {
         L.push(e.acompanan + ':');
         activos(st).forEach(s => L.push('\u2022 ' + s.nombre + ' \u2014 ' + s.cobertura + ' \u2014 ' + linkFor(st, s)));
@@ -1203,7 +1209,7 @@
     const st = aplicaAsunto(aplicaPerfil(normaliza(st0)));
     const e = B(st, 'entrega');
     const L = [];
-    if (e.url) L.push(e.url, '');
+    if (e.enlace || e.url) L.push(e.enlace || e.url, '');
     if (on(st, 'saludo')) L.push(fill(B(st, 'saludo').texto, st));
     L.push(fill(e.corto, st), '');
     const f = B(st, 'firma');
@@ -1577,8 +1583,10 @@
     const o = esOscuro(st), k = paleta(o), P = [];
     const e = B(st, 'entrega');
     const pad = 'padding-left:32px;padding-right:32px;background:' + k.panel + ';';
-    // Sin enlace todavia -la plantilla en seco- el boton no debe llevar a ninguna parte.
-    const url = e.url || '#';
+    // Lo que se manda es el enlace propio de la entrega: registra la apertura y permite el
+    // aviso de interes. El de Canva es solo el destino final, y queda al otro lado.
+    // Mientras la entrega no este guardada se usa el de Canva, para poder ver la plantilla.
+    const url = e.enlace || e.url || '#';
 
     P.push(row(cabeceraAsesor(st, P, e.meta),
       'padding:26px 32px 22px 32px;background:' + k.panel + ';'));

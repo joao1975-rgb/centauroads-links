@@ -379,6 +379,10 @@ async def subir(entrega_id: int, fichero: List[UploadFile] = File(...),
 
 class Seleccion(BaseModel):
     indices: List[int] = Field(min_length=MIN_PAGINAS, max_length=MAX_PAGINAS)
+    # El mismo banco de efectos que las plantillas A-G. Si llega uno que no existe, `arma` cae en
+    # barrido en vez de fallar: una transicion distinta de la pedida es un mal menor frente a
+    # quedarse sin carrusel.
+    efecto: str = "barrido"
 
 
 @router.put("/api/entregas/{entrega_id}/paginas", response_model=EntregaSalida)
@@ -408,7 +412,7 @@ def elegir(entrega_id: int, seleccion: Seleccion,
             imagenes.append(bruta.convert("RGB"))
         elegidas.append(i)
 
-    tira = carrusel.arma(imagenes)
+    tira = carrusel.arma(imagenes, efecto=seleccion.efecto)
     almacen.guarda(entrega.id, "carrusel.gif", tira.datos)
     almacen.guarda(entrega.id, "og.jpg", carrusel.portada(imagenes[0]))
     if not tira.dentro_de_presupuesto:
