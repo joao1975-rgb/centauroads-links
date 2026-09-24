@@ -184,7 +184,14 @@ def previa(slug: str, request: Request, db: Session = Depends(get_db)):
     bajada = " ".join(_rellena(entrega.texto, entrega.contacto).split())[:200] or \
         "La propuesta que preparamos para tu marca."
     portada = _existe(entrega.id, "og.jpg")
+    # El esquema sale de lo que diga el proxy, no de lo que crea uvicorn: TLS lo termina
+    # EasyPanel, así que `base_url` dice "http://" para una página que el cliente pidió por
+    # https. La tarjeta anunciaba entonces su imagen en claro, y WhatsApp descarta el contenido
+    # mixto: la tarjeta salía sin foto. Sin la cabecera —en local— se queda lo de siempre.
     base = str(request.base_url).rstrip("/")
+    proto = (request.headers.get("X-Forwarded-Proto") or "").split(",")[0].strip().lower()
+    if proto in ("http", "https"):
+        base = "%s://%s" % (proto, base.split("://", 1)[-1])
     return HTMLResponse(_PAGINA.format(
         titulo=e(entrega.titulo),
         bajada=e(bajada),

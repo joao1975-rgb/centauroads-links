@@ -422,6 +422,23 @@ def test_la_tarjeta_no_ensena_los_marcadores(cliente, entrega):
     assert "{empresa}" not in html and "{destinatario}" not in html
 
 
+def test_la_imagen_de_la_tarjeta_va_por_el_mismo_esquema_que_la_pagina(cliente, entrega):
+    """
+    TLS lo termina el proxy, así que uvicorn cree que la petición vino en claro y `base_url`
+    devuelve "http://". La tarjeta anunciaba su imagen en http dentro de una página https, y
+    WhatsApp descarta el contenido mixto: la tarjeta salía SIN FOTO, que es justo lo que la
+    portada existe para evitar.
+    """
+    cliente.post("/api/entregas/%d/paginas" % entrega["id"],
+                 files={"fichero": ("deck.pdf", io.BytesIO(_pdf(3)), "application/pdf")})
+    cliente.put("/api/entregas/%d/paginas" % entrega["id"], json={"indices": [0, 1]})
+    cabeceras = dict(ROBOT)
+    cabeceras["X-Forwarded-Proto"] = "https"
+    html = cliente.get("/p/" + entrega["slug"], headers=cabeceras).text
+    imagen = html.split('property="og:image" content="')[1].split('"')[0]
+    assert imagen.startswith("https://"), imagen
+
+
 def test_la_previa_registra_la_apertura(cliente, entrega, db):
     enlace = db.query(models.Link).filter(models.Link.slug == entrega["slug"]).first()
     antes = db.query(models.Click).filter(models.Click.link_id == enlace.id).count()
@@ -454,6 +471,75 @@ def test_el_robot_no_cuenta_como_apertura(cliente, entrega, db):
     db.expire_all()
     assert db.query(models.Click).filter(
         models.Click.link_id == enlace.id).count() == antes
+
+
+def test_cambiar_el_enlace_de_canva_reapunta_el_enlace_ya_repartido(cliente, entrega, db):
+    """
+    El enlace corto **ya puede estar en manos del cliente** cuando se corrige la presentación. Si
+    la edición no reapuntara el destino, el cliente seguiría abriendo la versión antigua para
+    siempre, y nadie se enteraría: la propuesta se ve, solo que es la equivocada.
+    """
+    otra = "https://www.canva.com/design/CORREGIDA/view"
+    r = cliente.put("/api/entregas/%d" % entrega["id"], json={
+        "titulo": entrega["titulo"], "canva_url": otra,
+        "servicios": entrega["servicios"], "contact_id": entrega["contact_id"]})
+    assert r.status_code == 200, r.text
+    assert r.json()["canva_url"] == otra
+
+    # Las dos puertas públicas tienen que llevar al destino nuevo.
+    porta = cliente.get("/p/" + entrega["slug"], headers=PERSONA, follow_redirects=False)
+    assert porta.headers["location"] == otra
+    corto = cliente.get("/" + entrega["slug"], follow_redirects=False)
+    assert corto.headers["location"] == otra
+
+
+def test_la_apertura_alimenta_el_contador_del_aviso(cliente, entrega, db):
+    """
+    La regla del aviso de interés trabaja sobre `click_count` y `last_clicked_at`, no sobre el
+    número de filas en `clicks`. Contando solo filas, el contador podía dejar de subir y el aviso
+    —razón de ser de toda esta funcionalidad— dejaba de dispararse en silencio.
+    """
+    enlace = db.query(models.Link).filter(models.Link.slug == entrega["slug"]).first()
+    antes = enlace.click_count or 0
+    cliente.get("/p/" + entrega["slug"], headers=PERSONA, follow_redirects=False)
+    db.expire_all()
+    enlace = db.query(models.Link).filter(models.Link.slug == entrega["slug"]).first()
+    assert (enlace.click_count or 0) == antes + 1
+    assert enlace.last_clicked_at is not None
+
+
+def test_desactivar_el_enlace_revoca_la_propuesta(cliente, entrega, db):
+    """
+    Desactivar es la única forma de retirar una propuesta ya enviada. Si `/p/` no mirara
+    `is_active`, revocar no revocaría nada y el cliente seguiría abriéndola.
+    """
+    enlace = db.query(models.Link).filter(models.Link.slug == entrega["slug"]).first()
+    enlace.is_active = False
+    db.commit()
+    assert cliente.get("/p/" + entrega["slug"], headers=ROBOT).status_code == 404
+    assert cliente.get("/p/" + entrega["slug"], headers=PERSONA,
+                       follow_redirects=False).status_code == 404
+
+
+def test_la_pagina_publica_no_ejecuta_lo_que_se_escriba_en_el_panel(cliente, db):
+    """
+    El título y el texto los escribe una persona con sesión, no un anónimo — pero la página se
+    sirve a CLIENTES. Los tres `html.escape` se podían quitar sin que nada fallara.
+    """
+    r = cliente.post("/api/entregas", json={
+        "titulo": 'Propuesta "><script>alert(1)</script>',
+        "canva_url": CANVA,
+        "texto": '<script>alert(2)</script> y <img src=x onerror=alert(3)>',
+        "contacto": {"nombre": "Quien Sea", "empresa": "Empresa C.A."}})
+    assert r.status_code == 200, r.text
+    html = cliente.get("/p/" + r.json()["slug"], headers=ROBOT).text
+    # Lo que importa no es que el texto desaparezca —sale escapado, y así debe ser— sino que no
+    # quede ninguna ETIQUETA viva ni se salga de un atributo.
+    assert "<script" not in html
+    assert "<img src=x" not in html
+    assert '"><script' not in html
+    # Y que sí esté, escapado, donde toca: escapar no puede significar borrar.
+    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in html
 
 
 def test_una_previa_que_no_existe_da_404(cliente):

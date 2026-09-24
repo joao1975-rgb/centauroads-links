@@ -50,6 +50,19 @@ salida.migrado = M.normaliza(JSON.parse(JSON.stringify(viejo))).efectoEntrega;
   const st = M.defaultState(); st.plantilla = k;
   salida[k] = M.render(st, k);
 });
+// WhatsApp y texto plano: los otros dos canales por los que sale la propuesta. No tenían ni
+// una prueba, y el enlace propio se vigilaba SOLO en el HTML.
+const w = M.defaultState(); w.plantilla = 'H'; w.destinatario = 'Elizabeth';
+Object.assign(w.bloques.entrega, {
+  titulo: 'Propuesta LED para Valmy', empresa: 'Valmy',
+  url: 'https://canva.link/ejemplo',
+  enlace: 'https://links.centauroads.com/p/abc123',
+  corto: 'La version corta que va por WhatsApp.',
+  texto: 'El texto largo del correo, que aqui no pinta nada.',
+});
+salida.whatsapp = M.renderWhatsApp(w);
+salida.texto = M.renderText(w);
+
 process.stdout.write(JSON.stringify(salida));
 """
 
@@ -124,3 +137,38 @@ def test_el_estado_guardado_hereda_el_efecto(html):
     puede encontrarse el campo nuevo en su valor de fábrica.
     """
     assert html["migrado"] == "persiana"
+
+
+# --- WhatsApp y texto plano: los otros dos canales -------------------------------------
+
+@pytest.mark.parametrize("canal", ["whatsapp", "texto"])
+def test_los_otros_canales_mandan_el_enlace_propio(html, canal):
+    """
+    El enlace propio se vigilaba solo en el HTML, y WhatsApp es un canal de entrega de primera en
+    este proyecto. Mandar el de Canva se salta las tres cosas a la vez: registro de la apertura,
+    aviso de interés y tarjeta con la portada.
+    """
+    assert "/p/abc123" in html[canal]
+    assert "canva.link/ejemplo" not in html[canal]
+
+
+def test_whatsapp_lleva_la_version_corta_y_un_solo_enlace():
+    """
+    FR-118: por WhatsApp va la versión corta, no el texto del correo. Y un solo enlace: cada
+    enlace de más es una tarjeta menos, porque WhatsApp dibuja la del primero y nada más.
+    """
+    import json as _json
+    import shutil as _shutil
+    import subprocess as _subprocess
+    import tempfile as _tempfile
+    from pathlib import Path as _Path
+    if _shutil.which("node") is None:
+        pytest.skip("node no está disponible")
+    guion = _Path(_tempfile.mkdtemp()) / "_w.js"
+    guion.write_text(GUION, encoding="utf-8")
+    salida = _subprocess.run(["node", str(guion), str(MOTOR)],
+                             capture_output=True, text=True, encoding="utf-8", timeout=120)
+    wa = _json.loads(salida.stdout)["whatsapp"]
+    assert "version corta" in wa
+    assert "no pinta nada" not in wa, "por WhatsApp se está mandando el texto largo del correo"
+    assert wa.count("https://") == 1, "más de un enlace: WhatsApp solo dibuja la tarjeta del primero"
