@@ -15,7 +15,7 @@ const M = require('./render.js');
 
 const here = __dirname;
 const imgDir = path.join(here, 'img');
-const slug = { A: 'cartelera', B: 'catalogo', C: 'nota', D: 'movil', E: 'inventario', F: 'guia', G: 'phygital', H: 'entrega' };
+const slug = { A: 'cartelera', B: 'catalogo', C: 'nota', D: 'movil', E: 'inventario', F: 'guia', G: 'phygital', H: 'personalizada' };
 
 // 1. Plantillas estáticas: con fotos reales (por defecto) y con portadas de Canva (sufijo -portadas)
 for (const key of Object.keys(M.TEMPLATES)) {

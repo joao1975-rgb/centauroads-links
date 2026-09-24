@@ -135,10 +135,41 @@ def test_con_un_contacto_que_no_existe_tampoco(cliente):
 def test_el_contacto_puede_crearse_en_el_mismo_paso(cliente):
     r = cliente.post("/api/entregas", json={
         "titulo": "Propuesta con contacto nuevo", "canva_url": CANVA,
-        "contacto": {"nombre": "Nuevo Cliente", "email": "nuevo@ejemplo.test"},
+        "contacto": {"nombre": "Nuevo Cliente", "email": "nuevo@ejemplo.test",
+                     "empresa": "Nueva Empresa C.A."},
     })
     assert r.status_code == 200, r.text
     assert r.json()["contacto_nombre"] == "Nuevo Cliente"
+
+
+def test_sin_empresa_no_se_crea_la_entrega(cliente):
+    """
+    El correo saluda por el nombre y el texto habla de la empresa. Una propuesta
+    «personalizada» que no nombra a quién va dirigida no lo es (decisión del propietario,
+    2026-09-24).
+    """
+    r = cliente.post("/api/entregas", json={
+        "titulo": "Sin empresa", "canva_url": CANVA,
+        "contacto": {"nombre": "Alguien", "email": "alguien@ejemplo.test"},
+    })
+    assert r.status_code == 400
+    assert "empresa" in r.json()["detail"].lower()
+
+
+def test_un_contacto_antiguo_sin_empresa_se_rechaza_con_su_nombre(cliente, db):
+    """
+    Los contactos de antes de esta regla pueden no tener empresa. No se inventa: se para y se
+    dice de quién falta, que es lo único que permite arreglarlo.
+    """
+    viejo = models.Contact(nombre="Contacto Antiguo", email="antiguo@ejemplo.test",
+                           empresa="", token=secrets.token_urlsafe(24))
+    db.add(viejo)
+    db.commit()
+    db.refresh(viejo)
+    r = cliente.post("/api/entregas", json={
+        "titulo": "Con contacto antiguo", "canva_url": CANVA, "contact_id": viejo.id})
+    assert r.status_code == 400
+    assert "Contacto Antiguo" in r.json()["detail"]
 
 
 # --- Crear una entrega ----------------------------------------------------------------

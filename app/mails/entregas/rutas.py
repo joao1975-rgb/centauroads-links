@@ -109,9 +109,21 @@ def _resuelve_contacto(db: Session, datos: EntregaEntrada) -> models.Contact:
             models.Contact.id == datos.contact_id).first()
         if not contacto:
             raise HTTPException(status_code=404, detail="Ese contacto no existe")
+        if not (contacto.empresa or "").strip():
+            raise HTTPException(
+                status_code=400,
+                detail="A %s le falta la empresa, y el correo la nombra. Complétala antes de "
+                       "entregarle una propuesta." % contacto.nombre)
         return contacto
 
     if datos.contacto and datos.contacto.nombre.strip():
+        # Nombre y empresa son obligatorios en una entrega: el correo saluda por el nombre y el
+        # texto habla de la empresa. Una propuesta "personalizada" que no nombra a quien va
+        # dirigida no lo es (petición del propietario, 2026-09-24).
+        if not datos.contacto.empresa.strip():
+            raise HTTPException(
+                status_code=400,
+                detail="Falta la empresa del contacto: el correo la nombra.")
         contacto = models.Contact(
             nombre=datos.contacto.nombre.strip(),
             email=(datos.contacto.email or "").strip(),

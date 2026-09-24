@@ -401,12 +401,17 @@
         entrega: {
           on: true,
           titulo: 'Propuesta para tu marca',
+          // El rotulo de la esquina. Editable: no toda entrega es una propuesta -puede ser una
+          // revision, una renovacion o un cierre de campana- y el correo tiene que poder decirlo.
           meta: 'PROPUESTA \u00b7 A MEDIDA',
+          // La empresa del cliente. La rellena el panel con el contacto elegido; sin ella el
+          // texto queda hablando de nadie.
+          empresa: '',
           url: '',
           img: 'cover_led.jpg',
           alt: 'Portada de la propuesta preparada para el cliente',
-          texto: 'Preparamos esta propuesta pensando en tu marca: los espacios que le convienen, d\u00f3nde se ve y qu\u00e9 pasa cuando la gente pasa por delante.\n\n\u00c1brela con calma y me dices qu\u00e9 te parece. Si hay algo que ajustar, lo ajustamos.',
-          corto: 'Te dejo la propuesta que preparamos para tu marca. \u00c1brela con calma y me dices qu\u00e9 te parece.',
+          texto: 'Preparamos esta propuesta para {empresa}: los espacios que le convienen, d\u00f3nde se ve y qu\u00e9 pasa cuando la gente pasa por delante.\n\n\u00c1brela con calma y me dices qu\u00e9 te parece. Si hay algo que ajustar, lo ajustamos.',
+          corto: 'Te dejo la propuesta que preparamos para {empresa}. \u00c1brela con calma y me dices qu\u00e9 te parece.',
           cta: 'Ver la propuesta',
           acompanan: 'Lo que la acompa\u00f1a',
         },
@@ -419,7 +424,12 @@
   // ── Utilidades ──
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const nl2br = s => esc(s).replace(/\n/g, '<br>');
-  const fill = (s, st) => String(s || '').replace(/\{destinatario\}/g, st.destinatario || '');
+  // {destinatario} es a quien se escribe; {empresa}, de donde es. La segunda solo la usan los
+  // textos de la Entrega, pero se resuelve aqui para que haya UN sitio donde se rellenan los
+  // huecos y no dos que se separen con el tiempo.
+  const fill = (s, st) => String(s || '')
+    .replace(/\{destinatario\}/g, st.destinatario || '')
+    .replace(/\{empresa\}/g, (st.bloques && st.bloques.entrega && st.bloques.entrega.empresa) || '');
   const linkFor = (st, s) => {
     if (!st.linkBase) return s.canva;
     const b = st.linkBase.replace(/\/$/, '');
@@ -1534,8 +1544,9 @@
     P.push(row(cabeceraAsesor(st, P, e.meta),
       'padding:26px 32px 22px 32px;background:' + k.panel + ';'));
 
+    // Sin epigrafe sobre el titulo: el rotulo de la cabecera ya dice de que va esto, y dos
+    // etiquetas seguidas antes del titular solo retrasan la lectura.
     P.push(row(
-      epigrafe(st, 'Tu propuesta') +
       '<div style="font-family:' + FH + ';font-size:34px;line-height:1.08;font-weight:800;' +
         'letter-spacing:-.03em;color:' + k.texto + ';">' + esc(e.titulo) + '</div>',
       pad + 'padding-bottom:22px;'));
@@ -1586,7 +1597,7 @@
     E: { nombre: 'Inventario', desc: 'Asesor de diseño · para agencias. Tabla de inventario con métricas comparables, sin brief educativo. Claro u oscuro.', fn: plantillaE },
     F: { nombre: 'Guía', desc: 'Asesor de diseño · para cliente nuevo. Tres fases en orden: que te conozcan, que te recuerden, que te compren. Claro u oscuro.', fn: plantillaF },
     G: { nombre: 'Phygital', desc: 'Asesor de diseño · la escena de las 9:00 AM. La calle capta, el móvil cierra. Claro u oscuro.', fn: plantillaG },
-    H: { nombre: 'Entrega', desc: 'Para entregar la presentación propia de un cliente: su enlace, sus imágenes y los servicios que la acompañan. Claro u oscuro.', fn: plantillaH },
+    H: { nombre: 'Personalizada', desc: 'Para entregar la presentación propia de un cliente: su enlace, sus imágenes y los servicios que la acompañan. Claro u oscuro.', fn: plantillaH },
   };
   function pick(st) {
     if (st.plantilla && TEMPLATES[st.plantilla]) return st.plantilla;

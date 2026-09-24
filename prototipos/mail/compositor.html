@@ -623,6 +623,7 @@
     const p1 = pasoEl('01', 'La presentación', !!E.url);
     p1.appendChild(inputEl('bloques.entrega.url', 'Enlace de Canva del cliente', 'text'));
     p1.appendChild(inputEl('bloques.entrega.titulo', 'Título de la propuesta', 'text'));
+    p1.appendChild(inputEl('bloques.entrega.meta', 'Rótulo de la esquina', 'text'));
     if (HAY_SERVIDOR) {
       const est = estadoEl('');
       const fila = el('div', 'fila-bt');
@@ -653,7 +654,12 @@
       const vacia = el('option', null, '— elige un contacto —'); vacia.value = ''; sel.appendChild(vacia);
       const nueva = el('option', null, '+ crear uno nuevo'); nueva.value = 'nuevo'; sel.appendChild(nueva);
       selWrap.appendChild(sel);
+      // Se guarda la lista entera, no solo los identificadores: al elegir a alguien hay que
+      // poder meter su nombre y su empresa en el correo, y volver a preguntarselo al servidor
+      // por cada cambio de seleccion seria pedir dos veces lo mismo.
+      let contactos = [];
       api('/api/contactos').then(cs => {
+        contactos = cs;
         cs.forEach(c => {
           const o = el('option', null, c.nombre + (c.empresa ? ' · ' + c.empresa : ''));
           o.value = String(c.id);
@@ -664,7 +670,8 @@
 
       const nuevoWrap = el('div'); nuevoWrap.hidden = true;
       const campos = {};
-      [['nombre', 'Nombre'], ['email', 'Correo'], ['empresa', 'Empresa']].forEach(par => {
+      [['nombre', 'Nombre (obligatorio)'], ['empresa', 'Empresa (obligatorio)'],
+       ['email', 'Correo']].forEach(par => {
         const w = el('label', 'fld'); w.appendChild(el('span', 'fld-l', par[1]));
         const i = el('input'); i.type = par[0] === 'email' ? 'email' : 'text';
         campos[par[0]] = i; w.appendChild(i); nuevoWrap.appendChild(w);
@@ -672,7 +679,15 @@
       sel.addEventListener('change', () => {
         nuevoWrap.hidden = sel.value !== 'nuevo';
         st.contactId = (sel.value && sel.value !== 'nuevo') ? Number(sel.value) : null;
-        save();
+        // El correo saluda a quien va dirigido, no a un ejemplo del catalogo. Elegir contacto
+        // rellena el saludo y el texto en el acto, para que se vea en la vista previa.
+        const elegido = contactos.filter(c => c.id === st.contactId)[0];
+        if (elegido) {
+          st.destinatario = elegido.nombre;
+          st.bloques.entrega.empresa = elegido.empresa || '';
+        }
+        touch();
+        buildPanel();
       });
       p2.appendChild(selWrap); p2.appendChild(nuevoWrap);
 
@@ -765,11 +780,17 @@
       servicios: st.servicios.filter(x => x.on).map(x => x.id).join(','),
     };
     if (sel.value === 'nuevo') {
-      if (!campos.nombre.value.trim()) {
-        est.className = 'estado mal'; est.textContent = 'El contacto necesita al menos un nombre.'; return;
+      // Nombre y empresa son obligatorios: el correo los dice en el saludo y en el texto, y una
+      // propuesta personalizada que no nombra a quien va dirigida no esta personalizada.
+      if (!campos.nombre.value.trim() || !campos.empresa.value.trim()) {
+        est.className = 'estado mal';
+        est.textContent = 'Hacen falta el nombre y la empresa: el correo los nombra.';
+        return;
       }
       cuerpo.contacto = { nombre: campos.nombre.value.trim(), email: campos.email.value.trim(),
                           empresa: campos.empresa.value.trim(), origen: '' };
+      st.destinatario = cuerpo.contacto.nombre;
+      st.bloques.entrega.empresa = cuerpo.contacto.empresa;
     } else if (st.contactId) {
       cuerpo.contact_id = st.contactId;
     } else {
