@@ -78,6 +78,7 @@ class EntregaSalida(BaseModel):
     estado: str
     contact_id: int
     contacto_nombre: str
+    contacto_empresa: str = ''
     enlace: str
     carrusel: Optional[str] = None
     portada: Optional[str] = None
@@ -159,6 +160,7 @@ def _a_salida(db: Session, entrega: models.Entrega) -> EntregaSalida:
         estado=entrega.estado,
         contact_id=entrega.contact_id,
         contacto_nombre=entrega.contacto.nombre if entrega.contacto else "",
+        contacto_empresa=(entrega.contacto.empresa or "") if entrega.contacto else "",
         enlace="/p/%s" % entrega.link.slug,
         carrusel=_existe(entrega.id, "carrusel.gif"),
         portada=_existe(entrega.id, "og.jpg"),

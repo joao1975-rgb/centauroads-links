@@ -808,6 +808,14 @@
     ],
   };
 
+  // Textos de la Entrega que cambiaron de redaccion. Mismo criterio que RENOMBRADOS: se
+  // sustituyen SOLO si siguen siendo exactamente los de antes. Quien los edito se queda con
+  // lo suyo; quien no, deja de tener un correo que habla de "tu marca" con el contacto puesto.
+  const ENTREGA_ANTES = {
+    texto: ['Preparamos esta propuesta pensando en tu marca: los espacios que le convienen, d\u00f3nde se ve y qu\u00e9 pasa cuando la gente pasa por delante.\n\n\u00c1brela con calma y me dices qu\u00e9 te parece. Si hay algo que ajustar, lo ajustamos.'],
+    corto: ['Te dejo la propuesta que preparamos para tu marca. \u00c1brela con calma y me dices qu\u00e9 te parece.'],
+  };
+
   // Rellena lo que falte en un estado guardado antes de que exista un campo nuevo.
   //
   // La alternativa era subir CONTENT_VERSION, que cambia la clave del almacenamiento y
@@ -859,6 +867,13 @@
         if (st.bloques[k][campo] === undefined) st.bloques[k][campo] = base.bloques[k][campo];
       });
     });
+    if (st.bloques.entrega) {
+      Object.keys(ENTREGA_ANTES).forEach(function (campo) {
+        if (ENTREGA_ANTES[campo].indexOf(st.bloques.entrega[campo]) >= 0) {
+          st.bloques.entrega[campo] = base.bloques.entrega[campo];
+        }
+      });
+    }
     return st;
   }
 

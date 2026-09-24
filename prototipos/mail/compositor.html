@@ -820,7 +820,13 @@
     api(ruta, { method: st.entregaId ? 'PUT' : 'POST',
                 headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo) })
       .then(d => {
-        st.entregaId = d.id; st.contactId = d.contact_id; save();
+        st.entregaId = d.id; st.contactId = d.contact_id;
+        // El correo saluda con lo que dice el SERVIDOR, no con lo que haya en pantalla. Antes
+        // esto solo se rellenaba al crear un contacto nuevo: al elegir uno que ya existia, el
+        // correo seguia con el nombre de ejemplo del catalogo y nadie se enteraba hasta verlo.
+        if (d.contacto_nombre) st.destinatario = d.contacto_nombre;
+        st.bloques.entrega.empresa = d.contacto_empresa || '';
+        save();
         est.className = 'estado bien';
         est.textContent = 'Guardada (#' + d.id + '). Enlace del cliente: ' + location.origin + d.enlace;
         buildPanel();
@@ -904,11 +910,29 @@
       () => toast('No se pudo copiar'));
   }
 
-  function copiaWhatsApp() {
+  // Copiar texto plano, con el mismo respaldo que ya usaban los demas botones. El portapapeles
+  // moderno exige que la pagina tenga el foco, y en algunos navegadores ademas permiso; el
+  // metodo clasico funciona donde el otro no. Estaba al lado desde el principio y no lo use.
+  async function copiaTexto(texto) {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(texto);
+        return true;
+      }
+    } catch (e) { /* cae al metodo clasico */ }
+    const t = document.createElement("textarea");
+    t.value = texto; t.style.cssText = "position:fixed;left:-9999px;top:0;";
+    document.body.appendChild(t); t.select();
+    let ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+    t.remove(); return ok;
+  }
+
+  async function copiaWhatsApp() {
     const texto = M.renderWhatsApp(prod());
-    navigator.clipboard.writeText(texto).then(
-      () => toast('WhatsApp copiado · un solo enlace, al principio'),
-      () => toast('No se pudo copiar'));
+    toast(await copiaTexto(texto)
+      ? "WhatsApp copiado · un solo enlace, al principio"
+      : "No se pudo copiar");
   }
 
   function buildPanel() {
@@ -1000,6 +1024,10 @@
   $('#copyHtml').addEventListener('click', async () => {
     try { await navigator.clipboard.writeText(M.render(prod())); toast('HTML completo copiado'); } catch (e) { toast('No se pudo copiar el HTML'); }
   });
+    // El boton de la barra. Estaba puesto y sin conectar: se vaciaba el hueco visual y no hacia
+  // nada al pulsarlo. El del paso 05 si funcionaba, asi que el fallo dependia de por donde
+  // entrara cada quien.
+  $('#copyWa').addEventListener('click', copiaWhatsApp);
   $('#copyText').addEventListener('click', async () => {
     try { await navigator.clipboard.writeText(M.renderText(prod())); toast('Versión en texto plano copiada'); } catch (e) { toast('No se pudo copiar el texto'); }
   });
