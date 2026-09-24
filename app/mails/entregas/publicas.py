@@ -6,7 +6,9 @@ aquí no hay sesión ninguna, y por eso las dos comprobaciones que quedan —que
 fichero sea suyo y que el enlace exista— son lo único que separa esto de servir cualquier cosa.
 
 `/p/{slug}` existe aparte del acortador porque WhatsApp necesita una **página** con etiquetas
-Open Graph para dibujar su tarjeta; una redirección 307 no le da nada que enseñar.
+Open Graph para dibujar su tarjeta; una redirección 307 no le da nada que enseñar. Pero eso lo
+necesita el robot que mira el enlace, no la persona que lo pulsa: a ella se la manda derecha a su
+propuesta, sin pagar un clic de peaje para leer un resumen de lo que ya dice el correo.
 """
 
 import html
@@ -14,7 +16,7 @@ import logging
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from ...database import get_db
@@ -23,6 +25,22 @@ from . import almacen
 
 log = logging.getLogger("centaurads.entregas")
 router = APIRouter()
+
+
+def _rellena(texto: str, contacto) -> str:
+    """
+    Sustituye los marcadores del texto, como hace `fill()` en el compositor.
+
+    El texto se guarda CON sus marcadores —{destinatario}, {empresa}— porque el mismo texto sirve
+    para el correo, para WhatsApp y para esta página, y quien redacta escribe una sola vez. Lo que
+    no puede pasar es que lleguen sin rellenar a lo que ve el cliente: la tarjeta de WhatsApp
+    decía "Preparamos esta propuesta para {empresa}", con las llaves y todo.
+
+    "tu marca" es el mismo recambio que pone el correo cuando no hay empresa.
+    """
+    empresa = (getattr(contacto, "empresa", "") or "").strip() or "tu marca"
+    nombre = (getattr(contacto, "nombre", "") or "").strip()
+    return (texto or "").replace("{empresa}", empresa).replace("{destinatario}", nombre)
 
 
 def _url_media(entrega_id: int, nombre: str) -> str:
@@ -84,10 +102,25 @@ _PAGINA = """<!DOCTYPE html>
 </main></body></html>"""
 
 
+# Quienes piden el enlace para DIBUJAR una tarjeta, no para leerla. Son los unicos que necesitan
+# la pagina; cualquier otro va derecho a su propuesta. La lista no tiene que ser exhaustiva: a un
+# robot que no este aqui solo le pasa que su tarjeta sale sin adornos.
+_ROBOTS = (
+    "whatsapp", "facebookexternalhit", "facebot", "twitterbot", "telegrambot", "slackbot",
+    "slack-imgproxy", "linkedinbot", "discordbot", "skypeuripreview", "embedly", "redditbot",
+    "pinterest", "applebot", "googlebot", "bingbot", "vkshare", "quora link preview",
+)
+
+
+def _es_robot(agente: str) -> bool:
+    a = (agente or "").lower()
+    return any(r in a for r in _ROBOTS)
+
+
 @router.get("/p/{slug}", response_class=HTMLResponse)
 def previa(slug: str, request: Request, db: Session = Depends(get_db)):
     """
-    La página que ve el cliente y la que lee WhatsApp para dibujar su tarjeta.
+    La página que lee WhatsApp para dibujar su tarjeta. Las personas no la ven: pasan de largo.
 
     Registra el clic igual que el acortador, y por las mismas razones. Si el registro fallara, la
     página se sirve de todos modos: el cliente no puede quedarse sin su propuesta porque a
@@ -101,26 +134,34 @@ def previa(slug: str, request: Request, db: Session = Depends(get_db)):
     if not entrega:
         raise HTTPException(status_code=404, detail="No encontrado")
 
-    try:
-        ip = request.headers.get("X-Forwarded-For")
-        ip = ip.split(",")[0].strip() if ip else (
-            request.headers.get("X-Real-IP")
-            or (request.client.host if request.client else "unknown"))
-        db.add(models.Click(
-            link_id=enlace.id, ip=ip,
-            user_agent=request.headers.get("user-agent", ""),
-            referer=request.headers.get("referer", ""),
-            contact_token=request.query_params.get("c") or None,
-        ))
-        enlace.click_count = (enlace.click_count or 0) + 1
-        enlace.last_clicked_at = datetime.now(timezone.utc)
-        db.commit()
-    except Exception:
-        db.rollback()
-        log.exception("no se pudo registrar la apertura de %s", slug)
+    # Una persona: se cuenta su apertura y se la manda a su propuesta. Que WhatsApp mire el
+    # enlace al pegarlo no es que el cliente lo haya abierto -contarlo inflaba las estadísticas y
+    # disparaba el aviso de interés por algo que hizo quien envía-, así que el robot no cuenta.
+    if not _es_robot(request.headers.get("user-agent", "")):
+        try:
+            ip = request.headers.get("X-Forwarded-For")
+            ip = ip.split(",")[0].strip() if ip else (
+                request.headers.get("X-Real-IP")
+                or (request.client.host if request.client else "unknown"))
+            db.add(models.Click(
+                link_id=enlace.id, ip=ip,
+                user_agent=request.headers.get("user-agent", ""),
+                referer=request.headers.get("referer", ""),
+                contact_token=request.query_params.get("c") or None,
+            ))
+            enlace.click_count = (enlace.click_count or 0) + 1
+            enlace.last_clicked_at = datetime.now(timezone.utc)
+            db.commit()
+        except Exception:
+            db.rollback()
+            log.exception("no se pudo registrar la apertura de %s", slug)
+
+        # Y se va derecho a su propuesta. Quien pulsa quiere verla, no un resumen de lo que ya le
+        # dijimos en el correo: la página existe por la tarjeta, y ese peaje no lo paga el cliente.
+        return RedirectResponse(entrega.canva_url, status_code=307)
 
     e = html.escape
-    bajada = " ".join((entrega.texto or "").split())[:200] or \
+    bajada = " ".join(_rellena(entrega.texto, entrega.contacto).split())[:200] or \
         "La propuesta que preparamos para tu marca."
     portada = _existe(entrega.id, "og.jpg")
     base = str(request.base_url).rstrip("/")

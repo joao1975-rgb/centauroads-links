@@ -569,6 +569,12 @@
   const HAY_SERVIDOR = /^https?:$/.test(location.protocol);
   let paginasSubidas = [];   // lo que devolvio la subida: {indice, url, rotulo, aviso_precio}
   let elegidas = [];         // indices elegidos, EN ORDEN
+  // Si se esta dando de alta un contacto a mano, y lo escrito hasta ahora. Vive FUERA de
+  // buildPanel a proposito: el panel se repinta entero al cambiar el desplegable, y al nacer
+  // de cero volvia a 'elige un contacto'. Los contactos que ya existen sobreviven a ese
+  // repintado porque st.contactId los vuelve a marcar; el nuevo no tenia donde apoyarse.
+  let contactoNuevo = false;
+  const nuevoDatos = { nombre: '', empresa: '', email: '' };
 
   function api(ruta, opciones) {
     return fetch(ruta, Object.assign({ credentials: 'same-origin' }, opciones || {}))
@@ -671,7 +677,9 @@
       selWrap.appendChild(el('span', 'fld-l', 'Contacto'));
       const sel = el('select');
       const vacia = el('option', null, '— elige un contacto —'); vacia.value = ''; sel.appendChild(vacia);
-      const nueva = el('option', null, '+ crear uno nuevo'); nueva.value = 'nuevo'; sel.appendChild(nueva);
+      const nueva = el('option', null, '+ crear uno nuevo'); nueva.value = 'nuevo';
+      if (contactoNuevo) nueva.selected = true;
+      sel.appendChild(nueva);
       selWrap.appendChild(sel);
       // Se guarda la lista entera, no solo los identificadores: al elegir a alguien hay que
       // poder meter su nombre y su empresa en el correo, y volver a preguntarselo al servidor
@@ -687,16 +695,20 @@
         });
       }).catch(() => { /* sin sesion: el paso 2 lo dira al guardar */ });
 
-      const nuevoWrap = el('div'); nuevoWrap.hidden = true;
+      const nuevoWrap = el('div'); nuevoWrap.hidden = !contactoNuevo;
       const campos = {};
       [['nombre', 'Nombre (obligatorio)'], ['empresa', 'Empresa (obligatorio)'],
        ['email', 'Correo']].forEach(par => {
         const w = el('label', 'fld'); w.appendChild(el('span', 'fld-l', par[1]));
         const i = el('input'); i.type = par[0] === 'email' ? 'email' : 'text';
+        // Lo escrito se guarda segun se escribe: el panel puede repintarse en medio.
+        i.value = nuevoDatos[par[0]] || '';
+        i.addEventListener('input', () => { nuevoDatos[par[0]] = i.value; });
         campos[par[0]] = i; w.appendChild(i); nuevoWrap.appendChild(w);
       });
       sel.addEventListener('change', () => {
-        nuevoWrap.hidden = sel.value !== 'nuevo';
+        contactoNuevo = sel.value === 'nuevo';
+        nuevoWrap.hidden = !contactoNuevo;
         st.contactId = (sel.value && sel.value !== 'nuevo') ? Number(sel.value) : null;
         // El correo saluda a quien va dirigido, no a un ejemplo del catalogo. Elegir contacto
         // rellena el saludo y el texto en el acto, para que se vea en la vista previa.
@@ -821,6 +833,9 @@
                 headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo) })
       .then(d => {
         st.entregaId = d.id; st.contactId = d.contact_id;
+        // Ya esta dado de alta: el desplegable lo listara como uno mas.
+        contactoNuevo = false;
+        nuevoDatos.nombre = nuevoDatos.empresa = nuevoDatos.email = '';
         // El correo saluda con lo que dice el SERVIDOR, no con lo que haya en pantalla. Antes
         // esto solo se rellenaba al crear un contacto nuevo: al elegir uno que ya existia, el
         // correo seguia con el nombre de ejemplo del catalogo y nadie se enteraba hasta verlo.

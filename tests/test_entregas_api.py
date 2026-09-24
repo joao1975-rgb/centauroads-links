@@ -305,10 +305,17 @@ def test_media_sirve_una_pagina_de_verdad(cliente, entrega):
     assert r.headers["content-type"].startswith("image/")
 
 
-# --- La página que ve el cliente ------------------------------------------------------
+# --- La página pública ----------------------------------------------------------------
+#
+# Existe por la tarjeta de WhatsApp. Quien la pide con un navegador no la ve: va derecho a su
+# propuesta. Por eso aquí hay que decir con qué se pide.
+
+ROBOT = {"user-agent": "WhatsApp/2.23.20.0 A"}
+PERSONA = {"user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Safari/605.1"}
+
 
 def test_la_previa_lleva_las_etiquetas_que_lee_whatsapp(cliente, entrega):
-    r = cliente.get("/p/" + entrega["slug"])
+    r = cliente.get("/p/" + entrega["slug"], headers=ROBOT)
     assert r.status_code == 200
     html = r.text
     assert 'property="og:title"' in html
@@ -318,14 +325,52 @@ def test_la_previa_lleva_las_etiquetas_que_lee_whatsapp(cliente, entrega):
     assert html.count('href="https://') == 1
 
 
+def test_la_tarjeta_no_ensena_los_marcadores(cliente, entrega):
+    """
+    El texto se guarda con {empresa} dentro y lo rellena el compositor al pintar el correo. La
+    página lo imprimía en crudo: la tarjeta que ve el cliente al recibir el enlace por WhatsApp
+    decía "Preparamos esta propuesta para {empresa}", con las llaves.
+    """
+    cliente.put("/api/entregas/%d" % entrega["id"], json={
+        "titulo": entrega["titulo"], "canva_url": CANVA,
+        "texto": "Preparamos esta propuesta para {empresa}, {destinatario}.",
+        "servicios": entrega["servicios"], "contact_id": entrega["contact_id"]})
+    html = cliente.get("/p/" + entrega["slug"], headers=ROBOT).text
+    assert "{empresa}" not in html and "{destinatario}" not in html
+
+
 def test_la_previa_registra_la_apertura(cliente, entrega, db):
     enlace = db.query(models.Link).filter(models.Link.slug == entrega["slug"]).first()
     antes = db.query(models.Click).filter(models.Click.link_id == enlace.id).count()
-    cliente.get("/p/" + entrega["slug"] + "?c=token-de-prueba")
+    cliente.get("/p/" + entrega["slug"] + "?c=token-de-prueba", headers=PERSONA,
+                follow_redirects=False)
     db.expire_all()
     clics = db.query(models.Click).filter(models.Click.link_id == enlace.id).all()
     assert len(clics) == antes + 1
     assert clics[-1].contact_token == "token-de-prueba"
+
+
+def test_una_persona_va_derecha_a_su_propuesta(cliente, entrega):
+    """
+    La página intermedia era un peaje: un clic de más para leer un resumen de lo que el correo ya
+    decía. Quien pulsa quiere la propuesta.
+    """
+    r = cliente.get("/p/" + entrega["slug"], headers=PERSONA, follow_redirects=False)
+    assert r.status_code == 307
+    assert r.headers["location"] == CANVA
+
+
+def test_el_robot_no_cuenta_como_apertura(cliente, entrega, db):
+    """
+    Que WhatsApp mire el enlace al pegarlo lo hace QUIEN ENVÍA, no el cliente. Contarlo dispara un
+    aviso de interés por algo que no pasó, y el aviso deja de significar nada.
+    """
+    enlace = db.query(models.Link).filter(models.Link.slug == entrega["slug"]).first()
+    antes = db.query(models.Click).filter(models.Click.link_id == enlace.id).count()
+    cliente.get("/p/" + entrega["slug"], headers=ROBOT)
+    db.expire_all()
+    assert db.query(models.Click).filter(
+        models.Click.link_id == enlace.id).count() == antes
 
 
 def test_una_previa_que_no_existe_da_404(cliente):
