@@ -24,11 +24,12 @@ persona que ya la pegó y la envió, no un envío.
 
 import logging
 import secrets
+from urllib.parse import urlparse
 from datetime import datetime, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session
 
 from ...database import get_db
@@ -60,6 +61,28 @@ class ContactoRapido(BaseModel):
 class EntregaEntrada(BaseModel):
     titulo: str = Field(min_length=1, max_length=200)
     canva_url: str = Field(min_length=1, max_length=500)
+
+    @field_validator("canva_url")
+    @classmethod
+    def _con_esquema(cls, v: str) -> str:
+        """
+        Un enlace absoluto, con http o https.
+
+        Canva enseña sus enlaces cortos SIN esquema —«canva.link/xyz»— y así es como se copian.
+        Guardado tal cual, la redirección de `/p/{slug}` lo resuelve **relativo**: el cliente
+        acaba en `/p/canva.link/xyz` y un 404, con la propuesta ya enviada. El acortador exige
+        `HttpUrl` desde siempre; esto lo pone al mismo nivel.
+        """
+        v = (v or "").strip()
+        partes = urlparse(v)
+        if partes.scheme not in ("http", "https") or not partes.netloc:
+            # El caso corriente es pegarlo sin esquema; ahí se dice exactamente qué escribir en
+            # vez de un "no válido" que obliga a adivinar.
+            if not partes.scheme:
+                raise ValueError("Falta el https:// al principio — prueba con https://%s"
+                                 % v.lstrip("/"))
+            raise ValueError("El enlace tiene que empezar por https://")
+        return v
     texto: str = ""
     servicios: str = ""
     contact_id: Optional[int] = None
@@ -197,7 +220,6 @@ def comprobar_enlace(datos: Enlace, _: models.PanelUser = Depends(usuario_actual
     Un fallo aquí no bloquea nada. Devuelve el veredicto y quien decide es la persona: el enlace
     puede ser correcto y Canva estar lento, y no es asunto de esta herramienta impedirlo.
     """
-    from urllib.parse import urlparse
     from urllib.request import Request, urlopen
     from urllib.error import HTTPError, URLError
 

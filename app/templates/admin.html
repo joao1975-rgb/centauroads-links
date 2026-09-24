@@ -958,12 +958,21 @@ function esc(str) {
                     data.recent_clicks.forEach(c => {
                         const date = new Date(c.clicked_at + 'Z').toLocaleString('es-VE', { timeZone: 'America/Caracas', dateStyle: 'short', timeStyle: 'short' });
                         const tr = document.createElement('tr');
-                        tr.innerHTML = `
-                            <td>${date}</td>
-                            <td>${c.ip || '---'}</td>
-                            <td>${c.referer || 'Directo/Oculto'}</td>
-                            <td title="${c.user_agent}">${formatAgent(c.user_agent)}</td>
-                        `;
+                        // Con textContent, NO con innerHTML: ip, referer y user_agent son
+                        // cabeceras HTTP, o sea texto que escribe quien visita el enlace. Un
+                        // Referer preparado en un clic anonimo ejecutaba javascript aqui dentro,
+                        // y en localStorage esta la clave que reapunta cualquier enlace impreso.
+                        const celda = (texto) => {
+                            const td = document.createElement('td');
+                            td.textContent = texto;
+                            return td;
+                        };
+                        tr.append(celda(date), celda(c.ip || '---'),
+                                  celda(c.referer || 'Directo/Oculto'),
+                                  celda(formatAgent(c.user_agent)));
+                        // Por propiedad y no dentro de una cadena: una comilla doble en el
+                        // user_agent se salia del atributo.
+                        tr.lastChild.title = c.user_agent || '';
                         tbody.appendChild(tr);
                     });
                 }

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1200, height=800" />
+    <title>Muestra 3 — dato que cuenta (kinetic type)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&display=swap" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1200px; height: 800px; overflow: hidden; background: #0F0E13; }
+      body { font-family: Montserrat, "Trebuchet MS", Arial, sans-serif; color: #fff; }
+      #root { position: relative; width: 1200px; height: 800px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      #photo { display: block; width: 100%; height: 100%; object-fit: cover; filter: saturate(.85); }
+      #veil { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(15,14,19,.88) 0%, rgba(15,14,19,.55) 55%, rgba(15,14,19,0) 100%); display: block; width: 100%; height: 100%; }
+      #stack { position: absolute; left: 64px; top: 0; bottom: 0; display: flex; flex-direction: column; justify-content: center; gap: 10px; }
+      #eyebrow { font-size: 20px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: #F79131; }
+      #num { font-size: 168px; line-height: .95; font-weight: 800; letter-spacing: -.03em; display: block; }
+      #unit { font-size: 40px; font-weight: 700; line-height: 1.1; max-width: 560px; }
+      #bar { height: 8px; width: 260px; background: #F79131; display: block; transform-origin: left center; margin-top: 12px; }
+      #foot { font-size: 18px; font-weight: 700; color: #B98BCB; letter-spacing: .12em; text-transform: uppercase; margin-top: 18px; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="6" data-fps="24" data-width="1200" data-height="800">
+      <section id="shot" class="clip" data-start="0" data-duration="6" data-track-index="1">
+        <img id="photo" src="assets/svc_vallas_alt2.jpg" alt="" />
+        <div id="veil"></div>
+        <div id="stack">
+          <div id="eyebrow">Vallas · Caracas</div>
+          <div id="num">+100</div>
+          <div id="unit">vallas en puntos estratégicos</div>
+          <div id="bar"></div>
+          <div id="foot">Phygital + DOOH + Digital</div>
+        </div>
+      </section>
+    </div>
+    <script>
+      function build() {
+        const tl = gsap.timeline({ paused: true });
+        const counter = { v: 0 };
+        const el = document.getElementById("num");
+        // Frame 0 completo: el número ya se lee ("+100"); la cuenta arranca a los 0,4 s desde 0 y vuelve a 100.
+        tl.fromTo("#eyebrow", { x: -24, opacity: 0 }, { x: 0, opacity: 1, duration: 0.5, ease: "power3.out" }, 0.4);
+        tl.to(counter, { v: 100, duration: 1.6, ease: "power2.out", onUpdate: function () { el.textContent = "+" + Math.round(counter.v); } }, 0.5);
+        tl.fromTo("#num", { y: 30, opacity: 0.4 }, { y: 0, opacity: 1, duration: 0.6, ease: "power3.out" }, 0.5);
+        tl.fromTo("#unit", { y: 18, opacity: 0 }, { y: 0, opacity: 1, duration: 0.55, ease: "power3.out" }, 1.4);
+        tl.fromTo("#bar", { scaleX: 0 }, { scaleX: 1, duration: 0.6, ease: "power3.out" }, 1.7);
+        tl.fromTo("#foot", { opacity: 0 }, { opacity: 1, duration: 0.5 }, 2.2);
+        tl.seek(0);
+        window.__timelines["main"] = tl;
+        if (window.__hfForceTimelineRebind) window.__hfForceTimelineRebind();
+      }
+      if (document.fonts && document.fonts.ready) { document.fonts.ready.then(build); } else { build(); }
+    </script>
+  </body>
+</html>

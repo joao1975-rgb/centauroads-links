@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="es"
+  data-composition-variables='[
+    {"id":"photo","type":"string","label":"Foto del servicio","default":"assets/svc_led.jpg"},
+    {"id":"label","type":"string","label":"Texto de la insignia","default":"DISPONIBLE"}
+  ]'>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1200, height=800" />
+    <title>Centauro ADS — tarjeta animada</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@800&display=swap" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1200px; height: 800px; overflow: hidden; background: #0F0E13; }
+      body { font-family: Montserrat, "Trebuchet MS", Arial, Helvetica, sans-serif; color: #fff; }
+      #root { position: relative; width: 1200px; height: 800px; overflow: hidden; background: #0F0E13; }
+      .clip { position: absolute; inset: 0; }
+      #photo { display: block; width: 100%; height: 100%; object-fit: cover; }
+      /* Insignia arriba a la derecha: el único objeto animado (área pequeña → GIF ligero). */
+      #badge { position: absolute; top: 40px; right: 40px; display: flex; align-items: center; gap: 18px;
+               background: rgba(15,14,19,.86); border: 3px solid #F79131; border-radius: 60px; padding: 18px 34px 18px 24px;
+               transform-origin: 85% 50%; }
+      #badge .txt { font-size: 34px; font-weight: 800; letter-spacing: .10em; color: #FFFFFF; white-space: nowrap; }
+      #dotwrap { position: relative; width: 28px; height: 28px; display: block; }
+      #dot { position: absolute; inset: 0; border-radius: 14px; background: #F79131; display: block; }
+      .ring { position: absolute; left: -14px; top: -14px; width: 56px; height: 56px; border-radius: 28px;
+              border: 4px solid #F79131; display: block; opacity: 0; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="3" data-fps="24" data-width="1200" data-height="800">
+      <section id="shot" class="clip" data-start="0" data-duration="3" data-track-index="1">
+        <img id="photo" data-var-src="photo" src="assets/svc_led.jpg" alt="" />
+        <div id="badge">
+          <span id="dotwrap"><span class="ring" id="r1"></span><span class="ring" id="r2"></span><span class="ring" id="r3"></span><span id="dot"></span></span>
+          <span class="txt" data-var-text="label">DISPONIBLE</span>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      function build() {
+        const tl = gsap.timeline({ paused: true });
+        // Tres pulsos, uno por segundo: anillo que se expande y desvanece + latido de la insignia.
+        [0, 1, 2].forEach(function (i, k) {
+          tl.fromTo("#r" + (k + 1), { scale: 1, opacity: 0.9 }, { scale: 2.8, opacity: 0, duration: 0.9, ease: "power2.out" }, i + 0.05);
+          tl.fromTo("#dot", { scale: 1 }, { scale: 1.35, duration: 0.18, ease: "power2.out", yoyo: true, repeat: 1 }, i);
+          tl.fromTo("#badge", { scale: 1 }, { scale: 1.05, duration: 0.22, ease: "power2.out", yoyo: true, repeat: 1 }, i);
+        });
+        tl.seek(0);
+        window.__timelines["main"] = tl;
+        if (window.__hfForceTimelineRebind) window.__hfForceTimelineRebind();
+      }
+      if (document.fonts && document.fonts.ready) { document.fonts.ready.then(build); } else { build(); }
+    </script>
+  </body>
+</html>

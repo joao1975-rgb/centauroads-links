@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Muestra 2 — ficha técnica con bloque lower-third del registro</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #0F0E13; }
+      #root { position: relative; width: 1920px; height: 1080px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      #photo { display: block; width: 100%; height: 100%; object-fit: cover; }
+      #shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(15,14,19,0) 55%, rgba(15,14,19,.55) 100%); }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="7" data-fps="24" data-width="1920" data-height="1080">
+      <section id="bg" class="clip" data-start="0" data-duration="7" data-track-index="1">
+        <img id="photo" src="assets/svc_led_alt.jpg" alt="" />
+        <div id="shade"></div>
+      </section>
+      <!-- Bloque del registro de HyperFrames (lower-third-bild) montado tal cual, con sus textos sustituidos por variables. -->
+      <div
+        data-composition-id="lower-third-bild"
+        data-composition-src="compositions/lower-third-bild.html"
+        data-start="0.6"
+        data-duration="6.4"
+        data-track-index="2"
+        data-width="1920"
+        data-height="1080"
+        data-variable-values='{"TXT_MAIN_1_Line":"PANTALLA LED CHACAO","TXT_SUB":"+120.000 impactos diarios · 18 horas continuas"}'
+      ></div>
+    </div>
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      tl.fromTo("#photo", { opacity: 0.85 }, { opacity: 1, duration: 0.6, ease: "power2.out" }, 0);
+      tl.seek(0);
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

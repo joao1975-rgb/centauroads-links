@@ -328,6 +328,11 @@
       // Efecto de animacion del carrusel. Por defecto uno de los ligeros: un correo que
       // tarda en cargar no lo lee nadie, por muy bonita que sea la transicion.
       efecto: 'barrido',
+      // El de la Personalizada va aparte del de A-G a proposito. En A-G cada efecto es un
+      // GIF pregenerado que hay que subir; en una Personalizada el servidor lo arma al
+      // vuelo con las paginas del cliente. Compartir campo hacia que elegir aqui un efecto
+      // sin subir dejara las imagenes de A-G rotas, sin que nadie se enterara.
+      efectoEntrega: 'barrido',
       // Excepciones por servicio: { led: 'persiana' }. Vacio = todos usan el global.
       efectosPorServicio: {},
       // Banco de imagenes por servicio: que fotos entran, tres huecos libres y el video.
@@ -843,6 +848,7 @@
     if (st.tema === undefined) st.tema = base.tema;
     if (st.asunto3 === undefined) st.asunto3 = base.asunto3;
     if (st.efecto === undefined) st.efecto = base.efecto;
+    if (st.efectoEntrega === undefined) st.efectoEntrega = st.efecto || base.efectoEntrega;
     if (!st.efectosPorServicio) st.efectosPorServicio = {};
     if (!st.banco) st.banco = {};
     // Paradas salio del catalogo (2026-09-21). El estado guardado lleva una COPIA de los

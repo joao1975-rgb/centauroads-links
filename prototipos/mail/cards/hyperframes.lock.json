@@ -1,0 +1,15 @@
+{
+  "assets/fonts/Caveat-700-latin.woff2": "891951df5e8b5b0f0bc760d31375405e795c666b5add70437de12d4a6482b33f",
+  "compositions/assets/fonts/BarlowCondensed-Bold.woff2": "75b7b8e878ea0c33be73e888d0d192df09da34af0cf428b69f8c208e0c27e688",
+  "compositions/assets/fonts/BarlowCondensed-ExtraBold.woff2": "2e5732c61470a890aee05ee399f6720664835efab8749dfc87d487e7882ffc44",
+  "compositions/components/badge-pop.html": "7b3f813eedab71b59e45598a48dd398c6931a00751845fe2c258fbcd62b743f0",
+  "compositions/components/directional-wipe.html": "1630a4c974ba6d9ea9a23fdb84627ee464c1447cd7b6b963defe4c5bf9867a48",
+  "compositions/components/hw-box-label.html": "3c4d4049a2ffe0d5553203763eb6b5d382e9d5cc320d61dc9106a4de0fe76b2c",
+  "compositions/components/iris-reveal.html": "977a7e068ebe7f547006794ee36ef4d30cd36d68edbd05acf60719e294de989e",
+  "compositions/components/micro-transitions.html": "dd91b213753e97d6fd656c4f455fc8c941c7cfbdcc2c93d55ce13dba6ee2b732",
+  "compositions/components/page-slide.html": "70720f1c32f36c7ca613ca50616928d85814f89d36a8f237cb707da6ff16d0e0",
+  "compositions/components/swipe-rail.html": "346c767c3551846f3b3ac34d16bea6fd3089109ce2741e232d387cd1a489ef76",
+  "compositions/logo-outro.html": "d5b91c5e750e0cfca97a834e5fd16123747ef12736b889849272e14eaca09f11",
+  "compositions/lower-third-bild.html": "937b72e417379b098d4118ae20eeb1a08b980c895fd40baab26bf25266619429",
+  "compositions/transitions-push.html": "f0bde11842646bf16a59fcb90a9cab684fdba1521bf37edf03d502f70e9a1851"
+}

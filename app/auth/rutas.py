@@ -27,8 +27,10 @@ administradores al arrancar. Es configuración, no un secreto, y por eso puede i
 sin violar el principio V.
 """
 
+import json
 import logging
 import os
+import re
 from datetime import datetime, timezone
 from typing import List, Optional
 
@@ -53,6 +55,11 @@ _RECHAZO = "Esa cuenta no tiene acceso al panel"
 # de verdad. Ahora es una constante y hay una prueba que comprueba que la ruta responde, porque
 # una dirección escrita a mano en dos sitios es una dirección que algún día deja de existir.
 COMPOSITOR = "/static/email/compositor.html"
+# Una ruta interna y nada mas: barra inicial, y despues solo lo que puede llevar una ruta
+# de esta aplicacion. Sin comillas, sin barras invertidas, sin espacios, sin "<".
+# El `(?!/)` no sobra: "//malo.tld" es una URL con protocolo heredado -lleva a OTRO sitio-
+# y empieza por barra igual que una ruta nuestra.
+_RUTA_INTERNA = re.compile(r"/(?!/)[A-Za-z0-9/._~\-]*")
 
 
 def _autorizado(db: Session, email: str) -> Optional[models.PanelUser]:
@@ -364,7 +371,7 @@ _ENTRADA = """<!DOCTYPE html>
                          body: JSON.stringify(cuerpo) }})
       .then(function (r) {{ return r.json().then(function (d) {{
         if (!r.ok) throw new Error(d.detail || 'No se pudo entrar');
-        location.href = '{destino}';
+        location.href = {destino};
       }}); }})
       .catch(function (e) {{ falla(e.message); }});
   }}
@@ -395,7 +402,11 @@ def pantalla_de_entrada(request: Request, destino: str = COMPOSITOR):
     `destino` se limita a rutas internas. Sin esa comprobación, un enlace preparado podría llevar
     a alguien a entrar y acabar en otro sitio.
     """
-    if not destino.startswith("/") or destino.startswith("//"):
+    # Lista blanca POSITIVA. La de antes -empieza por "/" y no por "//"- validaba a donde
+    # navega, que no es lo mismo que el contexto donde se escribe: `/';alert(1);//` la pasaba
+    # entera y se salia de la cadena JavaScript. Y `/\malo.tld` acababa en //malo.tld, porque el
+    # navegador convierte la barra invertida en barra: redireccion abierta desde el login.
+    if not _RUTA_INTERNA.fullmatch(destino or ""):
         destino = COMPOSITOR
 
     if google.esta_configurado():
@@ -405,8 +416,11 @@ def pantalla_de_entrada(request: Request, destino: str = COMPOSITOR):
     else:
         bloque, script = "", ""
 
+    # Serializado, no interpolado: json.dumps escapa comillas, barras y saltos de linea, y
+    # produce un literal JavaScript valido. Interpolar dentro de comillas a mano es justo el
+    # fallo que esto arregla.
     return HTMLResponse(_ENTRADA.format(script_google=script, bloque_google=bloque,
-                                        destino=destino))
+                                        destino=json.dumps(destino)))
 
 
 @router.get("/admin/entregas")

@@ -299,3 +299,40 @@ def test_un_emisor_que_no_es_google_se_rechaza(monkeypatch):
     )
     with pytest.raises(google.IdentidadRechazada):
         google.verificar_identidad("token")
+
+
+# --- La pantalla de entrar no se puede usar contra quien entra -------------------------
+
+ATAQUES = [
+    "/';alert(document.domain);//",   # se salía de la cadena JavaScript
+    "//malo.tld",                     # protocolo heredado: lleva a otro sitio
+    "///malo.tld",
+    r'/\malo.tld',                    # el navegador convierte la barra invertida en barra
+    "https://malo.tld",
+    '/x\nlocation=\'https://malo.tld\'',
+    '/"><script>alert(1)</script>',
+]
+
+
+@pytest.mark.parametrize("destino", ATAQUES)
+def test_el_destino_no_se_escapa_de_su_cadena(destino):
+    """
+    `destino` se escribe DENTRO de una cadena JavaScript. La comprobación de antes -empieza por
+    "/" y no por "//"- validaba a dónde navega, que es otra cosa: `/';alert(1);//` la pasaba
+    entera. Y es la pantalla de ENTRAR: un enlace preparado a un comercial reescribe el formulario
+    y se queda con su contraseña antes de que salga del navegador.
+    """
+    from fastapi.testclient import TestClient
+    from app.main import app
+    cuerpo = TestClient(app).get("/panel/entrar", params={"destino": destino}).text
+    linea = [l for l in cuerpo.splitlines() if "location.href" in l][0]
+    assert linea.strip() == 'location.href = "/static/email/compositor.html";', (
+        "el destino %r se coló: %s" % (destino, linea.strip()))
+
+
+def test_un_destino_interno_de_verdad_si_llega():
+    """Cerrar la puerta no puede significar cerrarla también a quien tiene que pasar."""
+    from fastapi.testclient import TestClient
+    from app.main import app
+    cuerpo = TestClient(app).get("/panel/entrar", params={"destino": "/panel"}).text
+    assert 'location.href = "/panel";' in cuerpo

@@ -247,6 +247,27 @@ def test_elegir_paginas_arma_el_carrusel_y_la_portada(cliente, entrega):
     assert datos["paginas"][0]["url"].endswith("p2.jpg")
 
 
+def test_un_enlace_sin_https_no_se_guarda(cliente):
+    """
+    Canva enseña sus enlaces cortos SIN esquema —«canva.link/xyz»— y así se copian. Guardado tal
+    cual, la redirección de /p/{slug} lo resuelve **relativo**: el cliente acaba en
+    /p/canva.link/xyz y un 404, con la propuesta ya enviada y el enlace ya repartido.
+    """
+    r = cliente.post("/api/entregas", json={
+        "titulo": "Sin esquema", "canva_url": "canva.link/jmkzpcozb78dd35",
+        "contacto": {"nombre": "Quien Sea", "empresa": "Empresa C.A."}})
+    assert r.status_code == 422
+    assert "https" in r.text
+
+
+def test_un_enlace_con_https_si_se_guarda(cliente):
+    """Cerrar la puerta no puede cerrarla a quien tiene que pasar."""
+    r = cliente.post("/api/entregas", json={
+        "titulo": "Con esquema", "canva_url": CANVA,
+        "contacto": {"nombre": "Quien Sea", "empresa": "Empresa C.A."}})
+    assert r.status_code == 200, r.text
+
+
 def test_el_efecto_elegido_llega_al_carrusel(cliente, entrega):
     """
     Que `arma()` sepa hacer siete efectos no sirve de nada si la ruta no le pasa el que se pidio.

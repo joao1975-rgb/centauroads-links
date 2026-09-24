@@ -767,13 +767,20 @@
       M.EFECTOS.forEach(x => {
         const o = el('option', null, x.etiqueta); o.value = x.clave;
         o.title = x.idea;
-        if ((st.efecto || 'barrido') === x.clave) o.selected = true;
+        if ((st.efectoEntrega || 'barrido') === x.clave) o.selected = true;
         selEfe.appendChild(o);
       });
       selEfe.addEventListener('change', () => {
-        st.efecto = selEfe.value; save();
-        if (elegidas.length >= 2) armaCarrusel(est3);
-        else {
+        st.efectoEntrega = selEfe.value; save();
+        if (elegidas.length >= 2) { armaCarrusel(est3); return; }
+        // Tras recargar la pagina no queda nada en memoria, pero el carrusel YA armado sigue en
+        // el correo con el efecto de antes. Decir "guardado" ahi seria la misma mentira que este
+        // paso vino a quitar: se enviaria creyendo que se aplico.
+        if (st.entregaId && st.bloques.entrega.img) {
+          est3.className = 'estado mal';
+          est3.textContent = 'El carrusel que lleva el correo sigue con el efecto anterior. ' +
+            'Vuelve a subir el PDF y elige las páginas para rehacerlo.';
+        } else {
           est3.className = 'estado';
           est3.textContent = 'Efecto guardado. Elige de 2 a 4 páginas y se arma solo.';
         }
@@ -943,8 +950,9 @@
     est.className = 'estado'; est.textContent = 'Armando el carrusel…';
     api('/api/entregas/' + st.entregaId + '/paginas', {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      // El efecto que este elegido en el banco de animacion, el mismo que usan A-G.
-      body: JSON.stringify({ indices: elegidas, efecto: st.efecto || 'barrido' }),
+      // El efecto propio de la Personalizada, el del paso 03. No es el de A-G: alli cada
+      // efecto es un GIF ya subido; aqui lo arma el servidor con las paginas del cliente.
+      body: JSON.stringify({ indices: elegidas, efecto: st.efectoEntrega || 'barrido' }),
     }).then(d => {
       // La imagen del correo pasa a ser la del servidor, en direccion absoluta: es lo que
       // descargara el proxy de Gmail.

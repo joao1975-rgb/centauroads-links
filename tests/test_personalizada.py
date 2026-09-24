@@ -37,6 +37,15 @@ function conEmpresa(empresa) {
 }
 
 const salida = { conEmpresa: conEmpresa('Valmy'), sinEmpresa: conEmpresa('') };
+
+// Con el efecto de la Personalizada puesto en `zoom` -que el servidor arma al vuelo pero NO
+// existe como GIF pregenerado-, las plantillas A-G no pueden enterarse.
+const z = M.defaultState(); z.efectoEntrega = 'zoom'; z.plantilla = 'A';
+salida.A_con_zoom_en_entrega = M.render(z, 'A');
+
+// Y el estado guardado antes de que existiera el campo tiene que heredar, no reiniciarse.
+const viejo = M.defaultState(); delete viejo.efectoEntrega; viejo.efecto = 'persiana';
+salida.migrado = M.normaliza(JSON.parse(JSON.stringify(viejo))).efectoEntrega;
 ['E', 'F', 'G'].forEach(function (k) {
   const st = M.defaultState(); st.plantilla = k;
   salida[k] = M.render(st, k);
@@ -96,3 +105,22 @@ def test_el_enlace_del_correo_es_el_propio_no_el_de_canva(html):
     """
     assert "/p/abc123" in html["conEmpresa"]
     assert "canva.link/ejemplo" not in html["conEmpresa"]
+
+
+def test_el_efecto_de_la_personalizada_no_rompe_las_demas(html):
+    """
+    En A-G cada efecto es un GIF **pregenerado** que hay que subir (`carousel_led_zoom.gif` no
+    está); en una Personalizada el servidor lo arma al vuelo con las páginas del cliente. Cuando
+    compartían campo, elegir `zoom` aquí dejaba las cinco imágenes de A-G rotas en Gmail, sin un
+    solo aviso, en el correo siguiente.
+    """
+    assert "_zoom.gif" not in html["A_con_zoom_en_entrega"], (
+        "el efecto de la entrega se coló en las imágenes de A")
+
+
+def test_el_estado_guardado_hereda_el_efecto(html):
+    """
+    Principio II: el estado guardado se MIGRA, no se tira. Quien ya tenía `persiana` elegido no
+    puede encontrarse el campo nuevo en su valor de fábrica.
+    """
+    assert html["migrado"] == "persiana"
