@@ -243,8 +243,10 @@ def test_elegir_paginas_arma_el_carrusel_y_la_portada(cliente, entrega):
     datos = r.json()
     assert datos["carrusel"] and datos["portada"]
     assert [p["orden"] for p in datos["paginas"]] == [0, 1]
-    # El orden es el que eligió la persona, no el del PDF.
-    assert datos["paginas"][0]["url"].endswith("p2.jpg")
+    # El orden es el que eligió la persona, no el del PDF. Se compara solo la ruta: la dirección
+    # lleva además una marca de versión (?v=...) para que al rehacer el carrusel no se sirva el
+    # de la caché.
+    assert datos["paginas"][0]["url"].split("?")[0].endswith("p2.jpg")
 
 
 def test_un_enlace_sin_https_no_se_guarda(cliente):
@@ -284,6 +286,36 @@ def test_el_efecto_elegido_llega_al_carrusel(cliente, entrega):
             gifs[efecto] = f.read()
     assert len(set(gifs.values())) == 3, (
         "dos efectos distintos dieron el mismo GIF: el elegido no esta llegando al carrusel")
+
+
+def test_al_rehacer_el_carrusel_cambia_su_direccion(cliente, entrega):
+    """
+    El fichero se reescribe con el MISMO nombre y se sirve como `immutable` a un año. Si la
+    dirección no cambiara, el navegador —y el proxy de imágenes de Gmail— no volverían a pedirlo
+    nunca: se eligen otras páginas, el servidor arma el carrusel nuevo, y el correo sigue
+    enseñando el anterior. Pasó, y se vio porque en la vista previa salía una página que ni
+    siquiera estaba elegida.
+    """
+    cliente.post("/api/entregas/%d/paginas" % entrega["id"],
+                 files={"fichero": ("deck.pdf", io.BytesIO(_pdf(3)), "application/pdf")})
+    primera = cliente.put("/api/entregas/%d/paginas" % entrega["id"],
+                          json={"indices": [0, 1], "efecto": "corte"}).json()["carrusel"]
+    segunda = cliente.put("/api/entregas/%d/paginas" % entrega["id"],
+                          json={"indices": [0, 1, 2], "efecto": "fundido"}).json()["carrusel"]
+    assert primera != segunda, (
+        "la dirección del carrusel no cambió al rehacerlo: se servirá el viejo desde la caché")
+
+
+def test_la_direccion_del_carrusel_sigue_sirviendo_el_fichero(cliente, entrega):
+    """La marca de versión no puede romper la descarga: es una query, no parte del nombre."""
+    cliente.post("/api/entregas/%d/paginas" % entrega["id"],
+                 files={"fichero": ("deck.pdf", io.BytesIO(_pdf(3)), "application/pdf")})
+    url = cliente.put("/api/entregas/%d/paginas" % entrega["id"],
+                      json={"indices": [0, 1]}).json()["carrusel"]
+    assert "?v=" in url
+    r = cliente.get(url)
+    assert r.status_code == 200
+    assert r.content[:3] == b"GIF"
 
 
 def test_un_efecto_que_no_existe_no_deja_sin_carrusel(cliente, entrega):

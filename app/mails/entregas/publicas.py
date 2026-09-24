@@ -13,6 +13,7 @@ propuesta, sin pagar un clic de peaje para leer un resumen de lo que ya dice el 
 
 import html
 import logging
+import os
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -44,7 +45,25 @@ def _rellena(texto: str, contacto) -> str:
 
 
 def _url_media(entrega_id: int, nombre: str) -> str:
-    return "/media/entregas/%d/%s" % (entrega_id, nombre)
+    """
+    La dirección pública de un fichero de la entrega, **con una marca de su versión**.
+
+    Sin la marca esto era un fallo silencioso y caro: `carrusel.gif` se reescribe con el mismo
+    nombre cada vez que se eligen otras páginas o se cambia el efecto, y se sirve como
+    `immutable`. El navegador no vuelve a pedirlo nunca, así que el correo seguía enseñando el
+    carrusel anterior mientras el servidor guardaba el nuevo. El proxy de imágenes de Gmail hace
+    lo mismo, de modo que una propuesta corregida antes de enviarla habría salido mal.
+
+    La marca sale del propio fichero (cuándo se escribió y cuánto ocupa), así que cambia sola
+    cuando cambia el contenido y **no** cuando no cambia: la caché larga sigue valiendo, que es lo
+    que quiere una imagen que viaja dentro de un correo.
+    """
+    base = "/media/entregas/%d/%s" % (entrega_id, nombre)
+    destino = almacen.resuelve(entrega_id, nombre)
+    if not destino:
+        return base
+    marca = os.stat(destino)
+    return "%s?v=%x" % (base, (marca.st_mtime_ns & 0xFFFFFFFFFF) ^ marca.st_size)
 
 
 def _existe(entrega_id: int, nombre: str):
@@ -62,8 +81,9 @@ def media(entrega_id: int, fichero: str):
     destino = almacen.resuelve(entrega_id, fichero)
     if not destino:
         raise HTTPException(status_code=404, detail="No encontrado")
-    # Los ficheros de una entrega no cambian una vez escritos: si cambian las páginas, cambia la
-    # entrega entera. Se pueden cachear con tranquilidad.
+    # Cacheable a largo plazo porque la dirección lleva marca de versión (`_url_media`): cuando
+    # el fichero cambia, cambia la dirección. Sin esa marca esto guardaba para siempre un carrusel
+    # que luego se rehacía, y el correo se quedaba con el viejo.
     return FileResponse(destino, headers={"Cache-Control": "public, max-age=31536000, immutable"})
 
 
