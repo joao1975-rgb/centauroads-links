@@ -428,6 +428,14 @@
           corto: 'Te dejo la propuesta que preparamos para {empresa}. \u00c1brela con calma y me dices qu\u00e9 te parece.',
           cta: 'Ver la propuesta',
           acompanan: 'Lo que la acompa\u00f1a',
+          // Interruptores PROPIOS. El contenido se comparte con A-G, pero alli estos bloques
+          // van siempre encendidos; aqui se anaden cuando hacen falta, y compartir el
+          // interruptor significaria que apagarlos en una propuesta los apaga en el catalogo.
+          conSuministro: false,
+          conPasos: false,
+          // La despedida, justo antes de la firma. Propia de la entrega: es lo ultimo que se
+          // lee y cambia segun a quien va dirigida.
+          cierre: '\u00a1Si necesitas un espacio que no aparezca aqu\u00ed, d\u00edmelo y lo busco!',
         },
         pie: { on: true, texto: 'Recibes este correo porque solicitaste información sobre espacios publicitarios de Centauro ADS.' },
       },
@@ -1617,6 +1625,35 @@
   // Se arma con los mismos bloques que el resto -cabecera, epigrafe, boton, complementos,
   // firma, pie- porque una plantilla escrita a mano seria una segunda fuente de verdad, y
   // este proyecto ya pago dos veces ese precio (constitucion, principio II).
+  // Suministro e instalacion, y los proximos pasos. Se escriben aparte porque la Personalizada
+  // los pinta con la paleta del tema elegido -claro, oscuro o el de la marca- mientras que A-G
+  // los llevan con colores fijos. El CONTENIDO es el mismo en las dos: sale de `B(st, ...)`, que
+  // es lo que evita tener dos versiones del mismo parrafo.
+  function bloqueSuministro(st, k) {
+    const b = B(st, 'suministro');
+    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
+      '<td width="4" bgcolor="' + k.vivo + '" style="background:' + k.vivo + ';font-size:0;">&nbsp;</td>' +
+      '<td style="padding:14px 18px;background:' + k.panel2 + ';">' +
+      '<div style="font-family:' + FH + ';font-size:15px;font-weight:800;color:' + k.texto + ';padding:0 0 6px 0;">' +
+        esc(b.titulo) + '</div>' +
+      '<div style="font-family:' + FB + ';font-size:14px;line-height:20px;color:' + k.apagado + ';padding:0 0 8px 0;">' +
+        nl2br(b.texto) + '</div>' +
+      bullets(lines(b.requisitos), k.vivo, k.texto) + '</td></tr></table>';
+  }
+
+  function bloquePasos(st, k) {
+    // Los dos van juntos y en este orden: primero que hay que hacer, luego que hay que mandar.
+    // Uno sin el otro deja la frase a medias, asi que llevan un solo interruptor.
+    const a = B(st, 'pasos'), b = B(st, 'presupuesto');
+    return '<div style="font-family:' + FH + ';font-size:15px;font-weight:800;color:' + k.texto + ';padding:0 0 6px 0;">' +
+        esc(a.titulo) + '</div>' +
+      '<div style="font-family:' + FB + ';font-size:14px;line-height:20px;color:' + k.apagado + ';padding:0 0 12px 0;">' +
+        nl2br(a.texto) + '</div>' +
+      '<div style="font-family:' + FB + ';font-size:14px;font-weight:700;color:' + k.texto + ';padding:0 0 8px 0;">' +
+        esc(b.titulo) + '</div>' +
+      numbered(lines(b.items), k.vivo, k.sobreVivo, k.texto);
+  }
+
   function plantillaH(st) {
     const tema = temaDe(st), o = tema !== 'claro', k = paleta(tema), P = [];
     const e = B(st, 'entrega');
@@ -1662,6 +1699,15 @@
     // los que sigan activos: quitarlos es apagarlos en el panel.
     const compH = complementos(st, [], { titulo: e.acompanan, columnas: 1 });
     if (compH) P.push(row(compH, pad + 'padding-bottom:26px;'));
+
+    if (e.conSuministro) P.push(row(bloqueSuministro(st, k), pad + 'padding-bottom:18px;'));
+    if (e.conPasos) P.push(row(bloquePasos(st, k), pad + 'padding-bottom:22px;'));
+
+    // La despedida, lo ultimo antes de la firma. Vacia, no deja hueco.
+    if (e.cierre) {
+      P.push(row('<div style="font-family:' + FB + ';font-size:15px;line-height:1.65;color:' + k.texto + ';">' +
+        nl2br(fill(e.cierre, st)) + '</div>', pad + 'padding-bottom:26px;'));
+    }
 
     if (on(st, 'firma')) {
       P.push(row(firma(st, tema),

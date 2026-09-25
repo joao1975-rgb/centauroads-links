@@ -38,6 +38,21 @@ function conEmpresa(empresa) {
 
 const salida = { conEmpresa: conEmpresa('Valmy'), sinEmpresa: conEmpresa('') };
 
+// Las dos secciones que se pueden anadir, encendidas y apagadas.
+function conExtras(on) {
+  const st = M.defaultState(); st.plantilla = 'H';
+  Object.assign(st.bloques.entrega, { conSuministro: on, conPasos: on });
+  return M.render(st, 'H');
+}
+salida.conExtras = conExtras(true);
+salida.sinExtras = conExtras(false);
+
+// Y el catalogo con esos interruptores puestos: no puede enterarse.
+const catExtras = M.defaultState(); catExtras.plantilla = 'A';
+Object.assign(catExtras.bloques.entrega, { conSuministro: true, conPasos: true });
+salida.A_con_extras = M.render(catExtras, 'A');
+salida.A_intacta = M.render(M.defaultState(), 'A');
+
 // Con el efecto de la Personalizada puesto en `zoom` -que el servidor arma al vuelo pero NO
 // existe como GIF pregenerado-, las plantillas A-G no pueden enterarse.
 const z = M.defaultState(); z.efectoEntrega = 'zoom'; z.plantilla = 'A';
@@ -266,3 +281,45 @@ def test_la_personalizada_no_lleva_pie(html):
         cuerpo = html["H_" + tema]
         assert "respóndeme a este mismo correo" not in cuerpo
         assert "solicitaste informaci" not in cuerpo, "se coló el pie del catálogo"
+
+
+# --- Las secciones que se pueden anadir -------------------------------------------------
+
+def test_las_dos_secciones_vienen_apagadas(html):
+    """
+    Son opcionales: se añaden cuando hacen falta. En los correos de catálogo van siempre, y por
+    eso el interruptor es propio de la entrega — compartirlo haría que apagarlas aquí las apagara
+    también allí.
+    """
+    assert "Suministro e instalación" not in html["sinExtras"]
+    assert "Próximos pasos" not in html["sinExtras"]
+
+
+def test_encendidas_traen_su_contenido_entero(html):
+    """
+    El contenido sale de los bloques compartidos, no de una copia: una sola versión de «para
+    cotizar necesitamos». Y los próximos pasos llevan su lista numerada, que sin ella deja la
+    frase a medias.
+    """
+    cuerpo = html["conExtras"]
+    assert "Suministro e instalación" in cuerpo
+    assert "Foto del sitio" in cuerpo and "Materiales" in cuerpo
+    assert "Próximos pasos" in cuerpo
+    assert "Para un presupuesto formal necesitamos" in cuerpo
+    assert "RIF digital de la empresa" in cuerpo
+
+
+def test_las_secciones_no_tocan_el_catalogo(html):
+    """`conSuministro` y `conPasos` son de la entrega; A-G no los mira."""
+    assert html["A_con_extras"] == html["A_intacta"]
+
+
+def test_la_despedida_va_antes_de_la_firma(html):
+    """
+    Lo último que se lee antes de la firma, y editable. Se comprueba el ORDEN, no solo que esté:
+    detrás de la firma no sería una despedida, sería una posdata.
+    """
+    for tema in ("claro", "oscuro", "centauro"):
+        cuerpo = html["H_" + tema]
+        assert "dímelo y lo busco" in cuerpo
+        assert cuerpo.index("dímelo y lo busco") < cuerpo.index("Alianzas Comerciales")

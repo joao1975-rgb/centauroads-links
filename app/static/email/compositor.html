@@ -824,8 +824,41 @@
     p4.appendChild(inputEl('bloques.entrega.texto', 'Texto de la entrega (correo)', 'textarea'));
     p4.appendChild(inputEl('bloques.entrega.corto', 'Versión corta (WhatsApp)', 'textarea'));
     p4.appendChild(inputEl('bloques.entrega.cta', 'Texto del botón', 'text'));
+    p4.appendChild(inputEl('bloques.entrega.cierre', 'Despedida (antes de la firma)', 'textarea'));
     p4.appendChild(el('p', 'fld-l',
       'Los servicios que la acompañan se eligen en «Espacios que la acompañan», más abajo.'));
+
+    // Las dos secciones que se pueden añadir. El interruptor es de la entrega; los textos son los
+    // MISMOS que usan los correos de catálogo, a propósito: así «para cotizar necesitamos» existe
+    // una sola vez. Se avisa, porque editarlos aquí los cambia también allí.
+    const extra = el('div', 'grp');
+    extra.appendChild(el('h2', null, 'Secciones que se pueden añadir'));
+    extra.appendChild(el('p', 'hint',
+      'Vienen apagadas. Los textos son los mismos de los correos de catálogo: si los cambias ' +
+      'aquí, cambian también allí — que es lo que se quiere, para no tener dos versiones.'));
+
+    [['conSuministro', 'Suministro e instalación',
+      [['bloques.suministro.titulo', 'Título', 'text'],
+       ['bloques.suministro.texto', 'Texto', 'textarea'],
+       ['bloques.suministro.requisitos', 'Qué hace falta (uno por línea)', 'textarea']]],
+     ['conPasos', 'Próximos pasos',
+      [['bloques.pasos.titulo', 'Título', 'text'],
+       ['bloques.pasos.texto', 'Texto', 'textarea'],
+       ['bloques.presupuesto.titulo', 'Título de la lista', 'text'],
+       ['bloques.presupuesto.items', 'Lista numerada (uno por línea)', 'textarea']]],
+    ].forEach(([clave, nombre, campos]) => {
+      const b = el('section', 'blk');
+      const apagado = () => b.classList.toggle('off', !st.bloques.entrega[clave]);
+      const head = el('header', 'blk-h');
+      head.appendChild(switchEl('bloques.entrega.' + clave, apagado));
+      const t = el('button', 'blk-t', nombre); t.type = 'button';
+      t.addEventListener('click', () => b.classList.toggle('open'));
+      head.appendChild(t); b.appendChild(head);
+      const body = el('div', 'blk-b');
+      campos.forEach(([ruta, etiqueta, tipo]) => body.appendChild(inputEl(ruta, etiqueta, tipo)));
+      b.appendChild(body); apagado(); extra.appendChild(b);
+    });
+    p4.appendChild(extra);
     frag.appendChild(p4);
 
     // 05 - Llevartela
