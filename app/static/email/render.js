@@ -333,6 +333,9 @@
       // vuelo con las paginas del cliente. Compartir campo hacia que elegir aqui un efecto
       // sin subir dejara las imagenes de A-G rotas, sin que nadie se enterara.
       efectoEntrega: 'barrido',
+      // El aspecto de la Personalizada, aparte del de A-G por la misma razon que el efecto:
+      // su panel es un interruptor de dos posiciones y aqui hay tres.
+      temaEntrega: 'claro',
       // Excepciones por servicio: { led: 'persiana' }. Vacio = todos usan el global.
       efectosPorServicio: {},
       // Banco de imagenes por servicio: que fotos entran, tres huecos libres y el video.
@@ -502,22 +505,30 @@
   // servicios cierra (11 px, naranja, con espaciado amplio). Sin degradados ni adornos: el logo ya tiene color.
   // El logo va en PNG sobre fondo plano (Outlook no compone transparencias con fiabilidad) y a doble resolucion
   // mostrado a la mitad, para que no se vea blando en pantallas densas.
-  function marca(st, dark, ancho) {
+  function marca(st, tema, ancho) {
+    const dark = tema !== 'claro';
     const w = ancho || 200;
     const f = B(st, 'firma');
     const slogan = f.slogan || 'Visibilidad que conecta';
     const linea = f.linea || 'PHYGITAL DOOH + Digital';
-    const sloganColor = dark ? C.purpleLight : C.purple;
+    // Sobre morado, el morado claro del slogan se pierde contra su propio fondo: va en blanco.
+    const sloganColor = tema === 'centauro' ? '#F8F4FA' : (dark ? C.purpleLight : C.purple);
     return '<img src="' + esc(imgFor(st, dark ? 'logo_h_dark_2x.png' : 'logo_h_light_2x.png')) + '" width="' + w + '" alt="Centauro ADS" style="display:block;width:' + w + 'px;max-width:100%;height:auto;border:0;font-family:' + FH + ';font-size:22px;font-weight:800;letter-spacing:-.01em;color:' + (dark ? '#FFFFFF' : C.text) + ';">' +
       '<div style="font-family:' + FH + ';font-size:13px;font-weight:700;letter-spacing:.02em;color:' + sloganColor + ';padding:6px 0 0 2px;">' + esc(slogan) + '</div>' +
       '<div style="font-family:' + FH + ';font-size:11px;font-weight:700;letter-spacing:.10em;color:' + (dark ? C.orange : C.orangeInk) + ';text-transform:uppercase;padding:3px 0 0 2px;white-space:nowrap;">' + esc(linea) + '</div>';
   }
 
-  function firma(st, dark) {
+  function firma(st, tema) {
+    const dark = tema !== 'claro';
     const f = B(st, 'firma');
-    const t = dark ? C.textDark : C.text, m = dark ? C.mutedDark : C.muted, a = dark ? C.orange : C.purple;
+    // Los colores salen de la paleta, no de constantes sueltas. Para claro y oscuro son los
+    // mismos de siempre -el guardia byte a byte lo comprueba-, pero la firma dejaba de seguir al
+    // tema en cuanto habia un tercero: sobre el morado ponia el gris del tema oscuro, otro gris
+    // distinto del que usa el resto del correo.
+    const k = paleta(tema);
+    const t = k.texto, m = k.apagado, a = dark ? C.orange : C.purple;
     return '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>' +
-      '<td valign="top" style="padding:0 0 12px 0;">' + marca(st, dark, 168) + '</td></tr><tr>' +
+      '<td valign="top" style="padding:0 0 12px 0;">' + marca(st, tema, 168) + '</td></tr><tr>' +
       '<td valign="top" style="font-family:' + FB + ';font-size:13px;line-height:19px;color:' + m + ';">' +
       '<div style="font-family:' + FH + ';font-size:15px;font-weight:800;color:' + t + ';">' + esc(f.nombre) + '</div>' +
       '<div>' + esc(cargoDe(f)) + '</div>' +
@@ -698,8 +709,24 @@
   // sola funcion sirve las dos: solo cambia la paleta. Duplicar el HTML habria
   // garantizado que las dos versiones se separaran con el primer retoque.
 
-  function paleta(oscuro) {
-    return oscuro ? {
+  // Tres temas. El tercero no es "otro oscuro": en el oscuro el morado es un acento sobre negro,
+  // y aqui el morado ES la superficie. Es la marca puesta en el correo, para cuando la propuesta
+  // tiene que llegar como un objeto de Centauro y no como un documento.
+  //
+  // El naranja pasa a mandar en todo lo que hay que pulsar: sobre morado canta, y el texto del
+  // boton va oscuro, que da 7,5:1. Comprobados todos los pares; el mas justo es el texto apagado
+  // sobre el panel, 8,3:1, muy por encima del 4,5 que pide el minimo.
+  const TEMAS = ['claro', 'oscuro', 'centauro'];
+  const temaDe = st => TEMAS.indexOf(st.tema) >= 0 ? st.tema : 'claro';
+
+  function paleta(tema) {
+    if (tema === 'centauro') return {
+      fondo: '#1B0722', panel: '#33103F', panel2: '#421553', linea: '#63267B',
+      texto: '#F8F4FA', apagado: '#CBAFD8',
+      acento: C.orange, vivo: C.orange, sobreVivo: '#2A0E35',
+      botonFondo: C.orange, botonTexto: '#2A0E35',
+    };
+    return tema === 'oscuro' ? {
       fondo: C.black, panel: C.ink, panel2: C.ink2, linea: C.line,
       texto: C.textDark, apagado: C.mutedDark,
       acento: C.purpleLight, vivo: C.orange, sobreVivo: '#141016',
@@ -711,14 +738,15 @@
       botonFondo: C.purple, botonTexto: '#FFFFFF',
     };
   }
-  const esOscuro = st => st.tema === 'oscuro';
+  // Cierto para los dos temas de fondo oscuro: manda la version clara del logo y el texto claro.
+  const esOscuro = st => temaDe(st) !== 'claro';
 
   // Cabecera comun: logo a la izquierda, metadato a la derecha.
   // `submeta` es opcional y solo lo usa la Personalizada: el nombre de la empresa, bajo el
   // rotulo. Sin el, el HTML sale identico al de siempre, que es lo que E, F y G necesitan para
   // seguir pasando el guardia byte a byte.
   function cabeceraAsesor(st, P, meta, submeta) {
-    const k = paleta(esOscuro(st));
+    const k = paleta(temaDe(st));
     // Debajo y no dentro: el rotulo dice de que clase de correo se trata y la empresa dice de
     // quien es. Juntarlos en una linea de 10px en mayusculas espaciadas haria ilegible lo que
     // mas importa de los dos.
@@ -727,7 +755,7 @@
         'text-transform:none;color:' + k.texto + ';padding-top:6px;">' + esc(submeta) + '</div>'
       : '';
     return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
-      '<td valign="middle">' + marca(st, esOscuro(st), 150) + '</td>' +
+      '<td valign="middle">' + marca(st, temaDe(st), 150) + '</td>' +
       '<td valign="middle" align="right" style="font-family:' + FH + ';font-size:10px;font-weight:800;' +
         'letter-spacing:.24em;text-transform:uppercase;color:' + k.apagado + ';">' + esc(meta) + abajo + '</td>' +
       '</tr></table>';
@@ -735,14 +763,14 @@
 
   // Epigrafe pequeno en mayusculas. Es el recurso tipografico que ordena sus tres disenos.
   function epigrafe(st, txt, color) {
-    const k = paleta(esOscuro(st));
+    const k = paleta(temaDe(st));
     return '<div style="font-family:' + FH + ';font-size:11px;font-weight:800;letter-spacing:.26em;' +
       'text-transform:uppercase;color:' + (color || k.vivo) + ';padding:0 0 12px 0;">' + esc(txt) + '</div>';
   }
 
   // Boton solido construido con tabla, no con <button>: es lo unico que Outlook dibuja bien.
   function botonAsesor(st, texto, url) {
-    const k = paleta(esOscuro(st));
+    const k = paleta(temaDe(st));
     return '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>' +
       '<td bgcolor="' + k.botonFondo + '" style="background:' + k.botonFondo + ';border-radius:8px;">' +
       '<a href="' + esc(url) + '" style="display:inline-block;padding:15px 30px;font-family:' + FH + ';' +
@@ -754,7 +782,7 @@
   // pidio conservar las varias imagenes por servicio con sus transiciones.
   function fotoServicio(st, s, ancho, alto) {
     const src = (st.cardAnim && !usaPortadas(st)) ? carruselSrc(st, s) : svcImg(st, s);
-    const k = paleta(esOscuro(st));
+    const k = paleta(temaDe(st));
     return '<a href="' + esc(linkFor(st, s)) + '"><img src="' + esc(src) + '" width="' + ancho + '"' +
       (alto ? ' height="' + alto + '"' : '') + ' alt="' + esc(svcAlt(st, s)) + '"' +
       ' style="display:block;width:' + ancho + 'px;max-width:100%;height:auto;border:0;border-radius:8px;' +
@@ -786,7 +814,7 @@
   function complementos(st, yaMostrados, opts) {
     const faltan = activos(st).filter(s => yaMostrados.indexOf(s.id) < 0);
     if (!faltan.length) return '';
-    const k = paleta(esOscuro(st));
+    const k = paleta(temaDe(st));
     let filas = '';
     // opts.columnas === 1 fuerza una tarjeta por fila. Dos columnas son <td> hermanos, y un
     // <td> no baja debajo de su hermano en el movil sin media queries, que el correo no tiene:
@@ -849,6 +877,7 @@
     if (st.asunto3 === undefined) st.asunto3 = base.asunto3;
     if (st.efecto === undefined) st.efecto = base.efecto;
     if (st.efectoEntrega === undefined) st.efectoEntrega = st.efecto || base.efectoEntrega;
+    if (st.temaEntrega === undefined) st.temaEntrega = st.tema || base.temaEntrega;
     if (!st.efectosPorServicio) st.efectosPorServicio = {};
     if (!st.banco) st.banco = {};
     // Paradas salio del catalogo (2026-09-21). El estado guardado lleva una COPIA de los
@@ -930,7 +959,7 @@
     const T = C.textDark, M = C.mutedDark;
     P.push(row(
       '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
-      '<td valign="top">' + marca(st, true, 210) + '</td>' +
+      '<td valign="top">' + marca(st, 'oscuro', 210) + '</td>' +
       '</tr></table>', 'padding:22px 28px 18px 28px;background:' + C.ink + ';border-bottom:1px solid ' + C.line + ';'));
     if (on(st, 'titulo')) {
       const b = B(st, 'titulo');
@@ -983,7 +1012,7 @@
     if (on(st, 'cta')) P.push(row(button(B(st, 'cta').texto, B(st, 'cta').url, C.orange, C.black), 'padding:12px 28px 22px 28px;background:' + C.ink + ';'));
     let foot = '';
     if (on(st, 'cierre')) foot += '<div style="font-family:' + FB + ';font-size:15px;line-height:22px;color:' + T + ';padding:0 0 16px 0;">' + nl2br(B(st, 'cierre').texto) + '</div>';
-    if (on(st, 'firma')) foot += firma(st, true);
+    if (on(st, 'firma')) foot += firma(st, 'oscuro');
     if (foot) P.push(row(foot, 'padding:20px 28px 26px 28px;background:' + C.ink + ';border-top:1px solid ' + C.line + ';'));
     if (on(st, 'pie')) P.push(row('<div style="font-family:' + FB + ';font-size:11px;line-height:16px;color:' + M + ';">' + nl2br(B(st, 'pie').texto) + '</div>', 'padding:14px 28px 0 28px;'));
     return doc(st, C.black, P.join(''));
@@ -996,7 +1025,7 @@
       '<td width="60%" height="6" bgcolor="' + C.purple + '" style="background:' + C.purple + ';">&nbsp;</td><td height="6" bgcolor="' + C.orange + '" style="background:' + C.orange + ';">&nbsp;</td></tr></table></td></tr>');
     P.push(row(
       '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
-      '<td valign="top">' + marca(st, false, 210) + '</td>' +
+      '<td valign="top">' + marca(st, 'claro', 210) + '</td>' +
       '</tr></table>', 'padding:20px 28px;background:' + C.paper + ';border-bottom:1px solid ' + C.rule + ';'));
     let body = '';
     if (on(st, 'saludo')) body += '<div style="font-family:' + FB + ';font-size:15px;line-height:22px;color:' + C.text + ';padding:0 0 10px 0;">' + nl2br(fill(B(st, 'saludo').texto, st)) + '</div>';
@@ -1046,7 +1075,7 @@
     if (on(st, 'cta')) P.push(row(button(B(st, 'cta').texto, B(st, 'cta').url, C.purple, '#FFFFFF'), 'padding:12px 28px 22px 28px;background:' + C.paper + ';'));
     let foot = '';
     if (on(st, 'cierre')) foot += '<div style="font-family:' + FB + ';font-size:15px;line-height:22px;color:' + C.text + ';padding:0 0 16px 0;">' + nl2br(B(st, 'cierre').texto) + '</div>';
-    if (on(st, 'firma')) foot += firma(st, false);
+    if (on(st, 'firma')) foot += firma(st, 'claro');
     if (foot) P.push(row(foot, 'padding:20px 28px 26px 28px;background:' + C.paper + ';border-top:1px solid ' + C.rule + ';'));
     if (on(st, 'pie')) P.push(row('<div style="font-family:' + FB + ';font-size:11px;line-height:16px;color:' + C.muted + ';">' + nl2br(B(st, 'pie').texto) + '</div>', 'padding:14px 28px 0 28px;'));
     return doc(st, C.sand, P.join(''));
@@ -1084,7 +1113,7 @@
     }
     if (on(st, 'cta')) body += '<div style="padding:4px 0 18px 0;">' + button(B(st, 'cta').texto, B(st, 'cta').url, C.orange, C.black) + '</div>';
     if (on(st, 'cierre')) body += '<p style="margin:0 0 18px 0;font-family:' + FB + ';font-size:15px;line-height:23px;color:' + C.text + ';">' + nl2br(B(st, 'cierre').texto) + '</p>';
-    if (on(st, 'firma')) body += firma(st, false);
+    if (on(st, 'firma')) body += firma(st, 'claro');
     if (on(st, 'pie')) body += '<p style="margin:18px 0 0 0;font-family:' + FB + ';font-size:11px;line-height:16px;color:' + C.muted + ';">' + nl2br(B(st, 'pie').texto) + '</p>';
     P.push(row(body, 'padding:8px 4px;background:' + C.paper + ';'));
     return doc(st, C.paper, P.join(''));
@@ -1103,7 +1132,7 @@
 
     // Cabecera de marca
     P.push(row('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
-      '<td valign="top">' + marca(st, true, 168) + '</td>' +
+      '<td valign="top">' + marca(st, 'oscuro', 168) + '</td>' +
       '<td align="right" valign="top" style="font-family:' + FH + ';font-size:11px;font-weight:700;letter-spacing:.14em;color:' + C.orange + ';padding:4px 0 0 0;">DISPONIBILIDAD</td>' +
       '</tr></table>', 'padding:18px 24px;' + dark));
     // Foto de cabecera + titular
@@ -1165,7 +1194,7 @@
     if (on(st, 'cierre')) foot += txt(nl2br(B(st, 'cierre').texto), 16, T, 'padding:0 0 16px 0;');
     if (on(st, 'firma')) {
       const f = B(st, 'firma');
-      foot += firma(st, true);
+      foot += firma(st, 'oscuro');
     }
     if (foot) P.push(row(foot, 'padding:20px 28px 26px 28px;border-top:1px solid ' + C.line + ';' + dark));
     if (on(st, 'pie')) P.push(row(txt(nl2br(B(st, 'pie').texto), 12, M), 'padding:14px 28px 0 28px;'));
@@ -1238,7 +1267,7 @@
   // Su idea: una agencia no quiere que le eduquen, quiere la tabla. El correo entero es
   // una ficha de inventario con metricas comparables, sin parrafo introductorio de mas.
   function plantillaE(st) {
-    const o = esOscuro(st), k = paleta(o), P = [];
+    const tema = temaDe(st), o = tema !== 'claro', k = paleta(tema), P = [];
     const a = B(st, 'asesor');
     const pad = 'padding-left:32px;padding-right:32px;background:' + k.panel + ';';
 
@@ -1354,7 +1383,7 @@
 
     // Mi firma, por decision del cliente: la suya no lleva el correo de mercadeo.
     if (on(st, 'firma')) {
-      P.push(row(firma(st, o),
+      P.push(row(firma(st, tema),
         'padding:24px 32px 26px 32px;background:' + k.panel + ';border-top:1px solid ' + k.linea + ';'));
     }
     if (on(st, 'pie')) {
@@ -1368,7 +1397,7 @@
   // Su idea: quien nunca ha comprado exterior no necesita un catalogo, necesita que le
   // quiten el miedo. Tres fases en orden, cada una con el servicio que le corresponde.
   function plantillaF(st) {
-    const o = esOscuro(st), k = paleta(o), P = [];
+    const tema = temaDe(st), o = tema !== 'claro', k = paleta(tema), P = [];
     const a = B(st, 'asesor');
     const pad = 'padding-left:32px;padding-right:32px;background:' + k.panel + ';';
 
@@ -1460,7 +1489,7 @@
     if (compF) P.push(row(compF, pad + 'padding-bottom:26px;'));
 
     if (on(st, 'firma')) {
-      P.push(row(firma(st, o),
+      P.push(row(firma(st, tema),
         'padding:24px 32px 26px 32px;background:' + k.panel + ';border-top:1px solid ' + k.linea + ';'));
     }
     if (on(st, 'pie')) {
@@ -1474,7 +1503,7 @@
   // Su idea: no explicar el concepto, contarlo como escena. Dos momentos con hora, la
   // calle y el movil, y el puente entre los dos.
   function plantillaG(st) {
-    const o = esOscuro(st), k = paleta(o), P = [];
+    const tema = temaDe(st), o = tema !== 'claro', k = paleta(tema), P = [];
     const pad = 'padding-left:32px;padding-right:32px;background:' + k.panel + ';';
 
     P.push(row(cabeceraAsesor(st, P, 'PHYGITAL \u00b7 Serie 2026'),
@@ -1575,7 +1604,7 @@
     if (compG) P.push(row(compG, pad + 'padding-bottom:26px;'));
 
     if (on(st, 'firma')) {
-      P.push(row(firma(st, o),
+      P.push(row(firma(st, tema),
         'padding:24px 32px 26px 32px;background:' + k.panel + ';border-top:1px solid ' + k.linea + ';'));
     }
     if (on(st, 'pie')) {
@@ -1596,7 +1625,7 @@
   // firma, pie- porque una plantilla escrita a mano seria una segunda fuente de verdad, y
   // este proyecto ya pago dos veces ese precio (constitucion, principio II).
   function plantillaH(st) {
-    const o = esOscuro(st), k = paleta(o), P = [];
+    const tema = temaDe(st), o = tema !== 'claro', k = paleta(tema), P = [];
     const e = B(st, 'entrega');
     const pad = 'padding-left:32px;padding-right:32px;background:' + k.panel + ';';
     // Lo que se manda es el enlace propio de la entrega: registra la apertura y permite el
@@ -1642,7 +1671,7 @@
     if (compH) P.push(row(compH, pad + 'padding-bottom:26px;'));
 
     if (on(st, 'firma')) {
-      P.push(row(firma(st, o),
+      P.push(row(firma(st, tema),
         'padding:24px 32px 26px 32px;background:' + k.panel + ';border-top:1px solid ' + k.linea + ';'));
     }
     if (on(st, 'pie')) {
@@ -1667,7 +1696,19 @@
     const keys = Object.keys(TEMPLATES);
     return keys[Math.abs(Number(st.seed) || 0) % keys.length];
   }
-  const render = (st, key) => TEMPLATES[key || pick(st)].fn(aplicaAsunto(aplicaPerfil(normaliza(st))));
+  const temaEntregaDe = st => {
+    const t = st.temaEntrega || st.tema;
+    return TEMAS.indexOf(t) >= 0 ? t : 'claro';
+  };
+  const render = (st, key) => {
+    const k = key || pick(st);
+    const listo = aplicaAsunto(aplicaPerfil(normaliza(st)));
+    // Solo la Personalizada mira su propio aspecto, y sobre una COPIA: `tema` sigue siendo
+    // el del catalogo y no se toca, que es lo que evita que el morado reaparezca alli.
+    return TEMPLATES[k].fn(k === 'H'
+      ? Object.assign({}, listo, { tema: temaEntregaDe(listo) })
+      : listo);
+  };
 
   return { C, SERVICIOS, GRUPOS, TEMPLATES, IMG_SETS, PERFILES, ASUNTOS, asuntosDe, EFECTOS, efectoDe, pesoDe, rangoPeso, ROLES, CORREOS, cargoDe, correosDe, BANCO, bancoDe, fotosDe, comandoCarrusel, FICHA, CONTENT_VERSION, defaultState, render, renderText, renderWhatsApp, pick, aplicaPerfil, aplicaAsunto, normaliza };
 });

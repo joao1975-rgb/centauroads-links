@@ -625,6 +625,29 @@
       api('/api/auth/yo').catch(() => { const n = $('#aviso-sesion'); if (n) n.hidden = false; });
     }
 
+    // El aspecto, arriba del todo: es lo primero que se decide y lo que cambia el correo entero.
+    // El interruptor de A-G no vale aqui —vive en un panel que este modo no pinta, y ademas tiene
+    // dos posiciones para tres temas.
+    const asp = el('div', 'grp');
+    asp.appendChild(el('h2', null, 'Aspecto del correo'));
+    const ASPECTOS = [
+      ['claro', 'Claro', 'Papel blanco. El de siempre, y el que mejor se lee en cualquier bandeja.'],
+      ['oscuro', 'Oscuro', 'Sobre negro, con el morado de acento. Elegante y sobrio.'],
+      ['centauro', 'Centauro', 'El morado ES el fondo y el naranja manda: llega como un objeto de la marca, no como un documento.'],
+    ];
+    const botonesAsp = [];
+    const pintaAsp = () => botonesAsp.forEach(([b, k]) =>
+      b.setAttribute('aria-pressed', String(k === (st.temaEntrega || 'claro'))));
+    ASPECTOS.forEach(([clave, nombre, idea]) => {
+      const b = el('button', 'pf'); b.type = 'button';
+      b.appendChild(el('b', null, nombre));
+      b.appendChild(el('span', null, idea));
+      b.addEventListener('click', () => { st.temaEntrega = clave; pintaAsp(); touch(); });
+      botonesAsp.push([b, clave]); asp.appendChild(b);
+    });
+    pintaAsp();
+    frag.appendChild(asp);
+
     // 01 - La presentacion
     const p1 = pasoEl('01', 'La presentación', !!E.url);
     p1.appendChild(inputEl('bloques.entrega.url', 'Enlace de Canva del cliente', 'text'));
