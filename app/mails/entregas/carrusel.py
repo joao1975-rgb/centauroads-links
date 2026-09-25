@@ -43,24 +43,54 @@ from typing import List, Optional
 ANCHO = 600
 PRESUPUESTO_BYTES = 1_000_000
 
-# Cuánto se queda quieta cada página, y cuánto dura cada paso del barrido.
-PAUSA_MS = 2200
-PASO_MS = 90
+# Cuánto se queda quieta cada página, y cuánto dura cada paso de la transición.
+#
+# Son exactamente los de los GIF de A-G, medidos sobre los propios ficheros: 2000 ms quieta y
+# 80 ms por paso. Antes eran 2200 y 90, elegidos por separado, y en un correo que enseña los dos
+# carruseles —el del cliente arriba y los de los espacios debajo— esa diferencia se nota: van a
+# compases distintos.
+# Cuántos fotogramas se miran para construir la paleta común. Bastan unos pocos
+# repartidos por toda la secuencia; mirarlos todos cuesta memoria y no cambia el
+# resultado, porque lo que aporta color nuevo son las páginas y las mezclas, no cada
+# paso intermedio.
+_MUESTRA_PALETA = 8
+
+PAUSA_MS = 2000
+PASO_MS = 80
 
 # Intentos, del más vistoso al más pobre.
 #
-# El orden no es caprichoso, y se decidió **midiendo**. Quien recibe el correo pasa 2,2 s mirando
-# cada página quieta y medio segundo viendo el barrido: la nitidez de las páginas vale más que la
-# suavidad de la transición. Así que primero se recortan pasos y solo al final se bajan colores.
-# `pasos` 0 es corte seco: sin transición, y sigue siendo un carrusel legible.
+# Empieza en **12 pasos y 256 colores**, y las dos cifras son deliberadas:
+#
+# - 12 pasos es lo que usan los GIF de A-G. Con 2 la transición dura 180 ms y el ojo la lee como
+#   un corte —se vio al poner los dos carruseles en el mismo correo—; con 12 dura un segundo.
+# - 256 es el máximo que admite el formato. Antes no tenía sentido pedirlo, porque con una paleta
+#   por fotograma más colores significaba una tabla más gorda en CADA fotograma. Con la paleta
+#   común (`_escribe`) la tabla es una sola: pasar de 128 a 256 cuesta 62 KB en un barrido de
+#   12 pasos y baja el desvío de color de 3,5 a 2,8 niveles sobre 255, que es lo que se ve como
+#   bandas en los degradados.
+#
+# Primero se recortan colores y solo después pasos, al revés que antes. El motivo también cambió:
+# ahora el peso lo manda el número de pasos —bajar de 12 a 4 ahorra ocho veces más que bajar de
+# 256 a 128— así que empezar por los colores deja la suavidad intacta durante más escalones.
+# `pasos` 0 es el corte seco, y queda como último recurso.
 _INTENTOS = (
+    (12, 256),
+    (12, 192),
+    (12, 128),
+    (12, 96),
     (8, 128),
+    (8, 96),
     (6, 128),
+    (6, 96),
     (4, 128),
-    (2, 128),
+    (4, 96),
+    (4, 64),
+    (3, 96),
+    (3, 64),
+    (2, 64),
     (0, 128),
     (0, 96),
-    (0, 64),
 )
 
 
@@ -198,10 +228,43 @@ def _fotogramas(paginas, pasos: int, efecto: str = 'barrido'):
     return fotogramas, duraciones
 
 
-def _escribe(fotogramas, duraciones, colores: int) -> bytes:
+def _paleta_comun(fotogramas, colores: int):
+    """
+    Una sola paleta para todo el GIF, sacada de una muestra de los fotogramas de verdad.
+
+    De la muestra y no solo de las páginas: el fogonazo blanco del destello y las mezclas del
+    fundido tienen tonos que no están en ninguna página, y una paleta que no los tuviera los
+    pintaría a manchas.
+    """
     from PIL import Image
 
-    paleta = [f.convert("P", palette=Image.ADAPTIVE, colors=colores) for f in fotogramas]
+    paso = max(1, len(fotogramas) // _MUESTRA_PALETA)
+    muestra = fotogramas[::paso][:_MUESTRA_PALETA]
+    ancho, alto = fotogramas[0].size
+    montaje = Image.new("RGB", (ancho, alto * len(muestra)))
+    for i, f in enumerate(muestra):
+        montaje.paste(f, (0, i * alto))
+    return montaje.convert("P", palette=Image.ADAPTIVE, colors=colores)
+
+
+def _escribe(fotogramas, duraciones, colores: int) -> bytes:
+    """
+    El GIF, escrito para que cada fotograma pueda guardarse como **diferencia** del anterior.
+
+    Dos decisiones, y las dos se midieron:
+
+    - **Una paleta común.** Con una paleta por fotograma, cada uno lleva su propia tabla de color
+      y hay que reescribirlo entero: un barrido de 12 pasos pesaba 3,1 MB. Compartiendo paleta,
+      283 KB. El presupuesto se agotaba en cuatro pasos y la transición duraba 320 ms, que el ojo
+      lee como un corte; con doce dura un segundo, igual que los carruseles de A-G.
+    - **Sin tramado.** El tramado reparte el error de color con ruido, y ese ruido **cambia en
+      cada fotograma aunque la imagen no cambie**: convierte en diferencia lo que era idéntico.
+      Quitarlo es lo que más pesa de las dos (0,96 MB → 283 KB en el mismo barrido).
+    """
+    from PIL import Image
+
+    base = _paleta_comun(fotogramas, colores)
+    paleta = [f.quantize(palette=base, dither=Image.NONE) for f in fotogramas]
     buf = io.BytesIO()
     paleta[0].save(buf, format="GIF", save_all=True, append_images=paleta[1:],
                    duration=duraciones, loop=0, optimize=True, disposal=1)

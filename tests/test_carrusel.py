@@ -132,6 +132,96 @@ def test_el_fotograma_cero_no_depende_del_efecto():
         assert _cerca(_color_medio(gif), AZUL), 'el efecto %s cambio el fotograma 0' % efecto
 
 
+# --- El ritmo, que es lo que se compara con los carruseles de al lado ------------------
+#
+# En el mismo correo van dos carruseles: el de la propuesta del cliente arriba y los de los
+# espacios debajo. Si no van al mismo compás se nota, y lo que se ve es que el de arriba "da un
+# golpe". Las cifras son las de los GIF de A-G, medidas sobre los propios ficheros.
+
+def _duraciones(datos):
+    gif = Image.open(io.BytesIO(datos))
+    fuera = []
+    for i in range(gif.n_frames):
+        gif.seek(i)
+        fuera.append(gif.info.get("duration"))
+    return fuera
+
+
+def test_cada_pagina_se_queda_quieta_dos_segundos():
+    """
+    2000 ms, como los de A-G. Se compara con el número, no con la constante: si alguien cambia la
+    constante, esta prueba tiene que enterarse — que es justo lo que no pasaba.
+    """
+    datos = carrusel.arma([_pagina(ROJA), _pagina(VERDE), _pagina(AZUL)]).datos
+    assert _duraciones(datos)[0] == 2000
+
+
+def test_cada_paso_de_la_transicion_dura_ochenta_milisegundos():
+    """80 ms, como los de A-G. Con el doble, la transición se arrastra; con la mitad, parpadea."""
+    datos = carrusel.arma([_pagina(ROJA), _pagina(VERDE), _pagina(AZUL)]).datos
+    intermedios = [d for d in _duraciones(datos) if d != 2000]
+    assert intermedios, "no hay ningún fotograma de transición"
+    assert set(intermedios) == {80}
+
+
+def test_la_transicion_no_se_lee_como_un_corte():
+    """
+    Con dos pasos la transición dura 160 ms y el ojo la lee como un cambio seco: es lo que se vio
+    al ponerla al lado de los carruseles de A-G, que usan doce. Con páginas que caben de sobra no
+    hay excusa para recortar.
+    """
+    r = carrusel.arma([_pagina(ROJA), _pagina(VERDE), _pagina(AZUL)], efecto="barrido")
+    assert r.pasos >= 12, "el barrido se quedó en %d pasos (%d ms de transición)" % (
+        r.pasos, r.pasos * 80)
+
+
+def test_el_carrusel_se_repite_sin_fin():
+    """`loop=0` es infinito. Con cualquier otro número el cliente se queda mirando la última."""
+    datos = carrusel.arma([_pagina(ROJA), _pagina(VERDE)]).datos
+    assert Image.open(io.BytesIO(datos)).info.get("loop") == 0
+
+
+def _degradado(c1, c2):
+    """
+    Una página con degradado, que es lo que son las de verdad.
+
+    Con colores planos esta prueba no sirve: comprimen igual de bien con paleta común que sin
+    ella, y las dos roturas que tiene que cazar pasaban desapercibidas. Se construye pequeña y se
+    amplía: sale un degradado suave, con cientos de tonos, en un parpadeo.
+    """
+    chico = Image.new("RGB", (32, 32))
+    px = chico.load()
+    for y in range(32):
+        for x in range(32):
+            t = (x + y) / 62
+            px[x, y] = tuple(round(a + (b - a) * t) for a, b in zip(c1, c2))
+    return chico.resize((600, 338), Image.BILINEAR)
+
+
+def test_el_gif_lleva_una_sola_paleta_y_sin_tramado():
+    """
+    Las dos decisiones que hicieron posible la transición suave, y las dos se pueden deshacer sin
+    que nada más se entere.
+
+    Con **una paleta por fotograma**, cada uno lleva su tabla de color y hay que reescribirlo
+    entero. Con **tramado**, el ruido que reparte el error de color cambia en cada fotograma
+    aunque la imagen no cambie, y convierte en diferencia lo que era idéntico. Cualquiera de las
+    dos agota el presupuesto en cuatro pasos y devuelve el golpe seco.
+
+    Medido sobre estas mismas páginas: 1,10 MB con paleta propia y tramado, 362 KB con paleta
+    común pero tramando, y 126 KB como está. El techo va entre medias de las dos últimas, que es
+    lo que hace que la prueba muerda también cuando solo se deshace una de las dos.
+    """
+    paginas = [_degradado((60, 20, 90), (240, 150, 40)),
+               _degradado((20, 80, 60), (200, 220, 240)),
+               _degradado((90, 10, 10), (250, 240, 200))]
+    r = carrusel.arma(paginas, efecto="barrido")
+    assert r.pasos >= 12, "no cupieron los 12 pasos: %d" % r.pasos
+    assert r.bytes < 250_000, (
+        "%d bytes para 12 pasos: el GIF no está guardando diferencias, así que o cada fotograma "
+        "lleva su propia paleta o se está tramando" % r.bytes)
+
+
 # --- El presupuesto se cumple, no se promete ------------------------------------------
 
 def test_el_carrusel_entra_en_presupuesto():
