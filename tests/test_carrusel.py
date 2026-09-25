@@ -156,12 +156,56 @@ def test_cada_pagina_se_queda_quieta_dos_segundos():
     assert _duraciones(datos)[0] == 2000
 
 
-def test_cada_paso_de_la_transicion_dura_ochenta_milisegundos():
-    """80 ms, como los de A-G. Con el doble, la transición se arrastra; con la mitad, parpadea."""
+def test_cada_paso_dura_lo_que_marca_el_generador_de_los_otros():
+    """
+    70 ms. `prototipos/mail/carrusel_gif.py` va a 15 fps y pone ahí la frontera —"por debajo de
+    12 la transición se percibe a saltos"—; doce pasos de 70 ms son 840 ms, que es su `TRANS`.
+    """
     datos = carrusel.arma([_pagina(ROJA), _pagina(VERDE), _pagina(AZUL)]).datos
     intermedios = [d for d in _duraciones(datos) if d != 2000]
     assert intermedios, "no hay ningún fotograma de transición"
-    assert set(intermedios) == {80}
+    assert set(intermedios) == {70}
+
+
+def _avance_del_barrido(datos):
+    """
+    Dónde va el filo del barrido en cada fotograma, de 0 a 1.
+
+    Se mira una fila de píxeles y se cuenta cuántos son ya de la página siguiente. Es la forma
+    directa de ver la CURVA del movimiento, que es lo que ninguna cifra de duración enseña.
+    """
+    gif = Image.open(io.BytesIO(datos))
+    fuera = []
+    for i in range(gif.n_frames):
+        gif.seek(i)
+        fila = list(gif.convert("RGB").crop((0, 100, gif.width, 101)).getdata())
+        verdes = sum(1 for px in fila if px[1] > px[0])
+        fuera.append(verdes / float(gif.width))
+    return fuera
+
+
+def test_la_transicion_acelera_y_frena():
+    """
+    Una transición lineal se nota mecánica: la página nueva sale disparada en el primer fotograma
+    y se para en seco en el último. `suave()` la hace arrancar despacio, correr por el medio y
+    frenar al llegar — la misma curva que usa el generador de los carruseles de los espacios,
+    porque los dos van en el mismo correo.
+
+    Esto es lo que las duraciones no enseñaban: el ritmo ya era el correcto y aun así se veía
+    como un golpe.
+    """
+    datos = carrusel.arma([_pagina(ROJA), _pagina(VERDE)], efecto="barrido").datos
+    avances = _avance_del_barrido(datos)
+    # Los pasos de la PRIMERA transición: del fotograma 1 hasta antes de la página quieta.
+    tramo = avances[1:avances.index(max(avances)) + 1]
+    assert len(tramo) >= 6, "hacen falta pasos suficientes para ver la curva: %d" % len(tramo)
+    paso = [b - a for a, b in zip(tramo, tramo[1:])]
+    medio = paso[len(paso) // 2]
+    assert medio > paso[0] * 1.5, (
+        "el primer paso avanza %.3f y el del medio %.3f: eso es una recta, no una curva"
+        % (paso[0], medio))
+    assert medio > paso[-1] * 1.5, (
+        "no frena al llegar: paso del medio %.3f, último %.3f" % (medio, paso[-1]))
 
 
 def test_la_transicion_no_se_lee_como_un_corte():

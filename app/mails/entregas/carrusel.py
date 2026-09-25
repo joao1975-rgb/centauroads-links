@@ -45,10 +45,11 @@ PRESUPUESTO_BYTES = 1_000_000
 
 # Cuánto se queda quieta cada página, y cuánto dura cada paso de la transición.
 #
-# Son exactamente los de los GIF de A-G, medidos sobre los propios ficheros: 2000 ms quieta y
-# 80 ms por paso. Antes eran 2200 y 90, elegidos por separado, y en un correo que enseña los dos
-# carruseles —el del cliente arriba y los de los espacios debajo— esa diferencia se nota: van a
-# compases distintos.
+# Son los de los GIF de A-G, sacados de su generador (`prototipos/mail/carrusel_gif.py`): dos
+# segundos quieta y 15 fotogramas por segundo, que es donde su propio código pone la frontera
+# —"por debajo de 12 la transición se percibe a saltos"—. Doce pasos de 70 ms son 840 ms, que es
+# el `TRANS = 0.85` de allí. En un correo que enseña los dos carruseles, el del cliente arriba y
+# los de los espacios debajo, cualquier diferencia de compás se nota.
 # Cuántos fotogramas se miran para construir la paleta común. Bastan unos pocos
 # repartidos por toda la secuencia; mirarlos todos cuesta memoria y no cambia el
 # resultado, porque lo que aporta color nuevo son las páginas y las mezclas, no cada
@@ -56,7 +57,7 @@ PRESUPUESTO_BYTES = 1_000_000
 _MUESTRA_PALETA = 8
 
 PAUSA_MS = 2000
-PASO_MS = 80
+PASO_MS = 70
 
 # Intentos, del más vistoso al más pobre.
 #
@@ -150,6 +151,21 @@ def _uniforma(imagenes, ancho: int):
 EFECTOS = ('corte', 'barrido', 'persiana', 'fundido', 'deslizar', 'destello', 'zoom')
 
 
+def suave(t: float) -> float:
+    """
+    Aceleración y frenada. Una transición lineal se nota mecánica.
+
+    Es la misma curva —y el mismo nombre— que `prototipos/mail/carrusel_gif.py`, el generador de
+    los carruseles de los espacios. No una parecida: los dos van en el mismo correo, uno encima
+    del otro, y cualquier diferencia de movimiento se lee como que el de arriba "da un golpe".
+
+    Aquí estaba el fallo que las cifras no enseñaban: la duración ya era la correcta —840 ms
+    contra los 850 de allí— y aun así parecía un corte, porque en línea recta la página nueva
+    sale disparada en el primer fotograma y se para en seco en el último.
+    """
+    return t * t * (3 - 2 * t)
+
+
 def _paso(actual, siguiente, efecto: str, t: float):
     """
     Un fotograma intermedio entre dos páginas, con `t` de 0 a 1.
@@ -158,9 +174,12 @@ def _paso(actual, siguiente, efecto: str, t: float):
     por gusto, no por técnica. El único que se comporta distinto de verdad es `fundido`: mezcla
     los dos fotogramas enteros, así que ningún píxel se repite entre uno y el siguiente y el GIF
     no puede ahorrarse nada. Por eso pesa más, y por eso el presupuesto lo recorta antes.
+
+    `t` entra lineal y se curva aquí, en un solo sitio: así ningún efecto puede olvidarse.
     """
     from PIL import Image
 
+    t = suave(t)
     ancho, alto = actual.size
 
     if efecto == 'fundido':
