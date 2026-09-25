@@ -427,13 +427,6 @@
           texto: 'Preparamos esta propuesta para {empresa}: los espacios que le convienen, d\u00f3nde se ve y qu\u00e9 pasa cuando la gente pasa por delante.\n\n\u00c1brela con calma y me dices qu\u00e9 te parece. Si hay algo que ajustar, lo ajustamos.',
           corto: 'Te dejo la propuesta que preparamos para {empresa}. \u00c1brela con calma y me dices qu\u00e9 te parece.',
           cta: 'Ver la propuesta',
-          // Pie propio, y corto a proposito. El de A-G explica por que recibes el correo
-          // -"solicitaste informacion sobre espacios publicitarios"-, que en una entrega
-          // sobra: el cuerpo ya dice exactamente de que va y a quien.
-          // El primer intento fue el nombre y la ciudad, y visto renderizado repetia la
-          // ultima linea de la firma, justo encima. Una invitacion a responder no repite
-          // nada y ademas sirve: es lo que se espera despues de una propuesta.
-          pie: 'Cualquier duda, resp\u00f3ndeme a este mismo correo.',
           acompanan: 'Lo que la acompa\u00f1a',
         },
         pie: { on: true, texto: 'Recibes este correo porque solicitaste información sobre espacios publicitarios de Centauro ADS.' },
@@ -1674,10 +1667,10 @@
       P.push(row(firma(st, tema),
         'padding:24px 32px 26px 32px;background:' + k.panel + ';border-top:1px solid ' + k.linea + ';'));
     }
-    if (on(st, 'pie')) {
-      P.push(row('<div style="font-family:' + FB + ';font-size:11px;line-height:16px;color:' + k.apagado + ';">' +
-        nl2br(e.pie) + '</div>', 'padding:14px 32px 0 32px;'));
-    }
+    // Sin pie. El de A-G explica POR QUÉ recibes el correo —es un envío de catálogo—; una
+    // propuesta que llega con tu nombre y tu empresa en la cabecera no tiene nada que explicar, y
+    // la firma de arriba ya lleva el correo y el teléfono. Además el que había no se podía tocar:
+    // esto pintaba `bloques.entrega.pie` y el panel editaba `bloques.pie`, que es otro campo.
     return doc(st, k.fondo, P.join(''));
   }
 

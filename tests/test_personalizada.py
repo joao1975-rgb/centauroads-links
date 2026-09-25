@@ -250,3 +250,19 @@ def test_renderizar_no_deja_tocado_el_estado(html):
     solo, sin que nadie lo hubiera pedido.
     """
     assert html["temaTrasRenderizar"] == "claro"
+
+
+def test_la_personalizada_no_lleva_pie(html):
+    """
+    Había una línea al final —"Cualquier duda, respóndeme a este mismo correo"— que no se podía
+    tocar desde ningún sitio: la plantilla pintaba `bloques.entrega.pie` y el panel editaba
+    `bloques.pie`, que es otro campo. Un texto fijo que nadie puede cambiar es peor que no estar.
+
+    El pie de A-G explica POR QUÉ recibes el correo, porque es un envío de catálogo. Una propuesta
+    que llega con tu nombre y tu empresa en la cabecera no tiene nada que explicar, y la firma ya
+    lleva el correo y el teléfono.
+    """
+    for tema in ("claro", "oscuro", "centauro"):
+        cuerpo = html["H_" + tema]
+        assert "respóndeme a este mismo correo" not in cuerpo
+        assert "solicitaste informaci" not in cuerpo, "se coló el pie del catálogo"

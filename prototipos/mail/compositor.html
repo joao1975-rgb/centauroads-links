@@ -1032,8 +1032,8 @@
       const g = el('div', 'grp'); g.appendChild(el('h2', null, 'Espacios que la acompañan'));
       st.servicios.forEach((sv, i) => g.appendChild(servicioEl(sv, i)));
       p.appendChild(g);
-      const gb = el('div', 'grp'); gb.appendChild(el('h2', null, 'Saludo, firma y pie'));
-      BLOQUES.filter(d => ['saludo', 'firma', 'pie'].indexOf(d.k) >= 0)
+      const gb = el('div', 'grp'); gb.appendChild(el('h2', null, 'Saludo y firma'));
+      BLOQUES.filter(d => ['saludo', 'firma'].indexOf(d.k) >= 0)
         .forEach(d => gb.appendChild(blockEl(d)));
       p.appendChild(gb);
       return;
