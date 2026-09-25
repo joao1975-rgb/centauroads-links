@@ -506,6 +506,16 @@
   // servicios cierra (11 px, naranja, con espaciado amplio). Sin degradados ni adornos: el logo ya tiene color.
   // El logo va en PNG sobre fondo plano (Outlook no compone transparencias con fiabilidad) y a doble resolucion
   // mostrado a la mitad, para que no se vea blando en pantallas densas.
+  // Un logo por tema, y no por casualidad: van aplanados sobre fondo plano porque Outlook no
+  // compone transparencias con fiabilidad, asi que cada uno trae pintado el fondo de SU panel.
+  // Sin el de la marca, el del tema oscuro dejaba un recuadro casi negro sobre el morado.
+  // Se generan con .
+  const LOGOS = {
+    claro: 'logo_h_light_2x.png',
+    oscuro: 'logo_h_dark_2x.png',
+    centauro: 'logo_h_centauro_2x.png',
+  };
+
   function marca(st, tema, ancho) {
     const dark = tema !== 'claro';
     const w = ancho || 200;
@@ -514,7 +524,7 @@
     const linea = f.linea || 'PHYGITAL DOOH + Digital';
     // Sobre morado, el morado claro del slogan se pierde contra su propio fondo: va en blanco.
     const sloganColor = tema === 'centauro' ? '#F8F4FA' : (dark ? C.purpleLight : C.purple);
-    return '<img src="' + esc(imgFor(st, dark ? 'logo_h_dark_2x.png' : 'logo_h_light_2x.png')) + '" width="' + w + '" alt="Centauro ADS" style="display:block;width:' + w + 'px;max-width:100%;height:auto;border:0;font-family:' + FH + ';font-size:22px;font-weight:800;letter-spacing:-.01em;color:' + (dark ? '#FFFFFF' : C.text) + ';">' +
+    return '<img src="' + esc(imgFor(st, LOGOS[tema] || LOGOS.claro)) + '" width="' + w + '" alt="Centauro ADS" style="display:block;width:' + w + 'px;max-width:100%;height:auto;border:0;font-family:' + FH + ';font-size:22px;font-weight:800;letter-spacing:-.01em;color:' + (dark ? '#FFFFFF' : C.text) + ';">' +
       '<div style="font-family:' + FH + ';font-size:13px;font-weight:700;letter-spacing:.02em;color:' + sloganColor + ';padding:6px 0 0 2px;">' + esc(slogan) + '</div>' +
       '<div style="font-family:' + FH + ';font-size:11px;font-weight:700;letter-spacing:.10em;color:' + (dark ? C.orange : C.orangeInk) + ';text-transform:uppercase;padding:3px 0 0 2px;white-space:nowrap;">' + esc(linea) + '</div>';
   }

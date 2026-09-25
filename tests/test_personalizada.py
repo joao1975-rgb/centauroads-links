@@ -323,3 +323,60 @@ def test_la_despedida_va_antes_de_la_firma(html):
         cuerpo = html["H_" + tema]
         assert "dímelo y lo busco" in cuerpo
         assert cuerpo.index("dímelo y lo busco") < cuerpo.index("Alianzas Comerciales")
+
+
+# --- El logo, uno por tema --------------------------------------------------------------
+
+def test_cada_tema_usa_su_propio_logo(html):
+    """
+    Los logos van aplanados sobre fondo plano —Outlook no compone transparencias con fiabilidad—
+    así que cada uno trae pintado el fondo de SU panel. Con el del tema oscuro sobre el morado se
+    veía un recuadro casi negro alrededor del logo, arriba y en la firma.
+    """
+    esperado = {
+        "claro": "logo_h_light_2x.png",
+        "oscuro": "logo_h_dark_2x.png",
+        "centauro": "logo_h_centauro_2x.png",
+    }
+    for tema, fichero in esperado.items():
+        cuerpo = html["H_" + tema]
+        assert fichero in cuerpo, "%s no usa %s" % (tema, fichero)
+        # Los otros dos no pueden aparecer: uno solo por correo, y en sus dos sitios.
+        for otro in esperado.values():
+            if otro != fichero:
+                assert otro not in cuerpo, "%s arrastra %s" % (tema, otro)
+
+
+def test_el_logo_sale_arriba_y_en_la_firma(html):
+    """Los dos sitios donde se vio el recuadro. Uno solo no sirve: se veía en ambos."""
+    assert html["H_centauro"].count("logo_h_centauro_2x.png") == 2
+
+
+@pytest.mark.parametrize("tema,fichero", [
+    ("claro", "logo_h_light_2x.png"),
+    ("oscuro", "logo_h_dark_2x.png"),
+    ("centauro", "logo_h_centauro_2x.png"),
+])
+def test_el_fondo_del_logo_es_el_del_panel(html, tema, fichero):
+    """
+    El invariante que de verdad importa, y el que se rompió: el fondo pintado en el PNG tiene que
+    ser EXACTAMENTE el color del panel de su tema. Si no, se ve un recuadro alrededor del logo.
+
+    Se comprueba contra el color que sale del motor, no contra una constante copiada aquí. Así,
+    cambiar el morado del panel y olvidar regenerar el logo —lo que avisa
+    `prototipos/mail/logo_centauro.py`— hace fallar esto en vez de aparecer en el correo de un
+    cliente.
+    """
+    PIL = pytest.importorskip("PIL.Image")
+    import re
+    panel = re.search(r"padding:26px 32px 22px 32px;background:(#[0-9A-Fa-f]{6})",
+                      html["H_" + tema])
+    assert panel, "no se pudo leer el color del panel de %s" % tema
+    esperado = tuple(int(panel.group(1)[i:i + 2], 16) for i in (1, 3, 5))
+
+    ruta = RAIZ / "app" / "static" / "email" / fichero
+    assert ruta.exists(), "falta %s" % fichero
+    esquina = PIL.open(ruta).convert("RGB").getpixel((2, 2))
+    assert esquina == esperado, (
+        "%s lleva fondo %s y el panel de %s es %s: se verá un recuadro alrededor del logo"
+        % (fichero, esquina, tema, esperado))
