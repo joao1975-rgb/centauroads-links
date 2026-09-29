@@ -1,0 +1,8 @@
+#!/bin/sh
+# Gancho pre-commit (spec 001, T002-T004): bloquea el commit si gitleaks encuentra secretos en lo preparado.
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "gitleaks no está instalado: instálalo (winget install Gitleaks.Gitleaks) antes de commitear." >&2
+  exit 1
+fi
+gitleaks git --staged --redact --no-banner --config "$(git rev-parse --show-toplevel)/.gitleaks.toml" || {
+  echo "Commit bloqueado: gitleaks encontró secretos en los cambios preparados." >&2; exit 1; }

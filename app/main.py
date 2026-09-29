@@ -39,11 +39,28 @@ app = FastAPI(
     version="1.0.0",
 )
 
+def origenes_cors(valor: Optional[str]) -> list[str]:
+    """
+    Orígenes permitidos a partir de CORS_ORIGINS (separados por comas).
+
+    Vacía = ningún origen cruzado: el panel se sirve desde el mismo dominio y no los necesita.
+    El comodín «*» se descarta siempre (Principio V: CORS solo a dominios propios).
+    """
+    origenes = []
+    for trozo in (valor or "").split(","):
+        origen = trozo.strip().rstrip("/")
+        if origen and origen != "*" and origen not in origenes:
+            origenes.append(origen)
+    return origenes
+
+
+# CORS restringido (spec 001 del ecosistema, T059). Sin allow_credentials: el panel usa su
+# cookie en el mismo dominio y la API de administración va con cabecera, no con cookies cruzadas.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=origenes_cors(os.getenv("CORS_ORIGINS")),
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "X-Admin-Key", "Authorization"],
 )
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -74,10 +91,12 @@ with SessionLocal() as _db:
 # ---------------------------------------------------------------------------
 # Autenticación de administración
 #   - ADMIN_KEY: clave operativa del panel. Origen: data/admin.key (persistente) > variable ADMIN_KEY >
-#     si no hay ninguna, se genera una aleatoria al arrancar, se guarda en data/admin.key y se avisa por log.
+#     si no hay ninguna, se genera una aleatoria al arrancar y se guarda en data/admin.key (permisos 600).
+#     El log solo dice DÓNDE quedó guardada: la clave nunca se escribe en el log.
 #   - SUPERADMIN_USER / SUPERADMIN_PASS: solo por variables de entorno (nunca en el código). Si faltan, los
 #     endpoints de superadmin responden 503.
-#   - La clave viaja en la cabecera X-Admin-Key (recomendado); ?admin_key= se acepta por compatibilidad.
+#   - La clave viaja SOLO en la cabecera X-Admin-Key. `?admin_key=` se retiró (T075/T076): quedaba en los
+#     logs de acceso y en el historial del navegador, y ni el panel ni los scripts del repo lo usaban.
 # ---------------------------------------------------------------------------
 log = logging.getLogger("centaurads")
 KEY_FILE = os.getenv("ADMIN_KEY_FILE", "data/admin.key")
@@ -95,24 +114,25 @@ def get_admin_password():
         return env_key
     generated = secrets.token_urlsafe(24)
     set_admin_password(generated)
-    log.warning("ADMIN_KEY no configurada: se generó una clave aleatoria y se guardó en %s. Clave inicial: %s",
-                KEY_FILE, generated)
+    log.warning("ADMIN_KEY no configurada: se generó una clave aleatoria y se guardó en %s "
+                "(léela de ese fichero; no se escribe en el log).", KEY_FILE)
     return generated
 
 def set_admin_password(new_pass: str):
     os.makedirs(os.path.dirname(KEY_FILE) or ".", exist_ok=True)
-    with open(KEY_FILE, "w") as f:
+    # Se crea ya con 0600, sin ventana en la que otro usuario pueda leerla, y se fuerza con chmod por
+    # si el fichero existía antes con permisos más abiertos (os.open no los cambia en ese caso).
+    fd = os.open(KEY_FILE, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as f:
         f.write(new_pass.strip())
+    os.chmod(KEY_FILE, 0o600)
 
 def verify_admin(admin_key: Optional[str]):
     if not admin_key or not secrets.compare_digest(admin_key, get_admin_password()):
         raise HTTPException(status_code=401, detail="Clave de administración inválida")
 
-def require_admin(
-    x_admin_key: Optional[str] = Header(None, alias="X-Admin-Key"),
-    admin_key: Optional[str] = Query(None, description="Obsoleto: usar la cabecera X-Admin-Key"),
-):
-    verify_admin(x_admin_key or admin_key)
+def require_admin(x_admin_key: Optional[str] = Header(None, alias="X-Admin-Key")):
+    verify_admin(x_admin_key)
 
 def check_superadmin(user: str, password: str):
     # La comprobacion vive en app/auth/superadmin.py: la usan tambien las rutas del panel, y dos
