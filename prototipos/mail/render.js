@@ -485,7 +485,7 @@
         // `responder`: el boton abre un mensaje a la cuenta desde la que se envia, con "Re:" y el
         // asunto del correo (ver ctaHref). Apagado, manda `url`, escrita a mano.
         cta: { on: true, texto: 'Enviar información para cotizar', url: 'mailto:mercadeo@centauroads.com?subject=Solicitud%20de%20cotizaci%C3%B3n',
-          responder: true, cuerpo: 'Hola, quiero pedir una cotización. Me interesan estos espacios:\n\n',
+          responder: true, cuerpo: 'Hola,\n\nRevisé tu presentación «{titulo}» y quiero pedir una cotización. Me interesan estos espacios:\n\n',
           alternativa: 'O, si lo prefieres, responde directamente a este correo.' },
         cierre: { on: true, texto: 'Quedo atenta a tu respuesta.' },
         firma: { on: true, nombre: 'Elizabeth Quintero',
@@ -577,13 +577,22 @@
   // respuesta que es. Antes abria un correo nuevo a otra direccion, con un asunto que no casaba con nada.
   // Con `responder` apagado manda el enlace escrito a mano (un formulario, otra direccion).
   const CUENTA_DE_ENVIO = 'mercadeo@centauroads.com';
-  function ctaHref(st) {
+  // `titulo` es el de ESTE correo («Soluciones disponibles», o el titular de E, F y G): lo pone
+  // cada plantilla, y va en el hueco {titulo} del texto inicial para que mercadeo sepa que presentacion
+  // pide el cliente sin tener que buscarla.
+  function ctaHref(st, titulo) {
     const c = B(st, 'cta');
     if (c.responder === false) return c.url;
     const asunto = String(st.asunto || '').trim();
     const re = /^re:/i.test(asunto) ? asunto : 'Re: ' + asunto;
     return 'mailto:' + ((B(st, 'firma') || {}).contacto || CUENTA_DE_ENVIO) +
-      '?subject=' + encodeURIComponent(re) + (c.cuerpo ? '&body=' + encodeURIComponent(c.cuerpo) : '');
+      '?subject=' + encodeURIComponent(re) + (c.cuerpo ? '&body=' + encodeURIComponent(conTitulo(c.cuerpo, titulo)) : '');
+  }
+  function conTitulo(texto, titulo) {
+    // Sin marcas de realce ni saltos: en un correo de texto plano se verian tal cual.
+    const t = String(titulo || '').replace(/\*/g, '').replace(/\s+/g, ' ').trim().replace(/[.:;,]+$/, '');
+    // Sin titulo, fuera tambien las comillas: «tu presentación «»» seria una frase rota.
+    return t ? String(texto).replace(/\{titulo\}/g, t) : String(texto).replace(/\s*«?\{titulo\}»?/g, '');
   }
   const webHref = (w) => /^https?:\/\//.test(w || '') ? w : 'https://' + (w || '');
   const imgFor = (st, name) => (st.assetBase || 'img').replace(/\/$/, '') + '/' + name;
@@ -1026,6 +1035,8 @@
     branding: ['mailto:equintero@centauroads.com?subject=Cat%C3%A1logo%20de%20branding%20y%20esculturas'],
     cta: ['mailto:equintero@centauroads.com?subject=Solicitud%20de%20cotizaci%C3%B3n'],
   };
+  // El texto inicial de la respuesta, antes de nombrar la presentacion. Mismo criterio.
+  const CUERPO_CTA_ANTES = ['Hola, quiero pedir una cotización. Me interesan estos espacios:\n\n'];
 
   function normaliza(st) {
     const base = defaultState();
@@ -1078,6 +1089,7 @@
         if (st.bloques[k][campo] === undefined) st.bloques[k][campo] = base.bloques[k][campo];
       });
     });
+    if (st.bloques.cta && CUERPO_CTA_ANTES.indexOf(st.bloques.cta.cuerpo) >= 0) st.bloques.cta.cuerpo = base.bloques.cta.cuerpo;
     Object.keys(ENLACES_ANTES).forEach(function (k) {
       if (st.bloques[k] && ENLACES_ANTES[k].indexOf(st.bloques[k].url) >= 0) st.bloques[k].url = base.bloques[k].url;
     });
@@ -1185,7 +1197,7 @@
         lines(b.requisitos).map(esc).join(' · ') + '.', 14, k.apagado, 'padding:18px 0 0 0;');
     }
     if (on(st, 'cta')) {
-      h += '<div style="padding:26px 0 0 0;">' + senal(B(st, 'cta').texto, ctaHref(st), N.luz, N.tinta) + '</div>';
+      h += '<div style="padding:26px 0 0 0;">' + senal(B(st, 'cta').texto, ctaHref(st, B(st, 'titulo').texto), N.luz, N.tinta) + '</div>';
       if (B(st, 'cta').alternativa) h += cuerpo(esc(B(st, 'cta').alternativa), 14, k.apagado, 'padding:12px 0 0 0;');
     }
     return h;
@@ -1310,7 +1322,7 @@
       body += p(esc(b.titulo) + ': ' + lines(b.items).map(esc).join(', ') + '.');
     }
     if (on(st, 'suministro')) { const b = B(st, 'suministro'); body += p('<b>' + esc(b.titulo) + '.</b> ' + esc(b.texto) + ' ' + lines(b.requisitos).map(esc).join(' · ') + '.', 'color:' + N.gris + ';font-size:14px;'); }
-    if (on(st, 'cta')) body += p('<a href="' + esc(ctaHref(st)) + '" style="color:' + N.morado + ';font-weight:700;">' + esc(B(st, 'cta').texto) + ' &rarr;</a>' + (B(st, 'cta').alternativa ? '<br><span style="color:' + N.gris + ';font-size:14px;">' + esc(B(st, 'cta').alternativa) + '</span>' : ''), 'margin:4px 0 22px 0;');
+    if (on(st, 'cta')) body += p('<a href="' + esc(ctaHref(st, B(st, 'titulo').texto)) + '" style="color:' + N.morado + ';font-weight:700;">' + esc(B(st, 'cta').texto) + ' &rarr;</a>' + (B(st, 'cta').alternativa ? '<br><span style="color:' + N.gris + ';font-size:14px;">' + esc(B(st, 'cta').alternativa) + '</span>' : ''), 'margin:4px 0 22px 0;');
     if (on(st, 'cierre')) body += p(nl2br(B(st, 'cierre').texto), 'margin-bottom:22px;');
     if (on(st, 'firma')) body += firma(st, 'claro');
     if (on(st, 'pie')) body += '<p style="margin:22px 0 0 0;font-family:' + FB + ';font-size:11px;line-height:16px;color:' + N.gris + ';">' + nl2br(B(st, 'pie').texto) + '</p>';
@@ -1375,7 +1387,7 @@
     if (on(st, 'presupuesto')) { const b = B(st, 'presupuesto'); fin += cuerpo('<b style="color:' + N.texto + ';">' + esc(b.titulo) + '</b>', 16, N.texto, 'padding:20px 0 8px 0;') + lista(lines(b.items), N.texto, N.hilo); }
     if (on(st, 'suministro')) { const b = B(st, 'suministro'); fin += cuerpo('Para proyectos de branding e instalación: ' + lines(b.requisitos).map(esc).join(' · ') + '.', 15, N.apagado, 'padding:14px 0 0 0;'); }
     if (on(st, 'cta')) {
-      fin += '<div style="padding:24px 0 0 0;">' + pildora(B(st, 'cta').texto, ctaHref(st), true) + '</div>';
+      fin += '<div style="padding:24px 0 0 0;">' + pildora(B(st, 'cta').texto, ctaHref(st, B(st, 'titulo').texto), true) + '</div>';
       if (B(st, 'cta').alternativa) fin += cuerpo(esc(B(st, 'cta').alternativa), 15, N.apagado, 'padding:14px 0 0 0;text-align:center;');
     }
     if (fin) P.push(row(fin, 'padding:32px 24px 34px 24px;background:' + N.noche2 + ';'));
@@ -1546,7 +1558,7 @@
       '</td></tr></table>', pad + 'padding-bottom:24px;'));
 
     if (on(st, 'cta')) {
-      P.push(row(botonAsesor(st, B(st, 'asesor').botonTexto || 'Solicitar disponibilidad Q1', ctaHref(st)) +
+      P.push(row(botonAsesor(st, B(st, 'asesor').botonTexto || 'Solicitar disponibilidad Q1', ctaHref(st, h(x.titulo))) +
         '<div style="font-family:' + FB + ';font-size:12px;color:' + k.apagado + ';padding:12px 0 0 0;">' + esc(a.pieCta) + '</div>',
         pad + 'padding-bottom:28px;'));
     }
@@ -1639,7 +1651,7 @@
       P.push(row(
         '<div style="font-family:' + FB + ';font-size:15px;line-height:1.6;color:' + k.texto + ';padding:0 0 14px 0;">' +
           realce(h(g.ctaTexto), '<b>', '</b>') + '</div>' +
-        botonAsesor(st, h(g.boton), ctaHref(st)) +
+        botonAsesor(st, h(g.boton), ctaHref(st, h(g.titulo))) +
         '<div style="font-family:' + FB + ';font-size:12px;color:' + k.apagado + ';padding:12px 0 0 0;">' + esc(a.respuesta) + '</div>',
         pad + 'padding-bottom:28px;'));
     }
@@ -1749,7 +1761,7 @@
       '</td></tr></table>', pad + 'padding-bottom:26px;'));
 
     if (on(st, 'cta')) {
-      P.push(row(botonAsesor(st, h(p.boton), ctaHref(st)) +
+      P.push(row(botonAsesor(st, h(p.boton), ctaHref(st, h(p.titulo))) +
         '<div style="font-family:' + FB + ';font-size:12px;color:' + k.apagado + ';padding:12px 0 0 0;">' +
         b(p.pieBoton) + '</div>',
         pad + 'padding-bottom:28px;'));

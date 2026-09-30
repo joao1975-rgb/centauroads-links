@@ -84,3 +84,53 @@ def test_los_enlaces_viejos_a_la_cuenta_personal_pasan_a_mercadeo(r):
 
 def test_a_d_invitan_tambien_a_responder_sin_mas(r):
     assert r["alternativa"] == [True, True, True, True]
+
+
+# --- La respuesta nombra la presentación (2026-09-30, petición del usuario) ---------------------
+# Sin el título, mercadeo recibía «quiero pedir una cotización» sin saber de qué correo venía.
+
+GUION_TITULO = r"""
+const M = require(process.argv[2]);
+const cuerpo = (st, k) => decodeURIComponent(M.render(st, k).match(/href="(mailto:[^"]*&amp;body=[^"]+)"/)[1].split('&amp;body=')[1]);
+const out = {};
+Object.keys(M.PERFILES).forEach(function (p) { const st = M.defaultState(); st.plantilla = 'A'; st.perfil = p;
+  out['A-' + p] = { cuerpo: cuerpo(st, 'A'), titulo: M.aplicaPerfil(M.normaliza(st)).bloques.titulo.texto }; });
+const e = M.defaultState(); e.plantilla = 'E'; out.E = cuerpo(e, 'E');
+const sin = M.defaultState(); sin.plantilla = 'A'; sin.bloques.titulo.texto = ''; out.sin = cuerpo(sin, 'A');
+const viejo = M.defaultState(); viejo.bloques.cta.cuerpo = 'Hola, quiero pedir una cotización. Me interesan estos espacios:\n\n';
+out.migrado = M.normaliza(viejo).bloques.cta.cuerpo;
+const propio = M.defaultState(); propio.bloques.cta.cuerpo = 'Mi texto';
+out.respetado = M.normaliza(propio).bloques.cta.cuerpo;
+process.stdout.write(JSON.stringify(out));
+"""
+
+
+@pytest.fixture(scope="module")
+def t(tmp_path_factory):
+    if shutil.which("node") is None:
+        pytest.skip("node no está disponible")
+    guion = tmp_path_factory.mktemp("tit") / "_t.js"
+    guion.write_text(GUION_TITULO, encoding="utf-8")
+    salida = subprocess.run(["node", str(guion), str(MOTOR)],
+                            capture_output=True, text=True, encoding="utf-8", timeout=120)
+    assert salida.returncode == 0, salida.stderr
+    return json.loads(salida.stdout)
+
+
+def test_la_respuesta_nombra_la_presentacion_de_cada_perfil(t):
+    for clave, v in t.items():
+        if clave.startswith("A-"):
+            assert v["cuerpo"].startswith("Hola,\n\nRevisé tu presentación «%s» y quiero pedir una cotización"
+                                          % v["titulo"]), clave
+
+
+def test_en_e_f_g_va_su_titular_sin_realce_ni_punto_final(t):
+    assert "«Tu próximo Share of Voice, en una sola tabla»" in t["E"]
+
+
+def test_sin_titulo_la_frase_sigue_bien_escrita(t):
+    assert "Revisé tu presentación y quiero pedir" in t["sin"] and "«»" not in t["sin"]
+
+
+def test_el_texto_viejo_se_actualiza_y_uno_propio_se_respeta(t):
+    assert "{titulo}" in t["migrado"] and t["respetado"] == "Mi texto"
