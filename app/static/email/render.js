@@ -1004,17 +1004,23 @@
     const bqA = bloquePerfil(st, true);
     if (bqA) P.push(row(bqA, 'padding:6px 28px 16px 28px;background:' + C.ink + ';'));
     activos(st).forEach(s => {
+      // Foto y texto son dos tablas que flotan: en el ordenador caben lado a lado (220 + 324 = 544;
+      // la foto mide 202 con su borde, mas 18 de hueco);
+      // en el movil no caben y el texto baja debajo de la foto, en vez de que Gmail encoja el correo
+      // entero. El hueco entre las dos va como relleno inferior de cada una y se descuenta del margen
+      // de la fila: en el ordenador la fila mide lo mismo que antes, sea mas alta la foto o el texto.
       P.push(row(
-        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
-        '<td width="200" valign="top" style="padding:0 18px 0 0;"><a href="' + esc(linkFor(st, s)) + '"><img src="' + esc(st.cardAnim && !usaPortadas(st) ? carruselSrc(st, s) : svcImg(st, s)) + '" width="200" alt="' + esc(svcAlt(st, s)) + '" style="display:block;width:200px;height:auto;border-radius:6px;border:1px solid ' + C.line + ';color:#EEEDF2;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:18px;"></a></td>' +
-        '<td valign="top">' +
+        '<table role="presentation" width="220" align="left" cellpadding="0" cellspacing="0" border="0" style="width:220px;max-width:100%;"><tr>' +
+        '<td width="200" valign="top" style="padding:0 18px 14px 0;"><a href="' + esc(linkFor(st, s)) + '"><img src="' + esc(st.cardAnim && !usaPortadas(st) ? carruselSrc(st, s) : svcImg(st, s)) + '" width="200" alt="' + esc(svcAlt(st, s)) + '" style="display:block;width:200px;height:auto;border-radius:6px;border:1px solid ' + C.line + ';color:#EEEDF2;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:18px;"></a></td></tr></table>' +
+        '<table role="presentation" width="324" align="left" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:324px;"><tr>' +
+        '<td valign="top" style="padding:0 0 14px 0;">' +
         '<div style="font-family:' + FH + ';font-size:10px;font-weight:700;letter-spacing:.16em;color:' + C.orange + ';text-transform:uppercase;">' + esc(s.eyebrow) + '</div>' +
         '<div style="font-family:' + FH + ';font-size:17px;line-height:22px;font-weight:800;color:#FFFFFF;padding:4px 0 4px 0;">' + esc(s.nombre) + '</div>' +
         '<div style="font-family:' + FB + ';font-size:14px;line-height:20px;color:' + T + ';">' + esc(s.cobertura) + '</div>' +
         (s.nota ? '<div style="font-family:' + FB + ';font-size:12px;line-height:18px;color:' + M + ';padding:4px 0 0 0;">' + esc(s.nota) + '</div>' : '') +
         '<div style="padding:10px 0 0 0;"><a href="' + esc(linkFor(st, s)) + '" style="font-family:' + FH + ';font-size:13px;font-weight:700;color:' + C.purpleLight + ';text-decoration:none;">Ver presentación &rarr;</a></div>' +
         '</td></tr></table>',
-        'padding:18px 28px;background:' + C.ink + ';border-top:1px solid ' + C.line + ';'));
+        'padding:18px 28px 4px 28px;background:' + C.ink + ';border-top:1px solid ' + C.line + ';'));
     });
     if (on(st, 'suministro')) {
       const b = B(st, 'suministro');
@@ -1068,7 +1074,10 @@
     if (bqB) P.push(row(bqB, 'padding:6px 28px 16px 28px;background:' + C.paper + ';'));
     const act = activos(st);
     if (act.length) {
-      const card = (s, w) => '<table role="presentation" width="' + w + '" align="left" cellpadding="0" cellspacing="0" border="0" style="width:' + w + 'px;max-width:100%;margin:0 0 16px 0;"><tr><td style="border:1px solid ' + C.rule + ';border-radius:8px;overflow:hidden;background:' + C.paper + ';">' +
+      // La tarjeta que va sola no flota ni fija 544 px: ocupa la fila. Los 544 fijos eran lo que
+      // obligaba a Gmail a encoger el correo entero en el movil. Las de 264 flotan y, si no caben
+      // dos, bajan una debajo de otra.
+      const card = (s, w) => '<table role="presentation" width="' + (w === 544 ? '100%' : w) + '"' + (w === 544 ? '' : ' align="left"') + ' cellpadding="0" cellspacing="0" border="0" style="width:' + (w === 544 ? '100%' : w + 'px;max-width:100%') + ';margin:0 0 16px 0;"><tr><td style="border:1px solid ' + C.rule + ';border-radius:8px;overflow:hidden;background:' + C.paper + ';">' +
         '<a href="' + esc(linkFor(st, s)) + '"><img src="' + esc(st.cardAnim && !usaPortadas(st) ? carruselSrc(st, s) : svcImg(st, s)) + '" width="' + w + '" alt="' + esc(svcAlt(st, s)) + '" style="display:block;width:100%;height:auto;border-radius:8px 8px 0 0;color:#1F1B24;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:18px;"></a>' +
         '<div style="padding:12px 14px 14px 14px;">' +
         '<div style="font-family:' + FH + ';font-size:10px;font-weight:700;letter-spacing:.14em;color:' + C.orangeDark + ';text-transform:uppercase;">' + esc(s.eyebrow) + '</div>' +
