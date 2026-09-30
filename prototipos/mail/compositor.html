@@ -677,7 +677,7 @@
   function api(ruta, opciones) {
     return fetch(ruta, Object.assign({ credentials: 'same-origin' }, opciones || {}))
       .then(r => r.json().then(d => {
-        if (!r.ok) throw new Error(d.detail || 'Error del servidor');
+        if (!r.ok) { const e = new Error(d.detail || 'Error del servidor'); e.status = r.status; throw e; }
         return d;
       }));
   }
@@ -698,6 +698,21 @@
   }
 
   function estadoEl(texto, clase) { return el('p', 'estado' + (clase ? ' ' + clase : ''), texto); }
+  // Un error del servidor, junto al boton que lo provoco. Si es de sesion, con la salida al lado:
+  // el aviso general esta arriba del todo y, con el panel bajado, nadie lo ve. «Hay que entrar al
+  // panel» a secas dejaba sin saber que hacer.
+  function falla(est, e) {
+    est.className = 'estado mal';
+    if (e && e.status === 401) {
+      est.textContent = 'No has entrado al panel en este navegador (o la sesión caducó: dura 8 horas). ';
+      const a = el('a', null, 'Entrar y volver aquí');
+      a.href = '/panel/entrar?destino=' + encodeURIComponent(location.pathname);
+      a.style.color = 'var(--purple-l)';
+      est.appendChild(a);
+      return;
+    }
+    est.textContent = e && e.message ? e.message : 'Error del servidor';
+  }
 
   function buildEntrega() {
     const E = st.bloques.entrega;
@@ -783,7 +798,7 @@
           if (r.ok === true) { est.className = 'estado bien'; est.textContent = 'El enlace abre.'; }
           else if (r.ok === null) { est.className = 'estado'; est.textContent = r.motivo; }
           else { est.className = 'estado mal'; est.textContent = r.motivo || 'El enlace no abre.'; }
-        }).catch(e => { est.className = 'estado mal'; est.textContent = e.message; });
+        }).catch(e => falla(est, e));
       }));
       p1.appendChild(fila); p1.appendChild(est);
     }
@@ -975,7 +990,7 @@
         }
         api('/api/entregas/' + st.entregaId + '/entregada', { method: 'POST' })
           .then(() => { est5.className = 'estado bien'; est5.textContent = 'Anotada como entregada.'; })
-          .catch(e => { est5.className = 'estado mal'; est5.textContent = e.message; });
+          .catch(e => falla(est5, e));
       }));
       p5.appendChild(fila6); p5.appendChild(est5);
     }
@@ -1034,7 +1049,7 @@
         // pulsar F5 para ver lo que acaba de guardar.
         buildPanel(); renderPreview();
       })
-      .catch(e => { est.className = 'estado mal'; est.textContent = e.message; });
+      .catch(e => falla(est, e));
   }
 
   function sube(ficheros) {
@@ -1063,7 +1078,7 @@
         est.textContent = d.paginas.length + ' páginas. Elige de 2 a 4, en el orden que quieras.';
         pintaMinis($('#minis'), est);
       })
-      .catch(e => { est.className = 'estado mal'; est.textContent = e.message; });
+      .catch(e => falla(est, e));
   }
 
   function pintaMinis(rejilla, est) {
@@ -1115,7 +1130,7 @@
       est.className = 'estado bien';
       est.textContent = 'Carrusel listo con ' + elegidas.length + ' páginas.';
       touch();
-    }).catch(e => { est.className = 'estado mal'; est.textContent = e.message; });
+    }).catch(e => falla(est, e));
   }
 
   function pideAClaude() {

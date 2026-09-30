@@ -580,13 +580,16 @@
   const B = (st, k) => st.bloques[k];
   const lines = v => Array.isArray(v) ? v : String(v || '').split('\n').map(x => x.trim()).filter(Boolean);
 
-  function doc(st, bodyBg, inner) {
+  // Solo se pinta el marco de 600 px. Por fuera no va color: el correo se apoya en el fondo del
+  // cliente, como una carta sobre la mesa. Antes el fondo del tema llenaba toda la ventana de
+  // Gmail en el ordenador, y con el tema oscuro o el de la marca el correo dejaba de tener borde.
+  function doc(st, inner) {
     return '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">' +
       '<meta name="viewport" content="width=device-width,initial-scale=1">' +
       '<meta name="x-apple-disable-message-reformatting"><title>' + esc(st.asunto) + '</title></head>' +
-      '<body style="margin:0;padding:0;background:' + bodyBg + ';-webkit-text-size-adjust:100%;">' +
+      '<body style="margin:0;padding:0;-webkit-text-size-adjust:100%;">' +
       '<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">' + esc(st.preheader) + '</div>' +
-      '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:' + bodyBg + ';">' +
+      '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">' +
       '<tr><td align="center" style="padding:24px 12px;">' +
       '<!--[if mso]><table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" align="center"><tr><td><![endif]-->' +
       '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;">' +
@@ -1159,7 +1162,7 @@
     if (on(st, 'cierre')) foot += cuerpo(nl2br(B(st, 'cierre').texto), 16, k.texto, 'padding:0 0 18px 0;');
     if (on(st, 'firma')) foot += firma(st, tema);
     if (foot) P.push(row(foot, 'padding:30px 28px 30px 28px;background:' + fondo + ';'));
-    if (on(st, 'pie')) P.push(row(cuerpo(nl2br(B(st, 'pie').texto), 12, k.apagado), 'padding:16px 28px 0 28px;'));
+    if (on(st, 'pie')) P.push(row(cuerpo(nl2br(B(st, 'pie').texto), 12, k.apagado), 'padding:0 28px 26px 28px;background:' + fondo + ';'));
     return P.join('');
   }
 
@@ -1194,7 +1197,7 @@
     const c = cotizar(st, k);
     if (c) P.push(row(c, 'padding:36px 28px 36px 28px;background:' + N.noche2 + ';'));
     P.push(despedida(st, 'oscuro', k, N.noche));
-    return doc(st, N.noche, P.join(''));
+    return doc(st, P.join(''));
   }
 
   // ── Plantilla B · "Catálogo" (Señal nocturna, versión de día) ──
@@ -1246,7 +1249,7 @@
     const c = cotizar(st, k);
     if (c) P.push(row(c, 'padding:34px 28px 34px 28px;background:' + N.arena + ';'));
     P.push(despedida(st, 'claro', k, N.papel));
-    return doc(st, N.arena, P.join(''));
+    return doc(st, P.join(''));
   }
 
   // ── Plantilla C · "Nota" (compacta, parece un correo personal; para responder en hilo) ──
@@ -1284,7 +1287,7 @@
     if (on(st, 'firma')) body += firma(st, 'claro');
     if (on(st, 'pie')) body += '<p style="margin:18px 0 0 0;font-family:' + FB + ';font-size:11px;line-height:16px;color:' + C.muted + ';">' + nl2br(B(st, 'pie').texto) + '</p>';
     P.push(row(body, 'padding:8px 4px;background:' + C.paper + ';'));
-    return doc(st, C.paper, P.join(''));
+    return doc(st, P.join(''));
   }
 
   // ── Plantilla D · "Cartelera móvil" (una columna, foto arriba, tipografía grande, un solo botón principal) ──
@@ -1365,8 +1368,8 @@
       foot += firma(st, 'oscuro');
     }
     if (foot) P.push(row(foot, 'padding:20px 28px 26px 28px;border-top:1px solid ' + C.line + ';' + dark));
-    if (on(st, 'pie')) P.push(row(txt(nl2br(B(st, 'pie').texto), 12, M), 'padding:14px 28px 0 28px;'));
-    return doc(st, C.black, P.join(''));
+    if (on(st, 'pie')) P.push(row(txt(nl2br(B(st, 'pie').texto), 12, M), 'padding:0 28px 24px 28px;' + dark));
+    return doc(st, P.join(''));
   }
 
   // ── Texto plano (fallback y para clientes sin HTML) ──
@@ -1548,9 +1551,9 @@
     }
     if (on(st, 'pie')) {
       P.push(row('<div style="font-family:' + FB + ';font-size:11px;line-height:16px;color:' + k.apagado + ';">' +
-        nl2br(B(st, 'pie').texto) + '</div>', 'padding:14px 32px 0 32px;'));
+        nl2br(B(st, 'pie').texto) + '</div>', 'padding:0 32px 24px 32px;background:' + k.panel + ';'));
     }
-    return doc(st, k.fondo, P.join(''));
+    return doc(st, P.join(''));
   }
 
   // -- Formato F - "Guia" (asesor, para cliente nuevo) --------------------------
@@ -1639,9 +1642,9 @@
     }
     if (on(st, 'pie')) {
       P.push(row('<div style="font-family:' + FB + ';font-size:11px;line-height:16px;color:' + k.apagado + ';">' +
-        nl2br(B(st, 'pie').texto) + '</div>', 'padding:14px 32px 0 32px;'));
+        nl2br(B(st, 'pie').texto) + '</div>', 'padding:0 32px 24px 32px;background:' + k.panel + ';'));
     }
-    return doc(st, k.fondo, P.join(''));
+    return doc(st, P.join(''));
   }
 
   // -- Formato G - "Phygital" (asesor) ------------------------------------------
@@ -1750,9 +1753,9 @@
     }
     if (on(st, 'pie')) {
       P.push(row('<div style="font-family:' + FB + ';font-size:11px;line-height:16px;color:' + k.apagado + ';">' +
-        nl2br(B(st, 'pie').texto) + '</div>', 'padding:14px 32px 0 32px;'));
+        nl2br(B(st, 'pie').texto) + '</div>', 'padding:0 32px 24px 32px;background:' + k.panel + ';'));
     }
-    return doc(st, k.fondo, P.join(''));
+    return doc(st, P.join(''));
   }
 
   // -- Formato H - "Entrega" (la presentacion propia del cliente) ---------------------
@@ -1857,7 +1860,7 @@
     // propuesta que llega con tu nombre y tu empresa en la cabecera no tiene nada que explicar, y
     // la firma de arriba ya lleva el correo y el teléfono. Además el que había no se podía tocar:
     // esto pintaba `bloques.entrega.pie` y el panel editaba `bloques.pie`, que es otro campo.
-    return doc(st, k.fondo, P.join(''));
+    return doc(st, P.join(''));
   }
 
   const TEMPLATES = {
