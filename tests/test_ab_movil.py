@@ -1,13 +1,14 @@
 """
-A y B en el móvil: las columnas bajan en vez de que Gmail encoja el correo entero.
+A y B: «Señal nocturna», y en el móvil no se encogen.
 
-En un teléfono de 375 px, B medía 624 px de ancho y A 389: Gmail los encogía para que cupieran y la letra
-de 13 px se leía como de 8. El motivo era un ancho fijo que no podía bajar: la tarjeta sola de B fijaba
-544 px, y A ponía foto y texto en dos celdas de la misma fila. Ahora son tablas que flotan: en el ordenador
-caben lado a lado, exactamente como antes (se comparó píxel a píxel), y en el móvil bajan.
+Historia. En un teléfono de 375 px, B medía 624 px de ancho y A 389: Gmail los encogía para que cupieran y la
+letra de 13 px se leía como de 8. Se arregló con tablas que flotan. Después A y B se rediseñaron («Señal
+nocturna», 2026-09-30): A es una sucesión de vallas —cada foto a sangre y su placa debajo— y B pone un
+espacio destacado a todo el ancho y los demás de dos en dos, que en el móvil bajan uno debajo de otro.
 
 No hay <style> ni media queries: el correo se pega en Gmail, que tira la cabecera, y solo sobrevive el
-estilo en línea. Por eso la prueba mira la estructura, que es lo que decide si una columna puede bajar.
+estilo en línea. Por eso la prueba mira la estructura, que es lo que decide si algo puede ensancharse.
+Se midió además en el navegador: las dos miden 375 px en un teléfono de 375.
 """
 
 import json
@@ -33,6 +34,9 @@ const out = {};
 process.stdout.write(JSON.stringify(out));
 """
 
+# Lo más ancho que cabe en un teléfono de 375 px, quitando los márgenes del correo.
+CABE = 300
+
 
 @pytest.fixture(scope="module")
 def html(tmp_path_factory):
@@ -46,40 +50,45 @@ def html(tmp_path_factory):
     return json.loads(salida.stdout)
 
 
-def test_la_tarjeta_sola_de_b_no_fija_544_px(html):
-    """Era la que obligaba a Gmail a encoger el correo entero: 544 px no caben en un teléfono."""
-    b = html["B-impar"]
-    assert "width:544px" not in b and 'width="544" align' not in b
-    # y sigue habiendo una tarjeta que ocupa la fila entera, que es lo que se ve en el ordenador
-    assert 'width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;margin:0 0 16px 0;"' in b
+def test_ningun_ancho_fijo_impide_que_quepan_en_un_telefono(html):
+    """
+    Un ancho en píxeles mayor que la pantalla, sin tope, es lo que obligaba a Gmail a encoger el correo.
+    Todo lo que pase de CABE tiene que poder bajar: max-width:100% o width:100%.
+    """
+    for caso, h in html.items():
+        for estilo in re.findall(r'style="([^"]*)"', h):
+            for px in re.findall(r'(?<![-\w])width:(\d+)px', estilo):
+                if int(px) > CABE:
+                    assert "max-width:100%" in estilo, "%s: width:%spx sin tope: %s" % (caso, px, estilo[:90])
 
 
-def test_las_tarjetas_de_b_de_dos_en_dos_flotan(html):
-    """Si no flotan, no bajan: dos de 264 más el hueco de 16 son 544 fijos."""
+def test_en_a_cada_espacio_es_una_foto_a_sangre(html):
+    """La foto ocupa el ancho del correo, sin columna al lado: nada que apretar en el móvil."""
+    a = html["A-impar"]
+    fotos = re.findall(r'<img [^>]*width="600"[^>]*style="display:block;width:100%;max-width:100%;', a)
+    assert len(fotos) >= 3
+    # la forma vieja -foto y texto en dos columnas- no puede volver
+    assert 'width="220" align="left"' not in a and '<td width="200" valign="top"' not in a
+
+
+def test_en_b_uno_destacado_y_los_demas_de_dos_en_dos_flotando(html):
+    """Las parejas flotan: lado a lado en el ordenador, una debajo de otra en el móvil."""
     for caso in ("B-impar", "B-par"):
-        assert len(re.findall(r'width="264" align="left"', html[caso])) >= 2, caso
+        b = html[caso]
+        assert len(re.findall(r'<img [^>]*width="544"', b)) >= 1, caso
+        assert len(re.findall(r'width="264" align="left"', b)) >= 2, caso
 
 
-def test_en_a_foto_y_texto_son_dos_columnas_que_flotan(html):
-    """
-    Una fila por servicio, y en cada una la foto (220: 202 con su borde, más 18 de hueco) y el texto
-    (324) flotan. Suman 544, el ancho de la fila: en el ordenador quedan lado a lado como antes.
-    """
-    a = html["A-impar"]
-    fotos = re.findall(r'<table role="presentation" width="220" align="left"[^>]*style="width:220px;max-width:100%;"', a)
-    textos = re.findall(r'<table role="presentation" width="324" align="left"[^>]*style="width:100%;max-width:324px;"', a)
-    assert len(fotos) >= 3 and len(fotos) == len(textos)
-    assert 220 + 324 == 600 - 2 * 28
-    # la forma vieja -foto y texto en dos celdas de la misma fila- no puede volver
-    assert not re.search(r'<td width="200" valign="top" style="padding:0 18px 0 0;">', a)
+def test_una_sola_accion_con_fondo(html):
+    """El naranja es la luz de las pantallas: se usa una vez, en la acción. Lo demás es texto con flecha."""
+    for caso, h in html.items():
+        assert h.count('bgcolor="#F79131"') == 1, caso
 
 
-def test_el_hueco_del_movil_no_cambia_la_fila_en_el_ordenador(html):
+def test_sin_rotulos_en_mayusculas_espaciadas(html):
     """
-    En el móvil hacen falta 14 px entre la foto y el texto que baja. Van como relleno inferior de las dos
-    columnas y se quitan del margen de la fila (18 -> 4): en el ordenador la fila mide lo mismo, sea más
-    alta la foto o el texto.
+    Delataban plantilla. Solo queda la línea de servicios del logo, que es parte de la marca: una en la
+    cabecera y otra en la firma.
     """
-    a = html["A-impar"]
-    assert a.count('style="padding:0 18px 14px 0;"') == a.count('style="padding:0 0 14px 0;"') >= 3
-    assert "padding:18px 28px 4px 28px;background:" in a
+    for caso, h in html.items():
+        assert h.count("text-transform:uppercase") == 2, caso

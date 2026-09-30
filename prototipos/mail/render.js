@@ -1081,141 +1081,172 @@
     return p;
   }
 
-  // ── Plantilla A · "Cartelera" (oscura, como los decks) ──
-  function plantillaA(st) {
-    const P = [];
-    const T = C.textDark, M = C.mutedDark;
-    P.push(row(
-      '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
-      '<td valign="top">' + marca(st, 'oscuro', 210) + '</td>' +
-      '</tr></table>', 'padding:22px 28px 18px 28px;background:' + C.ink + ';border-bottom:1px solid ' + C.line + ';'));
-    if (on(st, 'titulo')) {
-      const b = B(st, 'titulo');
-      P.push(row(
-        '<div style="font-family:' + FH + ';font-size:11px;font-weight:700;letter-spacing:.16em;color:' + M + ';text-transform:uppercase;">' + esc(b.sub) + '</div>' +
-        '<div style="font-family:' + FH + ';font-size:32px;line-height:36px;font-weight:800;color:#FFFFFF;padding:8px 0 14px 0;">' + esc(b.texto) + '</div>' +
-        '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td width="56" height="4" bgcolor="' + C.orange + '" style="background:' + C.orange + ';font-size:0;line-height:0;">&nbsp;</td><td width="28" height="4" bgcolor="' + C.purple + '" style="background:' + C.purple + ';font-size:0;line-height:0;">&nbsp;</td></tr></table>',
-        'padding:30px 28px 10px 28px;background:' + C.ink + ';'));
-    }
-    let body = '';
-    if (on(st, 'saludo')) body += '<div style="font-family:' + FB + ';font-size:15px;line-height:22px;color:' + T + ';padding:0 0 10px 0;">' + nl2br(fill(B(st, 'saludo').texto, st)) + '</div>';
-    if (on(st, 'intro')) body += '<div style="font-family:' + FB + ';font-size:15px;line-height:23px;color:' + M + ';">' + nl2br(fill(B(st, 'intro').texto, st)) + '</div>';
-    if (body) P.push(row(body, 'padding:18px 28px 8px 28px;background:' + C.ink + ';'));
-    const bqA = bloquePerfil(st, true);
-    if (bqA) P.push(row(bqA, 'padding:6px 28px 16px 28px;background:' + C.ink + ';'));
-    activos(st).forEach(s => {
-      // Foto y texto son dos tablas que flotan: en el ordenador caben lado a lado (220 + 324 = 544;
-      // la foto mide 202 con su borde, mas 18 de hueco);
-      // en el movil no caben y el texto baja debajo de la foto, en vez de que Gmail encoja el correo
-      // entero. El hueco entre las dos va como relleno inferior de cada una y se descuenta del margen
-      // de la fila: en el ordenador la fila mide lo mismo que antes, sea mas alta la foto o el texto.
-      P.push(row(
-        '<table role="presentation" width="220" align="left" cellpadding="0" cellspacing="0" border="0" style="width:220px;max-width:100%;"><tr>' +
-        '<td width="200" valign="top" style="padding:0 18px 14px 0;"><a href="' + esc(linkFor(st, s)) + '"><img src="' + esc(st.cardAnim && !usaPortadas(st) ? carruselSrc(st, s) : svcImg(st, s)) + '" width="200" alt="' + esc(svcAlt(st, s)) + '" style="display:block;width:200px;height:auto;border-radius:6px;border:1px solid ' + C.line + ';color:#EEEDF2;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:18px;"></a></td></tr></table>' +
-        '<table role="presentation" width="324" align="left" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:324px;"><tr>' +
-        '<td valign="top" style="padding:0 0 14px 0;">' +
-        '<div style="font-family:' + FH + ';font-size:10px;font-weight:700;letter-spacing:.16em;color:' + C.orange + ';text-transform:uppercase;">' + esc(s.eyebrow) + '</div>' +
-        '<div style="font-family:' + FH + ';font-size:17px;line-height:22px;font-weight:800;color:#FFFFFF;padding:4px 0 4px 0;">' + esc(s.nombre) + '</div>' +
-        '<div style="font-family:' + FB + ';font-size:14px;line-height:20px;color:' + T + ';">' + esc(s.cobertura) + '</div>' +
-        (s.nota ? '<div style="font-family:' + FB + ';font-size:12px;line-height:18px;color:' + M + ';padding:4px 0 0 0;">' + esc(s.nota) + '</div>' : '') +
-        '<div style="padding:10px 0 0 0;"><a href="' + esc(linkFor(st, s)) + '" style="font-family:' + FH + ';font-size:13px;font-weight:700;color:' + C.purpleLight + ';text-decoration:none;">Ver presentación &rarr;</a></div>' +
-        '</td></tr></table>',
-        'padding:18px 28px 4px 28px;background:' + C.ink + ';border-top:1px solid ' + C.line + ';'));
-    });
-    if (on(st, 'suministro')) {
-      const b = B(st, 'suministro');
-      P.push(row(
-        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td width="4" bgcolor="' + C.orange + '" style="background:' + C.orange + ';font-size:0;">&nbsp;</td>' +
-        '<td style="padding:14px 18px;background:' + C.ink2 + ';">' +
-        '<div style="font-family:' + FH + ';font-size:15px;font-weight:800;color:#FFFFFF;padding:0 0 6px 0;">' + esc(b.titulo) + '</div>' +
-        '<div style="font-family:' + FB + ';font-size:14px;line-height:20px;color:' + M + ';padding:0 0 8px 0;">' + nl2br(b.texto) + '</div>' +
-        bullets(lines(b.requisitos), C.orange, T) + '</td></tr></table>',
-        'padding:18px 28px 6px 28px;background:' + C.ink + ';'));
-    }
-    let steps = '';
+  // ══ A y B · «Señal nocturna» ═══════════════════════════════════════════════
+  //
+  // Lo que Centauro vende es ver tu marca en la calle, de noche, con las pantallas encendidas.
+  // El correo copia ese mundo: fondo de noche, la foto del espacio a sangre como si fuera la
+  // valla, titulares en letra de señalética (la familia DIN de los carteles de calle,
+  // condensada) y el naranja como la luz de las pantallas: se usa una sola vez, en la acción.
+  //
+  // Nada de web fonts (Gmail las quita al pegar): la pila tira de las condensadas que ya trae
+  // cada sistema. macOS/iOS: DIN Condensed. Windows 10+: Bahnschrift. Android: la condensada
+  // de Roboto. Si ninguna existe, cae en Arial Narrow y luego en Trebuchet.
+  const N = {
+    // La noche es la del panel de hoy (#16141D) y no otra: el logo va aplanado sobre ese
+    // color para Outlook, y con cualquier otro negro vuelve el recuadro alrededor del logo.
+    noche: '#16141D', noche2: '#1F1C2A', hilo: '#302A3C',
+    luz: '#F79131', texto: '#F4EFF7', apagado: '#B9AFC2', lila: '#CDA8DC',
+    papel: '#FFFFFF', arena: '#F5F1EC', tinta: '#15111A', gris: '#5E5767', regla: '#E6E0E9',
+    naranjaTinta: '#B35E0A', morado: '#85439A',
+  };
+  const FS = "'DIN Condensed','Bahnschrift SemiBold Condensed','Bahnschrift Condensed',Bahnschrift," +
+    "'AvenirNextCondensed-Bold','Roboto Condensed',sans-serif-condensed,'Arial Narrow','Trebuchet MS',Arial,sans-serif";
+
+  // Titular de señal: condensado, grande, interlineado apretado.
+  const rotulo = (html, size, color, extra) =>
+    '<div style="font-family:' + FS + ';font-size:' + size + 'px;line-height:' + Math.round(size * 1.04) + 'px;' +
+    'font-weight:700;color:' + color + ';' + (extra || '') + '">' + html + '</div>';
+  const cuerpo = (html, size, color, extra) =>
+    '<div style="font-family:' + FB + ';font-size:' + size + 'px;line-height:' + Math.round(size * 1.6) + 'px;' +
+    'color:' + color + ';' + (extra || '') + '">' + html + '</div>';
+  // Enlace secundario: texto con flecha, sin caja. Solo hay UNA acción con fondo por correo.
+  const flecha = (txt, url, color) =>
+    '<a href="' + esc(url) + '" style="font-family:' + FS + ';font-size:18px;line-height:22px;font-weight:700;' +
+    'color:' + color + ';text-decoration:none;">' + esc(txt) + '&nbsp;&rarr;</a>';
+  // La acción principal: una señal rectangular a todo el ancho, como un rótulo de calle.
+  const senal = (txt, url, fondo, color) =>
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
+    '<td bgcolor="' + fondo + '" style="background:' + fondo + ';border-radius:3px;">' +
+    '<a href="' + esc(url) + '" style="display:block;padding:18px 22px;font-family:' + FS + ';font-size:22px;' +
+    'line-height:26px;font-weight:700;color:' + color + ';text-decoration:none;">' + esc(txt) + '&nbsp;&nbsp;&rarr;</a>' +
+    '</td></tr></table>';
+  const fotoDe = (st, s) => (st.cardAnim && !usaPortadas(st) ? carruselSrc(st, s) : svcImg(st, s));
+  const imagen = (st, s, ancho, fondoAlt) =>
+    '<a href="' + esc(linkFor(st, s)) + '"><img src="' + esc(fotoDe(st, s)) + '" width="' + ancho + '" alt="' +
+    esc(svcAlt(st, s)) + '" style="display:block;width:100%;max-width:100%;height:auto;border:0;' +
+    'color:' + fondoAlt + ';font-family:' + FB + ';font-size:14px;line-height:20px;"></a>';
+  // Lista de requisitos: filas separadas por un hilo, sin viñetas ni números en círculo.
+  const lista = (items, color, hilo) =>
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">' +
+    items.map(t => '<tr><td style="border-top:1px solid ' + hilo + ';padding:11px 0;font-family:' + FB +
+      ';font-size:15px;line-height:22px;color:' + color + ';">' + esc(t) + '</td></tr>').join('') +
+    '<tr><td style="border-top:1px solid ' + hilo + ';font-size:0;line-height:0;">&nbsp;</td></tr></table>';
+
+  // El bloque de cotizar, común a A y B: qué pasa ahora, qué hace falta y la única acción.
+  function cotizar(st, k) {
+    let h = '';
     if (on(st, 'pasos')) {
       const b = B(st, 'pasos');
-      steps += '<div style="font-family:' + FH + ';font-size:15px;font-weight:800;color:#FFFFFF;padding:0 0 6px 0;">' + esc(b.titulo) + '</div>' +
-        '<div style="font-family:' + FB + ';font-size:14px;line-height:20px;color:' + M + ';padding:0 0 12px 0;">' + nl2br(b.texto) + '</div>';
+      h += rotulo(esc(b.titulo), 30, k.texto) + cuerpo(nl2br(b.texto), 16, k.apagado, 'padding:10px 0 0 0;');
     }
     if (on(st, 'presupuesto')) {
       const b = B(st, 'presupuesto');
-      steps += '<div style="font-family:' + FB + ';font-size:14px;font-weight:700;color:' + T + ';padding:0 0 8px 0;">' + esc(b.titulo) + '</div>' + numbered(lines(b.items), C.orange, C.black, T);
+      h += cuerpo('<b style="color:' + k.texto + ';">' + esc(b.titulo) + '</b>', 15, k.texto, 'padding:22px 0 8px 0;') +
+        lista(lines(b.items), k.texto, k.hilo);
     }
-    if (steps) P.push(row(steps, 'padding:18px 28px 6px 28px;background:' + C.ink + ';'));
-    if (on(st, 'cta')) P.push(row(button(B(st, 'cta').texto, B(st, 'cta').url, C.orange, C.black), 'padding:12px 28px 22px 28px;background:' + C.ink + ';'));
-    let foot = '';
-    if (on(st, 'cierre')) foot += '<div style="font-family:' + FB + ';font-size:15px;line-height:22px;color:' + T + ';padding:0 0 16px 0;">' + nl2br(B(st, 'cierre').texto) + '</div>';
-    if (on(st, 'firma')) foot += firma(st, 'oscuro');
-    if (foot) P.push(row(foot, 'padding:20px 28px 26px 28px;background:' + C.ink + ';border-top:1px solid ' + C.line + ';'));
-    if (on(st, 'pie')) P.push(row('<div style="font-family:' + FB + ';font-size:11px;line-height:16px;color:' + M + ';">' + nl2br(B(st, 'pie').texto) + '</div>', 'padding:14px 28px 0 28px;'));
-    return doc(st, C.black, P.join(''));
+    if (on(st, 'suministro')) {
+      const b = B(st, 'suministro');
+      h += cuerpo('<b style="color:' + k.texto + ';">' + esc(b.titulo) + '.</b> ' + esc(b.texto) + ' ' +
+        lines(b.requisitos).map(esc).join(' · ') + '.', 14, k.apagado, 'padding:18px 0 0 0;');
+    }
+    if (on(st, 'cta')) h += '<div style="padding:26px 0 0 0;">' + senal(B(st, 'cta').texto, B(st, 'cta').url, N.luz, N.tinta) + '</div>';
+    return h;
   }
 
-  // ── Plantilla B · "Catálogo" (clara, tarjetas en dos columnas) ──
-  function plantillaB(st) {
+  function despedida(st, tema, k, fondo) {
     const P = [];
-    P.push('<tr><td style="font-size:0;line-height:0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
-      '<td width="60%" height="6" bgcolor="' + C.purple + '" style="background:' + C.purple + ';">&nbsp;</td><td height="6" bgcolor="' + C.orange + '" style="background:' + C.orange + ';">&nbsp;</td></tr></table></td></tr>');
-    P.push(row(
-      '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
-      '<td valign="top">' + marca(st, 'claro', 210) + '</td>' +
-      '</tr></table>', 'padding:20px 28px;background:' + C.paper + ';border-bottom:1px solid ' + C.rule + ';'));
-    let body = '';
-    if (on(st, 'saludo')) body += '<div style="font-family:' + FB + ';font-size:15px;line-height:22px;color:' + C.text + ';padding:0 0 10px 0;">' + nl2br(fill(B(st, 'saludo').texto, st)) + '</div>';
-    if (on(st, 'intro')) body += '<div style="font-family:' + FB + ';font-size:15px;line-height:23px;color:' + C.muted + ';">' + nl2br(fill(B(st, 'intro').texto, st)) + '</div>';
-    if (body) P.push(row(body, 'padding:24px 28px 6px 28px;background:' + C.paper + ';'));
+    let foot = '';
+    if (on(st, 'cierre')) foot += cuerpo(nl2br(B(st, 'cierre').texto), 16, k.texto, 'padding:0 0 18px 0;');
+    if (on(st, 'firma')) foot += firma(st, tema);
+    if (foot) P.push(row(foot, 'padding:30px 28px 30px 28px;background:' + fondo + ';'));
+    if (on(st, 'pie')) P.push(row(cuerpo(nl2br(B(st, 'pie').texto), 12, k.apagado), 'padding:16px 28px 0 28px;'));
+    return P.join('');
+  }
+
+  // ── Plantilla A · "Cartelera" (Señal nocturna: cada espacio es una valla) ──
+  // Cada espacio es una valla: la foto a sangre, de borde a borde, y debajo su placa con el
+  // nombre en letra de señal. Se lee como una calle: una detrás de otra, con aire entre medias.
+  function plantillaA(st) {
+    const P = [];
+    const k = { texto: N.texto, apagado: N.apagado, hilo: N.hilo };
+    const fondo = 'background:' + N.noche + ';';
+    P.push(row(marca(st, 'oscuro', 150), 'padding:26px 28px 0 28px;' + fondo));
     if (on(st, 'titulo')) {
       const b = B(st, 'titulo');
-      P.push(row('<div style="font-family:' + FH + ';font-size:24px;line-height:28px;font-weight:800;color:' + C.text + ';">' + esc(b.texto) + '</div>' +
-        '<div style="font-family:' + FB + ';font-size:13px;color:' + C.muted + ';padding:4px 0 0 0;">' + esc(b.sub) + '</div>', 'padding:18px 28px 6px 28px;background:' + C.paper + ';'));
+      P.push(row(rotulo(esc(b.texto), 54, N.texto, 'letter-spacing:-.01em;') +
+        cuerpo(esc(b.sub), 15, N.lila, 'padding:10px 0 0 0;'), 'padding:40px 28px 6px 28px;' + fondo));
     }
-    const bqB = bloquePerfil(st, false);
-    if (bqB) P.push(row(bqB, 'padding:6px 28px 16px 28px;background:' + C.paper + ';'));
+    let intro = '';
+    if (on(st, 'saludo')) intro += cuerpo(nl2br(fill(B(st, 'saludo').texto, st)), 17, N.texto, 'padding:0 0 10px 0;');
+    if (on(st, 'intro')) intro += cuerpo(nl2br(fill(B(st, 'intro').texto, st)), 16, N.apagado);
+    if (intro) P.push(row(intro, 'padding:22px 28px 34px 28px;' + fondo));
+    const bq = bloquePerfil(st, true);
+    if (bq) P.push(row(bq, 'padding:0 28px 30px 28px;' + fondo));
+    activos(st).forEach(s => {
+      P.push(row(imagen(st, s, 600, N.texto), 'font-size:0;line-height:0;' + fondo));
+      P.push(row(
+        rotulo(esc(s.nombre), 32, N.texto) +
+        cuerpo(esc(s.cobertura), 15, N.apagado, 'padding:6px 0 0 0;') +
+        (s.nota ? cuerpo(esc(s.nota), 13, N.apagado, 'padding:2px 0 0 0;opacity:.85;') : '') +
+        '<div style="padding:14px 0 0 0;">' + flecha('Ver presentación', linkFor(st, s), N.luz) + '</div>',
+        'padding:20px 28px 44px 28px;' + fondo));
+    });
+    const c = cotizar(st, k);
+    if (c) P.push(row(c, 'padding:36px 28px 36px 28px;background:' + N.noche2 + ';'));
+    P.push(despedida(st, 'oscuro', k, N.noche));
+    return doc(st, N.noche, P.join(''));
+  }
+
+  // ── Plantilla B · "Catálogo" (Señal nocturna, versión de día) ──
+  // La versión clara: papel blanco y la tinta de un plano. Rompe la rejilla de tarjetas iguales:
+  // el primer espacio va destacado a todo el ancho y los demás de dos en dos, sin cajas ni
+  // bordes, la foto con la esquina viva como un cartel. En el móvil las parejas bajan solas.
+  function plantillaB(st) {
+    const P = [];
+    const k = { texto: N.tinta, apagado: N.gris, hilo: N.regla };
+    const fondo = 'background:' + N.papel + ';';
+    P.push(row(marca(st, 'claro', 150), 'padding:28px 28px 0 28px;' + fondo));
+    if (on(st, 'titulo')) {
+      const b = B(st, 'titulo');
+      P.push(row(rotulo(esc(b.texto), 48, N.tinta, 'letter-spacing:-.01em;') +
+        cuerpo(esc(b.sub), 15, N.morado, 'padding:8px 0 0 0;'), 'padding:38px 28px 4px 28px;' + fondo));
+    }
+    let intro = '';
+    if (on(st, 'saludo')) intro += cuerpo(nl2br(fill(B(st, 'saludo').texto, st)), 17, N.tinta, 'padding:0 0 10px 0;');
+    if (on(st, 'intro')) intro += cuerpo(nl2br(fill(B(st, 'intro').texto, st)), 16, N.gris);
+    if (intro) P.push(row(intro, 'padding:20px 28px 30px 28px;' + fondo));
+    const bq = bloquePerfil(st, false);
+    if (bq) P.push(row(bq, 'padding:0 28px 30px 28px;' + fondo));
+    const placa = (s, grande) =>
+      rotulo(esc(s.nombre), grande ? 30 : 23, N.tinta, 'padding:' + (grande ? 16 : 12) + 'px 0 0 0;') +
+      cuerpo(esc(s.cobertura), grande ? 15 : 14, N.gris, 'padding:5px 0 0 0;') +
+      '<div style="padding:10px 0 0 0;">' + flecha('Ver presentación', linkFor(st, s), N.naranjaTinta) + '</div>';
     const act = activos(st);
     if (act.length) {
-      // La tarjeta que va sola no flota ni fija 544 px: ocupa la fila. Los 544 fijos eran lo que
-      // obligaba a Gmail a encoger el correo entero en el movil. Las de 264 flotan y, si no caben
-      // dos, bajan una debajo de otra.
-      const card = (s, w) => '<table role="presentation" width="' + (w === 544 ? '100%' : w) + '"' + (w === 544 ? '' : ' align="left"') + ' cellpadding="0" cellspacing="0" border="0" style="width:' + (w === 544 ? '100%' : w + 'px;max-width:100%') + ';margin:0 0 16px 0;"><tr><td style="border:1px solid ' + C.rule + ';border-radius:8px;overflow:hidden;background:' + C.paper + ';">' +
-        '<a href="' + esc(linkFor(st, s)) + '"><img src="' + esc(st.cardAnim && !usaPortadas(st) ? carruselSrc(st, s) : svcImg(st, s)) + '" width="' + w + '" alt="' + esc(svcAlt(st, s)) + '" style="display:block;width:100%;height:auto;border-radius:8px 8px 0 0;color:#1F1B24;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:18px;"></a>' +
-        '<div style="padding:12px 14px 14px 14px;">' +
-        '<div style="font-family:' + FH + ';font-size:10px;font-weight:700;letter-spacing:.14em;color:' + C.orangeDark + ';text-transform:uppercase;">' + esc(s.eyebrow) + '</div>' +
-        '<div style="font-family:' + FH + ';font-size:15px;line-height:20px;font-weight:800;color:' + C.text + ';padding:3px 0 3px 0;">' + esc(s.nombre) + '</div>' +
-        '<div style="font-family:' + FB + ';font-size:13px;line-height:19px;color:' + C.muted + ';">' + esc(s.cobertura) + (s.nota ? '<br>' + esc(s.nota) : '') + '</div>' +
-        '<div style="padding:8px 0 0 0;"><a href="' + esc(linkFor(st, s)) + '" style="font-family:' + FH + ';font-size:12px;font-weight:700;color:' + C.purple + ';text-decoration:none;">Ver presentación &rarr;</a></div>' +
-        '</div></td></tr></table>';
-      let grid = '';
-      act.forEach((s, i) => {
-        const last = i === act.length - 1 && act.length % 2 === 1;
-        grid += last ? card(s, 544) : card(s, 264) + (i % 2 === 0 ? '<table role="presentation" width="16" align="left" cellpadding="0" cellspacing="0" border="0"><tr><td style="font-size:0;line-height:0;">&nbsp;</td></tr></table>' : '');
-      });
-      P.push(row(grid, 'padding:12px 28px 0 28px;background:' + C.paper + ';'));
+      // Destacado: el primero, a todo el ancho de la columna.
+      P.push(row(imagen(st, act[0], 544, N.tinta) + placa(act[0], true), 'padding:0 28px 34px 28px;' + fondo));
+      // El resto de dos en dos. Tablas que flotan: lado a lado en el ordenador, una debajo
+      // de otra en el móvil (la misma técnica con la que A y B dejaron de encogerse en el móvil).
+      const resto = act.slice(1);
+      for (let i = 0; i < resto.length; i += 2) {
+        const par = resto.slice(i, i + 2);
+        if (par.length === 1) {
+          P.push(row(imagen(st, par[0], 544, N.tinta) + placa(par[0], true), 'padding:0 28px 34px 28px;' + fondo));
+          continue;
+        }
+        const celda = (s, lado) =>
+          '<table role="presentation" width="264" align="' + lado + '" cellpadding="0" cellspacing="0" border="0" ' +
+          'style="width:264px;max-width:100%;margin:0 0 30px 0;"><tr><td valign="top">' +
+          imagen(st, s, 264, N.tinta) + placa(s, false) + '</td></tr></table>';
+        P.push(row(celda(par[0], 'left') +
+          '<table role="presentation" width="16" align="left" cellpadding="0" cellspacing="0" border="0"><tr><td style="font-size:0;line-height:0;">&nbsp;</td></tr></table>' +
+          celda(par[1], 'left'), 'padding:0 28px 4px 28px;' + fondo));
+      }
     }
-    if (on(st, 'suministro')) {
-      const b = B(st, 'suministro');
-      P.push(row('<div style="font-family:' + FH + ';font-size:15px;font-weight:800;color:' + C.text + ';padding:0 0 6px 0;">' + esc(b.titulo) + '</div>' +
-        '<div style="font-family:' + FB + ';font-size:14px;line-height:20px;color:' + C.muted + ';padding:0 0 8px 0;">' + nl2br(b.texto) + '</div>' + bullets(lines(b.requisitos), C.orange, C.text),
-        'padding:16px 20px;background:' + C.sand + ';border-radius:8px;'));
-    }
-    let steps = '';
-    if (on(st, 'pasos')) {
-      const b = B(st, 'pasos');
-      steps += '<div style="font-family:' + FH + ';font-size:15px;font-weight:800;color:' + C.text + ';padding:0 0 6px 0;">' + esc(b.titulo) + '</div>' +
-        '<div style="font-family:' + FB + ';font-size:14px;line-height:20px;color:' + C.muted + ';padding:0 0 12px 0;">' + nl2br(b.texto) + '</div>';
-    }
-    if (on(st, 'presupuesto')) {
-      const b = B(st, 'presupuesto');
-      steps += '<div style="font-family:' + FB + ';font-size:14px;font-weight:700;color:' + C.text + ';padding:0 0 8px 0;">' + esc(b.titulo) + '</div>' + numbered(lines(b.items), C.purple, '#FFFFFF', C.text);
-    }
-    if (steps) P.push(row(steps, 'padding:20px 28px 4px 28px;background:' + C.paper + ';'));
-    if (on(st, 'cta')) P.push(row(button(B(st, 'cta').texto, B(st, 'cta').url, C.purple, '#FFFFFF'), 'padding:12px 28px 22px 28px;background:' + C.paper + ';'));
-    let foot = '';
-    if (on(st, 'cierre')) foot += '<div style="font-family:' + FB + ';font-size:15px;line-height:22px;color:' + C.text + ';padding:0 0 16px 0;">' + nl2br(B(st, 'cierre').texto) + '</div>';
-    if (on(st, 'firma')) foot += firma(st, 'claro');
-    if (foot) P.push(row(foot, 'padding:20px 28px 26px 28px;background:' + C.paper + ';border-top:1px solid ' + C.rule + ';'));
-    if (on(st, 'pie')) P.push(row('<div style="font-family:' + FB + ';font-size:11px;line-height:16px;color:' + C.muted + ';">' + nl2br(B(st, 'pie').texto) + '</div>', 'padding:14px 28px 0 28px;'));
-    return doc(st, C.sand, P.join(''));
+    const c = cotizar(st, k);
+    if (c) P.push(row(c, 'padding:34px 28px 34px 28px;background:' + N.arena + ';'));
+    P.push(despedida(st, 'claro', k, N.papel));
+    return doc(st, N.arena, P.join(''));
   }
 
   // ── Plantilla C · "Nota" (compacta, parece un correo personal; para responder en hilo) ──
@@ -1830,8 +1861,8 @@
   }
 
   const TEMPLATES = {
-    A: { nombre: 'Cartelera', desc: 'Oscura, misma identidad que los decks. Para primer envío.', fn: plantillaA },
-    B: { nombre: 'Catálogo', desc: 'Clara, tarjetas en dos columnas. Para lectura rápida.', fn: plantillaB },
+    A: { nombre: 'Cartelera', desc: 'Oscura. Cada espacio es una valla: la foto a sangre y su nombre en letra de señal. Para primer envío.', fn: plantillaA },
+    B: { nombre: 'Catálogo', desc: 'Clara. Un espacio destacado y los demás de dos en dos, sin cajas. Para lectura rápida.', fn: plantillaB },
     C: { nombre: 'Nota', desc: 'Compacta, parece un correo personal. Para responder en hilo.', fn: plantillaC },
     D: { nombre: 'Cartelera móvil', desc: 'Una columna, foto arriba, tipografía grande y un solo botón principal. Pensada para Gmail en el teléfono.', fn: plantillaD },
     E: { nombre: 'Inventario', desc: 'Asesor de diseño · para agencias. Tabla de inventario con métricas comparables, sin brief educativo. Claro u oscuro.', fn: plantillaE },
