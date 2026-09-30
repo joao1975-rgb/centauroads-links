@@ -41,9 +41,9 @@ No hace falta nada más: ni base de datos aparte (usa SQLite), ni ffmpeg, ni cue
 git clone https://github.com/joao1975-rgb/centauroads-links.git
 cd centauroads-links
 
-# Windows (PowerShell o Git Bash)
+# Windows (PowerShell o Git Bash; con barras normales funciona en los dos)
 py -3.12 -m venv .venv
-.venv\Scripts\python -m pip install -r requirements.txt -r requirements-dev.txt
+.venv/Scripts/python -m pip install -r requirements.txt -r requirements-dev.txt
 
 # macOS / Linux
 python3.12 -m venv .venv
@@ -67,7 +67,7 @@ Todas las variables, con lo que hace cada una, están en [Variables de entorno](
 
 ```bash
 # Windows
-.venv\Scripts\python -m uvicorn app.main:app --env-file .env --port 8005
+.venv/Scripts/python -m uvicorn app.main:app --env-file .env --port 8005
 # macOS / Linux
 .venv/bin/python -m uvicorn app.main:app --env-file .env --port 8005
 ```
@@ -112,7 +112,7 @@ Quien tenga Google no necesita contraseña si está configurado `GOOGLE_CLIENT_I
 ### 5. Pruebas y plantillas
 
 ```bash
-.venv\Scripts\python -m pytest            # Windows   (macOS/Linux: .venv/bin/python -m pytest)
+.venv/Scripts/python -m pytest            # Windows   (macOS/Linux: .venv/bin/python -m pytest)
 node prototipos/mail/build.js             # construye las 16 plantillas y el compositor publicable
 ```
 
