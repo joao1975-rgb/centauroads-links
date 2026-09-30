@@ -337,7 +337,13 @@
       f: [['titulo', 'Título'], ['texto', 'Texto', 'textarea'], ['requisitos', 'Requisitos (uno por línea)', 'lines']] },
     { k: 'pasos', label: 'Próximos pasos', f: [['titulo', 'Título'], ['texto', 'Texto', 'textarea']] },
     { k: 'presupuesto', label: 'Datos para presupuesto', f: [['titulo', 'Título'], ['items', 'Datos (uno por línea)', 'lines']] },
-    { k: 'cta', label: 'Botón de acción', f: [['texto', 'Texto del botón'], ['url', 'Enlace']] },
+    { k: 'cta', label: 'Botón de acción',
+      f: [['texto', 'Texto del botón'],
+          ['responder', 'Responder a este correo', 'interruptor',
+           'Abre un mensaje a mercadeo@centauroads.com con «Re:» y el asunto de este correo. Apágalo para usar un enlace propio.'],
+          ['cuerpo', 'Texto que ya aparece escrito en la respuesta', 'textarea'],
+          ['alternativa', 'Línea bajo el botón (A–D)'],
+          ['url', 'Enlace propio (solo con «Responder» apagado)']] },
     { k: 'cierre', label: 'Cierre', f: [['texto', 'Texto']] },
     { k: 'firma', label: 'Firma', hint: 'Teléfono y dirección son valores de ejemplo: confirmar con Elizabeth.',
       f: [['nombre', 'Nombre'],
@@ -373,6 +379,14 @@
     const v = get(st, path); inp.value = type === 'lines' ? (Array.isArray(v) ? v.join('\n') : (v || '')) : (v == null ? '' : v);
     inp.addEventListener('input', () => { set(st, path, type === 'lines' ? inp.value.split('\n') : inp.value); if (typeof onInput === 'function') onInput(inp.value); touch(); });
     wrap.appendChild(inp); return wrap;
+  }
+  // Un interruptor como campo de un bloque, con su explicacion al lado: la misma fila que el
+  // "Tema oscuro" del perfil.
+  function filaInterruptor(path, etiqueta, ayuda) {
+    const r = el('div', 'row'); r.appendChild(switchEl(path, () => {}));
+    const t = el('div', 'row-t'); t.appendChild(document.createTextNode(etiqueta));
+    if (ayuda) t.appendChild(el('i', null, ayuda));
+    r.appendChild(t); return r;
   }
   function switchEl(path, onChange) {
     const l = el('label', 'sw'); const c = document.createElement('input'); c.type = 'checkbox'; c.checked = !!get(st, path);
@@ -424,7 +438,9 @@
     const body = el('div', 'blk-b');
     if (def.hint) body.appendChild(el('p', 'hint', def.hint));
     if (def.servicios) st.servicios.forEach((s, i) => body.appendChild(servicioEl(s, i)));
-    else def.f.forEach(([k, l, ty, op]) => body.appendChild(inputEl('bloques.' + def.k + '.' + k, l, ty, op)));
+    else def.f.forEach(([k, l, ty, op]) => body.appendChild(ty === 'interruptor'
+      ? filaInterruptor('bloques.' + def.k + '.' + k, l, op)
+      : inputEl('bloques.' + def.k + '.' + k, l, ty, op)));
     b.appendChild(body); return b;
   }
   // Perfil del destinatario: reescribe asunto, textos y orden de servicios, y añade su bloque propio.

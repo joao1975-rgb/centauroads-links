@@ -365,7 +365,7 @@
           requisitos: ['Foto del sitio', 'Medidas', 'Especificaciones técnicas', 'Materiales'] },
         branding: { on: true, titulo: 'Branding y esculturas',
           texto: 'Corpóreos, letras 3D, cajas de luz, tótems tradicionales, impresión e instalación a medida para tu marca.',
-          cta: 'Ver catálogo especial', url: 'mailto:equintero@centauroads.com?subject=Cat%C3%A1logo%20de%20branding%20y%20esculturas' },
+          cta: 'Ver catálogo especial', url: 'mailto:mercadeo@centauroads.com?subject=Cat%C3%A1logo%20de%20branding%20y%20esculturas' },
         // Muro de clientes: prueba social para el perfil de cliente nuevo. APAGADO hasta que Elizabeth
         // confirme que podemos nombrar a estas marcas en un correo.
         // Datos operativos de los formatos del asesor. Van aparte porque CADUCAN: una
@@ -482,7 +482,11 @@
           texto: 'Una vez seleccionados los espacios, envíanos la información y los documentos para preparar la cotización.' },
         presupuesto: { on: true, titulo: 'Para un presupuesto formal necesitamos',
           items: ['RIF digital de la empresa', 'Fecha de inicio y duración de la campaña', 'Formato o alcance (pantalla, tótem u otro)'] },
-        cta: { on: true, texto: 'Enviar información para cotizar', url: 'mailto:equintero@centauroads.com?subject=Solicitud%20de%20cotizaci%C3%B3n' },
+        // `responder`: el boton abre un mensaje a la cuenta desde la que se envia, con "Re:" y el
+        // asunto del correo (ver ctaHref). Apagado, manda `url`, escrita a mano.
+        cta: { on: true, texto: 'Enviar información para cotizar', url: 'mailto:mercadeo@centauroads.com?subject=Solicitud%20de%20cotizaci%C3%B3n',
+          responder: true, cuerpo: 'Hola, quiero pedir una cotización. Me interesan estos espacios:\n\n',
+          alternativa: 'O, si lo prefieres, responde directamente a este correo.' },
         cierre: { on: true, texto: 'Quedo atenta a tu respuesta.' },
         firma: { on: true, nombre: 'Elizabeth Quintero',
           // Cargo elegible: 'alianzas' o 'directora'. El texto lo compone cargoDe().
@@ -564,6 +568,23 @@
     }
     return url;
   };
+  // El boton de cotizar, como una respuesta al correo.
+  //
+  // Un enlace no puede pulsar el "Responder" del programa del cliente: ninguno lo permite, y el hilo
+  // de una respuesta lo marcan cabeceras que un mailto: no puede fijar. Lo mas cercano: un mensaje a
+  // la cuenta DESDE LA QUE SE ENVIA (mercadeo@, siempre: decision del 2026-09-30), con el asunto
+  // "Re: <el del correo>". La peticion llega al mismo buzon y, con el mismo asunto, se lee como la
+  // respuesta que es. Antes abria un correo nuevo a otra direccion, con un asunto que no casaba con nada.
+  // Con `responder` apagado manda el enlace escrito a mano (un formulario, otra direccion).
+  const CUENTA_DE_ENVIO = 'mercadeo@centauroads.com';
+  function ctaHref(st) {
+    const c = B(st, 'cta');
+    if (c.responder === false) return c.url;
+    const asunto = String(st.asunto || '').trim();
+    const re = /^re:/i.test(asunto) ? asunto : 'Re: ' + asunto;
+    return 'mailto:' + ((B(st, 'firma') || {}).contacto || CUENTA_DE_ENVIO) +
+      '?subject=' + encodeURIComponent(re) + (c.cuerpo ? '&body=' + encodeURIComponent(c.cuerpo) : '');
+  }
   const webHref = (w) => /^https?:\/\//.test(w || '') ? w : 'https://' + (w || '');
   const imgFor = (st, name) => (st.assetBase || 'img').replace(/\/$/, '') + '/' + name;
   // Juego de imágenes por servicio: fotos reales del inventario o portadas de los decks de Canva
@@ -998,6 +1019,14 @@
   // hace desaparecer lo que el usuario llevara escrito a mano. Ya paso una vez y se
   // vivio como una perdida de trabajo. Completar en silencio lo que falta cuesta veinte
   // lineas y no le quita nada a nadie.
+  // Enlaces que apuntaban a la cuenta personal de la asesora. Todo pasa por mercadeo@ (decision
+  // del 2026-09-30). Mismo criterio que RENOMBRADOS: solo se cambian si siguen siendo exactamente los
+  // de antes; un enlace escrito a mano se respeta.
+  const ENLACES_ANTES = {
+    branding: ['mailto:equintero@centauroads.com?subject=Cat%C3%A1logo%20de%20branding%20y%20esculturas'],
+    cta: ['mailto:equintero@centauroads.com?subject=Solicitud%20de%20cotizaci%C3%B3n'],
+  };
+
   function normaliza(st) {
     const base = defaultState();
     if (st.tema === undefined) st.tema = base.tema;
@@ -1048,6 +1077,9 @@
       Object.keys(base.bloques[k]).forEach(function (campo) {
         if (st.bloques[k][campo] === undefined) st.bloques[k][campo] = base.bloques[k][campo];
       });
+    });
+    Object.keys(ENLACES_ANTES).forEach(function (k) {
+      if (st.bloques[k] && ENLACES_ANTES[k].indexOf(st.bloques[k].url) >= 0) st.bloques[k].url = base.bloques[k].url;
     });
     if (st.bloques.entrega) {
       Object.keys(ENTREGA_ANTES).forEach(function (campo) {
@@ -1152,7 +1184,10 @@
       h += cuerpo('<b style="color:' + k.texto + ';">' + esc(b.titulo) + '.</b> ' + esc(b.texto) + ' ' +
         lines(b.requisitos).map(esc).join(' · ') + '.', 14, k.apagado, 'padding:18px 0 0 0;');
     }
-    if (on(st, 'cta')) h += '<div style="padding:26px 0 0 0;">' + senal(B(st, 'cta').texto, B(st, 'cta').url, N.luz, N.tinta) + '</div>';
+    if (on(st, 'cta')) {
+      h += '<div style="padding:26px 0 0 0;">' + senal(B(st, 'cta').texto, ctaHref(st), N.luz, N.tinta) + '</div>';
+      if (B(st, 'cta').alternativa) h += cuerpo(esc(B(st, 'cta').alternativa), 14, k.apagado, 'padding:12px 0 0 0;');
+    }
     return h;
   }
 
@@ -1275,7 +1310,7 @@
       body += p(esc(b.titulo) + ': ' + lines(b.items).map(esc).join(', ') + '.');
     }
     if (on(st, 'suministro')) { const b = B(st, 'suministro'); body += p('<b>' + esc(b.titulo) + '.</b> ' + esc(b.texto) + ' ' + lines(b.requisitos).map(esc).join(' · ') + '.', 'color:' + N.gris + ';font-size:14px;'); }
-    if (on(st, 'cta')) body += p('<a href="' + esc(B(st, 'cta').url) + '" style="color:' + N.morado + ';font-weight:700;">' + esc(B(st, 'cta').texto) + ' &rarr;</a>', 'margin:4px 0 22px 0;');
+    if (on(st, 'cta')) body += p('<a href="' + esc(ctaHref(st)) + '" style="color:' + N.morado + ';font-weight:700;">' + esc(B(st, 'cta').texto) + ' &rarr;</a>' + (B(st, 'cta').alternativa ? '<br><span style="color:' + N.gris + ';font-size:14px;">' + esc(B(st, 'cta').alternativa) + '</span>' : ''), 'margin:4px 0 22px 0;');
     if (on(st, 'cierre')) body += p(nl2br(B(st, 'cierre').texto), 'margin-bottom:22px;');
     if (on(st, 'firma')) body += firma(st, 'claro');
     if (on(st, 'pie')) body += '<p style="margin:22px 0 0 0;font-family:' + FB + ';font-size:11px;line-height:16px;color:' + N.gris + ';">' + nl2br(B(st, 'pie').texto) + '</p>';
@@ -1339,7 +1374,10 @@
     if (on(st, 'pasos')) { const b = B(st, 'pasos'); fin += rotulo(esc(b.titulo), 32, N.texto) + cuerpo(nl2br(b.texto), 17, N.apagado, 'padding:8px 0 0 0;'); }
     if (on(st, 'presupuesto')) { const b = B(st, 'presupuesto'); fin += cuerpo('<b style="color:' + N.texto + ';">' + esc(b.titulo) + '</b>', 16, N.texto, 'padding:20px 0 8px 0;') + lista(lines(b.items), N.texto, N.hilo); }
     if (on(st, 'suministro')) { const b = B(st, 'suministro'); fin += cuerpo('Para proyectos de branding e instalación: ' + lines(b.requisitos).map(esc).join(' · ') + '.', 15, N.apagado, 'padding:14px 0 0 0;'); }
-    if (on(st, 'cta')) fin += '<div style="padding:24px 0 0 0;">' + pildora(B(st, 'cta').texto, B(st, 'cta').url, true) + '</div>';
+    if (on(st, 'cta')) {
+      fin += '<div style="padding:24px 0 0 0;">' + pildora(B(st, 'cta').texto, ctaHref(st), true) + '</div>';
+      if (B(st, 'cta').alternativa) fin += cuerpo(esc(B(st, 'cta').alternativa), 15, N.apagado, 'padding:14px 0 0 0;text-align:center;');
+    }
     if (fin) P.push(row(fin, 'padding:32px 24px 34px 24px;background:' + N.noche2 + ';'));
     P.push(despedida(st, 'oscuro', { texto: N.texto, apagado: N.apagado, hilo: N.hilo }, N.noche));
     return doc(st, P.join(''));
@@ -1508,7 +1546,7 @@
       '</td></tr></table>', pad + 'padding-bottom:24px;'));
 
     if (on(st, 'cta')) {
-      P.push(row(botonAsesor(st, B(st, 'asesor').botonTexto || 'Solicitar disponibilidad Q1', B(st, 'cta').url) +
+      P.push(row(botonAsesor(st, B(st, 'asesor').botonTexto || 'Solicitar disponibilidad Q1', ctaHref(st)) +
         '<div style="font-family:' + FB + ';font-size:12px;color:' + k.apagado + ';padding:12px 0 0 0;">' + esc(a.pieCta) + '</div>',
         pad + 'padding-bottom:28px;'));
     }
@@ -1601,7 +1639,7 @@
       P.push(row(
         '<div style="font-family:' + FB + ';font-size:15px;line-height:1.6;color:' + k.texto + ';padding:0 0 14px 0;">' +
           realce(h(g.ctaTexto), '<b>', '</b>') + '</div>' +
-        botonAsesor(st, h(g.boton), B(st, 'cta').url) +
+        botonAsesor(st, h(g.boton), ctaHref(st)) +
         '<div style="font-family:' + FB + ';font-size:12px;color:' + k.apagado + ';padding:12px 0 0 0;">' + esc(a.respuesta) + '</div>',
         pad + 'padding-bottom:28px;'));
     }
@@ -1711,7 +1749,7 @@
       '</td></tr></table>', pad + 'padding-bottom:26px;'));
 
     if (on(st, 'cta')) {
-      P.push(row(botonAsesor(st, h(p.boton), B(st, 'cta').url) +
+      P.push(row(botonAsesor(st, h(p.boton), ctaHref(st)) +
         '<div style="font-family:' + FB + ';font-size:12px;color:' + k.apagado + ';padding:12px 0 0 0;">' +
         b(p.pieBoton) + '</div>',
         pad + 'padding-bottom:28px;'));
