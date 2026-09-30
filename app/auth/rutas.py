@@ -35,7 +35,7 @@ from datetime import datetime, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -367,8 +367,8 @@ _ENTRADA = """<!DOCTYPE html>
   <div class="aviso" id="aviso" role="alert" hidden></div>
   <p class="pie">Si no puedes entrar, pide que añadan tu correo a la lista del panel.</p>
   <p class="guia">¿Vas a instalar la herramienta en otro ordenador?
-    <a href="{guia}" target="_blank" rel="noopener">Ver la guía de instalación</a> ·
-    <a href="{guia}" download="guia-instalacion-centauro-links.html">Descargarla</a></p>
+    <a href="/panel/guia" target="_blank" rel="noopener">Ver la guía de instalación</a> ·
+    <a href="/panel/guia/descargar">Descargarla</a></p>
 </main>
 <script>
   var aviso = document.getElementById('aviso');
@@ -399,6 +399,28 @@ _BLOQUE_GOOGLE = """<div id="g_id_onload" data-client_id="{client_id}"
 <div class="g_id_signin" data-type="standard" data-theme="filled_black"
      data-text="signin_with" data-shape="rectangular" data-width="332"></div>
 <div class="sep">o con tu contraseña</div>"""
+
+
+@router.get("/panel/guia")
+def a_la_guia():
+    """
+    Direccion corta y fija de la guia de instalacion: se puede mandar a quien sea, tenga sesion o no.
+    Hacia falta porque, con la sesion abierta, /panel pasa directo al compositor y la pantalla de
+    entrada -donde estaban los enlaces a la guia- no llega a verse.
+    """
+    return RedirectResponse(url=GUIA, status_code=307)
+
+
+@router.get("/panel/guia/descargar")
+def descargar_la_guia():
+    """
+    La guia como descarga. La marca `download` de un enlace la ignoran o la cancelan algunos
+    navegadores (se vio en uno de prueba); la cabecera Content-Disposition la respetan todos.
+    """
+    ruta = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                        "static", "guia-instalacion.html")
+    return FileResponse(ruta, media_type="text/html; charset=utf-8",
+                        filename="guia-instalacion-centauro-links.html")
 
 
 @router.get("/panel")
