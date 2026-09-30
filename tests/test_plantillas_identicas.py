@@ -57,7 +57,7 @@ def _hay_node():
 def rendered(tmp_path_factory):
     """Renderiza las plantillas con el motor actual. Sin node, la prueba se salta."""
     if not _hay_node():
-        pytest.skip("node no está disponible; la guardia de build.js cubre este caso")
+        pytest.skip("node no está disponible: esta guardia necesita Node 18+ para renderizar las plantillas (build.js también lo necesita, así que no la sustituye)")
     destino = tmp_path_factory.mktemp("plantillas")
     guion = destino / "_render.js"
     guion.write_text(GUION, encoding="utf-8")

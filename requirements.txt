@@ -1,3 +1,7 @@
+# Python 3.12 (sirve de 3.10 a 3.13; NO 3.14). pydantic 2.10.4 no publica version para 3.14 y
+# alli intenta compilar pydantic-core con Rust y falla. Comprobado en un clon limpio.
+# En Windows: py -3.12 -m venv .venv   ·   en Mac/Linux: python3.12 -m venv .venv
+# Para pruebas, ademas: pip install -r requirements-dev.txt  (y Node 18+ para las plantillas)
 fastapi==0.115.6
 uvicorn[standard]==0.34.0
 sqlalchemy==2.0.36

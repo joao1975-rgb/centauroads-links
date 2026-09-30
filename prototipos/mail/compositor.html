@@ -52,6 +52,17 @@
   .grp h2 { font:600 11px/1 var(--mono); letter-spacing:.16em; color:var(--faint); text-transform:uppercase; margin:0 0 10px; }
   .fld { display:block; margin:0 0 10px; }
   .fld-l { display:block; font-size:12px; color:var(--dim); margin-bottom:4px; }
+  /* Lo que no sale en la plantilla elegida. Atenuado y dicho con palabras: el color solo no
+     basta para entender por que escribir ahi no cambia nada. */
+  .fld.nousa, .sw.nousa { opacity:.45; }
+  .fld.nousa .fld-l::after { content:' \00B7  no cambia este correo'; font-style:italic; }
+  .blk.nousa { opacity:.55; }
+  .blk.nousa > .blk-h::after { content:'no se usa aqu\00ED'; font-size:11px; font-style:italic;
+    color:var(--faint); white-space:nowrap; }
+  /* Fechas ya pasadas en los datos que caducan. Se ve aunque el bloque este cerrado. */
+  .blk.caduco:not(.nousa) > .blk-h::after { content:'fechas vencidas'; font-size:11px; font-weight:600;
+    color:var(--orange, #F79131); white-space:nowrap; }
+  .aviso-fechas { color:var(--orange, #F79131); font-size:12px; margin:0 0 10px; }
   .fld select { width:100%; background:var(--card); border:1px solid var(--control); border-radius:6px; padding:7px 9px; font-size:13px; color:var(--text); }
   .fld input, .fld textarea { width:100%; background:var(--card); border:1px solid var(--control); border-radius:6px; padding:7px 9px; font-size:13px; line-height:1.4; resize:vertical; }
   .fld input:focus, .fld textarea:focus { border-color:var(--purple-l); outline:none; }
@@ -248,12 +259,12 @@
     { k: 'intro', label: 'Introducción', f: [['texto', 'Párrafo', 'textarea']] },
     { k: 'titulo', label: 'Título de sección', f: [['texto', 'Título'], ['sub', 'Subtítulo']] },
     { k: 'servicios', label: 'Servicios (catálogo)', servicios: true },
-    { k: 'asesor', label: 'Datos del formato del asesor (E, F, G)',
+    { k: 'asesor', label: 'Datos del formato del asesor', sinInterruptor: true,
       hint: 'Estos datos CADUCAN. Revisalos antes de cada envio: una disponibilidad vieja o una fecha pasada se notan.',
       f: [['periodo', 'Periodo que se anuncia'], ['etiquetaMeta', 'Etiqueta de la cabecera'],
           ['dispoFecha', 'Disponibilidad actualizada al'], ['dispoTexto', 'Que hay disponible'],
           ['cierreTexto', 'Fecha de cierre'], ['slotsLed', 'Distintivo del LED (ej. 3 SLOTS)'],
-          ['pieCta', 'Linea bajo el boton'], ['respuesta', 'Compromiso de respuesta']] },
+          ['botonTexto', 'Texto del boton (plantilla E)'], ['pieCta', 'Linea bajo el boton'], ['respuesta', 'Compromiso de respuesta']] },
     { k: 'clientes', label: 'Marcas que ya son clientes (solo perfil Cliente nuevo)',
       hint: 'APAGADO hasta que Elizabeth confirme que podemos nombrar a esas marcas.',
       f: [['titulo', 'Título'], ['lista', 'Marcas (separadas por ·)']] },
@@ -277,6 +288,7 @@
 
   function inputEl(path, label, type, onInput) {
     const wrap = el('label', 'fld'); wrap.appendChild(el('span', 'fld-l', label));
+    wrap.dataset.ruta = path;
     // 'opciones': selector de catalogo, con el mapa clave->etiqueta en el 4o argumento.
     // El 'select' de abajo esta clavado a M.IMG_SETS y no vale para nada mas.
     if (type === 'opciones') {
@@ -301,6 +313,7 @@
   }
   function switchEl(path, onChange) {
     const l = el('label', 'sw'); const c = document.createElement('input'); c.type = 'checkbox'; c.checked = !!get(st, path);
+    l.dataset.ruta = path;
     c.setAttribute('aria-label', 'Mostrar u ocultar');
     c.addEventListener('change', () => { set(st, path, c.checked); onChange(c.checked); touch(); });
     l.appendChild(c); l.appendChild(el('i', 'sw-k')); return l;
@@ -337,9 +350,12 @@
     w.appendChild(b); return w;
   }
   function blockEl(def) {
-    const b = el('section', 'blk'); b.classList.toggle('off', !get(st, 'bloques.' + def.k + '.on'));
+    const b = el('section', 'blk'); b.dataset.bloque = def.k;
+    // Un bloque de DATOS -no una seccion del correo- no lleva interruptor: no hay nada que
+    // mostrar u ocultar. El del asesor tenia uno y no cambiaba nada en ninguna plantilla.
+    if (!def.sinInterruptor) b.classList.toggle('off', !get(st, 'bloques.' + def.k + '.on'));
     const head = el('header', 'blk-h');
-    head.appendChild(switchEl('bloques.' + def.k + '.on', on => b.classList.toggle('off', !on)));
+    if (!def.sinInterruptor) head.appendChild(switchEl('bloques.' + def.k + '.on', on => b.classList.toggle('off', !on)));
     const t = el('button', 'blk-t', def.label); t.type = 'button'; t.addEventListener('click', () => b.classList.toggle('open'));
     head.appendChild(t); b.appendChild(head);
     const body = el('div', 'blk-b');
@@ -1137,12 +1153,44 @@
     // bloqueadas se quedaba muda. Quitando el `src` el navegador pinta el alt, que es justo lo
     // que hace Outlook (constitucion, principio III).
     const cuerpo = noImg ? html.replace(/\ssrc="[^"]*"/g, '') : html;
-    const extra = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&display=swap"><base target="_blank">' +
+    // Sin Montserrat: el correo no la lleva y Gmail quita los <link>, asi que el cliente ve
+    // Trebuchet. Inyectarla solo aqui ensenaba una tipografia que nadie recibe.
+    const extra = '<base target="_blank">' +
       (noImg ? '<style>img{border:1px dashed #9895A7!important;min-height:22px}</style>' : '');
     $('#preview').srcdoc = cuerpo.replace('</head>', extra + '</head>');
     $('#meta-tpl').textContent = 'Plantilla ' + key + ' · ' + M.TEMPLATES[key].nombre + ' · ' + M.PERFILES[st.perfil].nombre + ' · ' + (st.imgSet === 'portadas' ? 'portadas Canva' : 'fotos reales');
     $('#meta-size').textContent = Math.round(M.render(prod(), key).length / 1024) + ' KB HTML';
-    $('#meta-subj').textContent = M.aplicaPerfil(st).asunto;
+    // El asunto que se manda DE VERDAD: el mismo camino que usa render. Antes ensenaba el del
+    // perfil e ignoraba cual de los tres asuntos estaba elegido.
+    $('#meta-subj').textContent = M.aplicaAsunto(M.aplicaPerfil(M.normaliza(JSON.parse(JSON.stringify(st))))).asunto;
+    marcaLoQueNoSeUsa();
+    avisaFechasPasadas();
+  }
+
+  // ── Lo que no cambia el correo ──
+  // La decision la toma el motor (M.cambiaElCorreo), que es donde se puede probar; aqui solo se
+  // pinta. El porque, en render.js.
+  function marcaLoQueNoSeUsa() {
+    const key = M.pick(st);
+    const usa = ruta => M.cambiaElCorreo(st, key, ruta);
+    document.querySelectorAll('#panel [data-ruta]').forEach(nodo => {
+      // Solo texto e interruptores. Un selector tiene valores cerrados: meterle un testigo lo
+      // dejaria en un valor que no existe y la prueba no diria nada util.
+      const probable = nodo.classList.contains('sw') || nodo.querySelector('input[type=text], textarea');
+      if (!probable) return;
+      // Se usa al COPIAR, no al pintar la vista previa: probarlo aqui lo daria por muerto.
+      if (nodo.dataset.ruta === 'assetBaseProd') return;
+      const no = !usa(nodo.dataset.ruta);
+      nodo.classList.toggle('nousa', no);
+      // No siempre es la plantilla: tambien el perfil o el asunto elegido deciden que se usa.
+      if (no) nodo.title = 'No cambia el correo con la plantilla ' + key + ' y la configuracion actual';
+      else nodo.removeAttribute('title');
+    });
+    document.querySelectorAll('#panel [data-bloque]').forEach(b => {
+      const nodos = Array.from(b.querySelectorAll('[data-ruta]'))
+        .filter(n => n.classList.contains('sw') || n.querySelector('input[type=text], textarea'));
+      b.classList.toggle('nousa', nodos.length > 0 && nodos.every(n => n.classList.contains('nousa')));
+    });
   }
 
   function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 1800); }

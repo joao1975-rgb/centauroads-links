@@ -380,6 +380,9 @@
           cierreTexto: 'Cerramos programación de Q1 el 15 de noviembre.',
           slotsLed: '3 SLOTS',
           pieCta: 'Instalación llave en mano · reporte de campaña incluido',
+          // El texto del boton de E. Era un literal, y se quedaba diciendo "Q1" aunque el
+          // periodo cambiara. Por defecto el de siempre: cambiarlo es cosa del negocio.
+          botonTexto: 'Solicitar disponibilidad Q1',
           respuesta: 'Respuesta en menos de 24 horas hábiles.',
         },
         clientes: { on: false, titulo: 'Marcas que ya están en la calle con nosotros',
@@ -1397,7 +1400,7 @@
       '</td></tr></table>', pad + 'padding-bottom:24px;'));
 
     if (on(st, 'cta')) {
-      P.push(row(botonAsesor(st, 'Solicitar disponibilidad Q1', B(st, 'cta').url) +
+      P.push(row(botonAsesor(st, B(st, 'asesor').botonTexto || 'Solicitar disponibilidad Q1', B(st, 'cta').url) +
         '<div style="font-family:' + FB + ';font-size:12px;color:' + k.apagado + ';padding:12px 0 0 0;">' + esc(a.pieCta) + '</div>',
         pad + 'padding-bottom:28px;'));
     }
@@ -1773,5 +1776,59 @@
       : listo);
   };
 
-  return { C, SERVICIOS, GRUPOS, TEMPLATES, IMG_SETS, PERFILES, ASUNTOS, asuntosDe, EFECTOS, efectoDe, pesoDe, rangoPeso, ROLES, CORREOS, cargoDe, correosDe, BANCO, bancoDe, fotosDe, comandoCarrusel, FICHA, CONTENT_VERSION, defaultState, render, renderText, renderWhatsApp, linkFor, pick, aplicaPerfil, aplicaAsunto, normaliza };
+  // ── ¿Cambia el correo si se toca este campo? ──
+  // El panel es uno para las ocho plantillas y cada una usa una parte: E, F y G ignoran el texto
+  // del saludo, la introduccion y el boton; el interruptor del asesor no cambiaba nada en
+  // ninguna. Sin decirlo, el panel mentia: se escribia y no pasaba nada.
+  //
+  // En vez de una lista a mano de que usa cada plantilla -que caducaria con el primer cambio-,
+  // se pregunta al propio motor: se cambia el campo en una COPIA, se renderiza, y si el correo
+  // sale identico, ese campo no pinta nada aqui. Unos 0,2 ms por prueba.
+  const leeRuta = (o, p) => p.split('.').reduce((a, k) => a == null ? a : a[k], o);
+  const ponRuta = (o, p, v) => { const ks = p.split('.'); const u = ks.pop(); ks.reduce((a, k) => a[k], o)[u] = v; };
+  const TESTIGO = '⁣·testigo·';
+  function cambiaElCorreo(st, key, ruta) {
+    const copia = () => {
+      const s = JSON.parse(JSON.stringify(st));
+      // Un campo de un bloque apagado no sale PORQUE el bloque esta apagado, no porque la
+      // plantilla no lo use: se prueba con su bloque o su servicio encendido.
+      const m = /^bloques\.([^.]+)\./.exec(ruta);
+      if (m && s.bloques && s.bloques[m[1]]) s.bloques[m[1]].on = true;
+      const n = /^servicios\.(\d+)\./.exec(ruta);
+      if (n && s.servicios && s.servicios[+n[1]]) s.servicios[+n[1]].on = true;
+      return s;
+    };
+    try {
+      const a = copia(), b = copia();
+      const v = leeRuta(b, ruta);
+      if (typeof v === 'boolean') ponRuta(b, ruta, !v);
+      else if (Array.isArray(v)) ponRuta(b, ruta, v.concat([TESTIGO]));
+      else ponRuta(b, ruta, String(v == null ? '' : v) + TESTIGO);
+      return render(a, key) !== render(b, key);
+    } catch (e) { return true; }   // ante la duda se dice que si: mejor callar que mentir
+  }
+
+  // ── Fechas ya pasadas en los datos que caducan ──
+  // E salia por defecto anunciando "Q1 2026" en septiembre de 2026, y nada lo avisaba. No se
+  // corrigen solas -que trimestre se vende es cosa del negocio-, pero se dicen.
+  const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto',
+                 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  function fechasPasadas(datos, hoy) {
+    const avisos = [];
+    Object.keys(datos || {}).forEach(function (campo) {
+      const v = String(datos[campo] || '');
+      let m;
+      const trimestre = /Q([1-4])\s*(20\d\d)/gi;
+      while ((m = trimestre.exec(v))) {
+        if (new Date(+m[2], +m[1] * 3, 0) < hoy) avisos.push('«' + m[0] + '» ya terminó');
+      }
+      const mes = new RegExp('(' + MESES.join('|') + ')\\s+(?:de\\s+)?(20\\d\\d)', 'gi');
+      while ((m = mes.exec(v))) {
+        if (new Date(+m[2], MESES.indexOf(m[1].toLowerCase()) + 1, 0) < hoy) avisos.push('«' + m[0] + '» ya pasó');
+      }
+    });
+    return avisos;
+  }
+
+  return { C, SERVICIOS, GRUPOS, TEMPLATES, IMG_SETS, PERFILES, ASUNTOS, asuntosDe, EFECTOS, efectoDe, pesoDe, rangoPeso, ROLES, CORREOS, cargoDe, correosDe, BANCO, bancoDe, fotosDe, comandoCarrusel, FICHA, CONTENT_VERSION, defaultState, render, renderText, renderWhatsApp, linkFor, cambiaElCorreo, fechasPasadas, pick, aplicaPerfil, aplicaAsunto, normaliza };
 });

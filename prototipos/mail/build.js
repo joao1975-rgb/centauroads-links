@@ -14,7 +14,12 @@ const path = require('path');
 const M = require('./render.js');
 
 const here = __dirname;
-const imgDir = path.join(here, 'img');
+// `img/` esta en .gitignore: existe en el equipo donde se trabajan los prototipos, pero no en un
+// clon recien sacado de GitHub, y ahi este script reventaba antes de publicar nada ni pasar las
+// guardias. Las mismas imagenes estan versionadas en app/static/email/, que es lo que sirve
+// produccion: si img/ no esta, se leen de ahi.
+const imgLocal = path.join(here, 'img');
+const imgDir = fs.existsSync(imgLocal) ? imgLocal : path.join(here, '..', '..', 'app', 'static', 'email');
 const slug = { A: 'cartelera', B: 'catalogo', C: 'nota', D: 'movil', E: 'inventario', F: 'guia', G: 'phygital', H: 'personalizada' };
 
 // 1. Plantillas estáticas: con fotos reales (por defecto) y con portadas de Canva (sufijo -portadas)
