@@ -385,6 +385,97 @@
           botonTexto: 'Solicitar disponibilidad Q1',
           respuesta: 'Respuesta en menos de 24 horas hábiles.',
         },
+        // Textos de E, F y G. Eran literales en el codigo y no se podian tocar desde el panel.
+        // *asi* marca el realce que tenia el diseno (color de acento o negrita) y una linea nueva
+        // es un salto. Los huecos entre llaves los rellena el motor: {destinatario}, y en E
+        // {periodo}, {frentes} (en letras), {n} (en cifra) y, en la tabla, {medida}, que sale de
+        // la ficha oficial de cada espacio y no se copia aqui.
+        inventario: {
+          epigrafe: 'Inventario · {periodo}',
+          titulo: 'Tu próximo *Share of Voice*, en una sola tabla.',
+          entrada: 'Sin brief educativo. Sin rodeos. Los {frentes} frentes que operamos en Caracas, con métricas comparables, para que tu equipo de medios calcule el mix sin llamar a nadie.',
+          saludoEpigrafe: 'Para el equipo de {destinatario}',
+          saludo1: 'Sabemos cómo trabajan: brief, medios, tabla de disponibilidad, decisión. Vamos directo a la última parte.',
+          saludo2: 'Este es el inventario que operamos hoy en Caracas, listo para integrarse a tu mix del próximo trimestre, sin brief educativo de por medio.',
+          cifra1: '120K impactos / día', etiqueta1: 'LED',
+          cifra2: '250 motos LED', etiqueta2: 'Rider',
+          cifra3: '{n} frentes', etiqueta3: 'activos',
+          seccion: '01 · Inventario',
+          seccionTitulo: 'Espacios disponibles',
+          seccionSub: 'orden por rotación de audiencia',
+          pieFoto: 'LED Chacao, el frente con mayor rotación en Caracas Este.',
+          dispoEtiqueta: 'Disponibilidad al',
+        },
+        tablaInventario: {
+          led_titulo: 'Pantalla LED Chacao · DOOH',
+          led_detalle: 'Chacao, Av. Francisco de Miranda · {medida} · rotación por franjas horarias',
+          led_dato1: 'Impactos', led_valor1: '120.000/día', led_dato2: 'Formato', led_valor2: 'Video / MP4',
+          mercedes_titulo: 'Pantalla LED Las Mercedes · DOOH',
+          mercedes_detalle: 'Av. Paseo Enrique Erazo · {medida} · horizontal, 24 horas',
+          mercedes_dato1: 'Tráfico', mercedes_valor1: '95.000 vehículos/día', mercedes_dato2: 'Formato', mercedes_valor2: 'Video / MP4 · 30 s',
+          vallas_titulo: 'Vallas · OOH nacional',
+          vallas_detalle: 'Caracas y arterias viales · gran formato · brand recall de largo plazo',
+          vallas_dato1: 'Rotación', vallas_valor1: 'Alta vial', vallas_dato2: 'Cobertura', vallas_valor2: 'Nacional',
+          rider_titulo: 'Rider Clon · movilidad LED', rider_distintivo: 'TRACKING',
+          rider_detalle: 'Caracas · San Antonio · Valencia · caja LED {medida} · GPS en vivo',
+          rider_dato1: 'Flota', rider_valor1: '250 motos', rider_dato2: 'Turno', rider_valor2: '8 h / día',
+          totem_titulo: 'Tótem digital · indoor',
+          totem_detalle: 'C.C. San Ignacio · {medida} · audiencia cautiva premium',
+          totem_dato1: 'Salidas', totem_valor1: '240/día', totem_dato2: 'Ambiente', totem_valor2: 'Indoor A+',
+        },
+        guia: {
+          meta: 'Guía para empezar',
+          titulo: 'Que te conozcan. *Que te recuerden.* Que te compren.',
+          entrada: 'Esa es la secuencia. Tres fases, en ese orden, es cómo crecen las marcas que aparecen en las calles. Te la explicamos sin tecnicismos y sin comprometerte a nada.',
+          saludo: 'Hola {destinatario},',
+          parrafo: 'Gracias por interesarte en dar el paso a la *publicidad exterior*. Sabemos que es una decisión importante: hay muchos formatos, muchos precios y poca información clara sobre por dónde empezar. Este correo no es una cotización: es la guía que les contamos a puerta cerrada a las marcas que arrancan con nosotros. Léela en 2 minutos y hablamos.',
+          fase1: 'Fase de atracción', fase1Titulo: 'Que te conozcan',
+          fase1Texto: 'Empezamos con *formatos digitales de alto tráfico*. El brillo y el movimiento captan miradas nuevas, explican qué haces y qué ofreces. Es la manera más rápida de dejar de ser un desconocido.',
+          fase1Etiqueta: 'Recomendado para empezar', fase1Servicio: 'Tótem digital · San Ignacio',
+          fase1Detalle: '240 salidas/día en un centro comercial premium. Audiencia atenta, presupuesto de entrada.',
+          fase2: 'Fase de memoria', fase2Titulo: 'Que te recuerden',
+          fase2Texto: 'Cuando ya te conocen, tu marca se instala en *las calles que tu cliente recorre todos los días*. Vallas y pantallas LED trabajando juntas: y cuando piensen en lo que vendes, aparecerás tú.',
+          fase2Etiqueta: 'Combinamos con la fase 1', fase2Servicio: 'Pantalla LED · Chacao',
+          fase2Detalle: '120.000 impactos/día en la arteria de mayor rotación de Caracas Este.',
+          fase3: 'Fase de decisión', fase3Titulo: 'Que te compren',
+          fase3Texto: 'La calle empuja, el móvil cierra. En esta fase activamos promociones tácticas y motos con LED que aparecen justo donde y cuando decides. Es la parte donde la campaña se convierte en ventas.',
+          fase3Etiqueta: 'Táctico y medible', fase3Servicio: 'Rider Clon · movilidad LED',
+          fase3Detalle: '250 motos con GPS. Elegimos las zonas y horas donde vive tu cliente.',
+          cajaTitulo: 'Sin fricciones técnicas',
+          cajaTexto: 'Nosotros nos encargamos de todo lo técnico. Tú apruebas el diseño.',
+          ctaTexto: 'Cuéntame de tu marca y te preparo una propuesta *a la medida de tu presupuesto*. Sin compromiso.',
+          boton: 'Cuéntame de tu marca',
+        },
+        phygital: {
+          meta: 'PHYGITAL · Serie 2026',
+          epigrafe: 'Physical + Digital',
+          titulo: 'La pantalla capta.\n*El móvil cierra.*',
+          saludo: 'Hola {destinatario},',
+          parrafo: 'La gente ya no mira los anuncios. Los graba, los sube y los convierte en contenido, o los ignora. Sabemos que necesitan algo que rompa el molde. Antes de mostrarte precios o formatos, mira cómo se ve una campaña Phygital en *tres minutos reales*. Después conversamos.',
+          hora1: '09:00 AM · Chacao',
+          escena1: 'Escena 01',
+          escena1Texto: 'Una persona mira arriba. Ve un QR gigante en la pantalla LED. Curiosidad. Levanta el teléfono.',
+          puente: '3 SEGUNDOS',
+          hora2: '09:03 AM · Instagram',
+          cuenta: '@tu_marca_aqui', lugar: 'Caracas · Venezuela', filtro: 'Filtro AR activo',
+          publicacion: 'Encontré la valla ⚡ *#TuMarcaChacao*',
+          meGusta: '2.847 me gusta',
+          comentario: 'Vieron mi campaña. Se pararon. La grabaron. La subieron.',
+          remate: 'La calle también es feed.',
+          remateTexto: 'Eso es Phygital. Una pantalla que no termina cuando el semáforo cambia.',
+          comoEpigrafe: 'Cómo se arma',
+          comoTexto: 'Tres piezas. Una campaña que se comparte.',
+          pieza1: 'Pantalla LED · el gancho físico',
+          pieza1Texto: 'QR gigante en Chacao o Las Mercedes. Lleva a un filtro AR, un cupón o tu e-commerce directo.',
+          pieza2: 'Rider Clon · la campaña que se mueve',
+          pieza2Texto: '250 motos con caja LED se convierten en caza-recompensas: los usuarios las fotografían y suben, etiquetándote.',
+          pieza3: 'Capa digital · el cierre en el móvil',
+          pieza3Texto: 'Retargeting a quien escaneó, filtros AR de tu marca, hashtag propio. El impacto físico deja huella medible en redes.',
+          cajaTitulo: 'Lo que resolvemos',
+          cajaTexto: 'Ya no eliges entre branding masivo o conversión digital. La calle capta. El móvil cierra.',
+          boton: 'Diseñemos una campaña que se comparta',
+          pieBoton: 'Llamada creativa de 15 minutos, sin brief formal.',
+        },
         clientes: { on: false, titulo: 'Marcas que ya están en la calle con nosotros',
           lista: 'Pepsi · Nestlé · Yango · Cashea · EPA · Arturo’s · Ridery · Cinepic · Tío Rico' },
         pasos: { on: true, titulo: 'Próximos pasos',
@@ -784,6 +875,15 @@
         'letter-spacing:.24em;text-transform:uppercase;color:' + k.apagado + ';">' + esc(meta) + abajo + '</td>' +
       '</tr></table>';
   }
+
+  // Textos editables de E, F y G. *asi* es el realce del diseno -el color de acento en un titular,
+  // la negrita en un parrafo-: quien lo cambia decide que palabra se resalta. Una linea nueva es
+  // un salto. Se escapa ANTES de poner las etiquetas, asi que lo escrito nunca es HTML.
+  const realce = (s, abre, cierra) => esc(s).replace(/\*([^*\n]+)\*/g, abre + '$1' + cierra).replace(/\n/g, '<br>');
+  // Huecos entre llaves que rellena el motor. Uno que no conoce se queda tal cual, a la vista:
+  // mejor que desaparezca en silencio una palabra que alguien escribio.
+  const huecos = (s, mapa) => String(s == null ? '' : s)
+    .replace(/\{(\w+)\}/g, (m, k) => (mapa[k] != null ? String(mapa[k]) : m));
 
   // Epigrafe pequeno en mayusculas. Es el recurso tipografico que ordena sus tres disenos.
   function epigrafe(st, txt, color) {
@@ -1305,30 +1405,32 @@
   // una ficha de inventario con metricas comparables, sin parrafo introductorio de mas.
   function plantillaE(st) {
     const tema = temaDe(st), o = tema !== 'claro', k = paleta(tema), P = [];
-    const a = B(st, 'asesor');
+    const a = B(st, 'asesor'), x = B(st, 'inventario'), tb = B(st, 'tablaInventario');
     const pad = 'padding-left:32px;padding-right:32px;background:' + k.panel + ';';
+    const n = activos(st).length;
+    const h = t => huecos(t, { periodo: a.periodo, frentes: cuantos(n), n: n,
+      destinatario: st.destinatario || '[Nombre de la Agencia]' });
+    const acento = '<span style="color:' + k.acento + ';">';
 
     P.push(row(cabeceraAsesor(st, P, a.etiquetaMeta),
       'padding:26px 32px 22px 32px;background:' + k.panel + ';'));
 
     // Hero. El acento va en "Share of Voice" porque es el termino que la agencia busca.
     P.push(row(
-      epigrafe(st, 'Inventario \u00b7 ' + a.periodo) +
+      epigrafe(st, h(x.epigrafe)) +
       '<div style="font-family:' + FH + ';font-size:40px;line-height:1.02;font-weight:800;letter-spacing:-.035em;color:' + k.texto + ';">' +
-        'Tu pr\u00f3ximo <span style="color:' + k.acento + ';">Share of Voice</span>, en una sola tabla.</div>' +
+        realce(h(x.titulo), acento, '</span>') + '</div>' +
       '<div style="font-family:' + FB + ';font-size:15px;line-height:1.6;color:' + k.apagado + ';padding:16px 0 0 0;">' +
-        'Sin brief educativo. Sin rodeos. Los ' + cuantos(activos(st).length) + ' frentes que operamos en Caracas, con m\u00e9tricas comparables, ' +
-        'para que tu equipo de medios calcule el mix sin llamar a nadie.</div>',
+        realce(h(x.entrada), '<b>', '</b>') + '</div>',
       pad + 'padding-bottom:26px;'));
 
     if (on(st, 'saludo')) {
       P.push(row(
-        epigrafe(st, 'Para el equipo de ' + (st.destinatario || '[Nombre de la Agencia]'), k.acento) +
+        epigrafe(st, h(x.saludoEpigrafe), k.acento) +
         '<div style="font-family:' + FB + ';font-size:15px;line-height:1.65;color:' + k.texto + ';">' +
-          'Sabemos c\u00f3mo trabajan: brief, medios, tabla de disponibilidad, decisi\u00f3n. Vamos directo a la \u00faltima parte.</div>' +
+          realce(h(x.saludo1), '<b>', '</b>') + '</div>' +
         '<div style="font-family:' + FB + ';font-size:15px;line-height:1.65;color:' + k.apagado + ';padding:12px 0 0 0;">' +
-          'Este es el inventario que operamos hoy en Caracas, listo para integrarse a tu mix del pr\u00f3ximo trimestre, ' +
-          'sin brief educativo de por medio.</div>',
+          realce(h(x.saludo2), '<b>', '</b>') + '</div>',
         pad + 'padding-bottom:24px;'));
     }
 
@@ -1339,32 +1441,22 @@
         '<div style="font-family:' + FH + ';font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:' + k.apagado + ';padding:4px 0 0 0;">' + esc(l) + '</div></td>';
     };
     P.push(row('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
-      cifra('120K impactos / d\u00eda', 'LED') + cifra('250 motos LED', 'Rider') + cifra(activos(st).length + ' frentes', 'activos') +
+      cifra(h(x.cifra1), h(x.etiqueta1)) + cifra(h(x.cifra2), h(x.etiqueta2)) + cifra(h(x.cifra3), h(x.etiqueta3)) +
       '</tr></table>', pad + 'padding-bottom:26px;'));
 
     // La tabla de inventario: el corazon de su diseno.
-    P.push(row(epigrafe(st, '01 \u00b7 Inventario', k.acento) +
-      '<div style="font-family:' + FH + ';font-size:24px;font-weight:800;letter-spacing:-.02em;color:' + k.texto + ';">Espacios disponibles</div>' +
-      '<div style="font-family:' + FB + ';font-size:13px;color:' + k.apagado + ';padding:5px 0 0 0;">orden por rotaci\u00f3n de audiencia</div>',
+    P.push(row(epigrafe(st, h(x.seccion), k.acento) +
+      '<div style="font-family:' + FH + ';font-size:24px;font-weight:800;letter-spacing:-.02em;color:' + k.texto + ';">' + realce(h(x.seccionTitulo), acento, '</span>') + '</div>' +
+      '<div style="font-family:' + FB + ';font-size:13px;color:' + k.apagado + ';padding:5px 0 0 0;">' + realce(h(x.seccionSub), '<b>', '</b>') + '</div>',
       pad + 'padding-bottom:16px;'));
 
-    const INVENTARIO = [
-      { n: '01', id: 'led', t: 'Pantalla LED Chacao \u00b7 DOOH', badge: a.slotsLed,
-        d: 'Chacao, Av. Francisco de Miranda \u00b7 ' + FICHA.led.medida + ' \u00b7 rotaci\u00f3n por franjas horarias',
-        m: [['Impactos', '120.000/d\u00eda'], ['Formato', 'Video / MP4']] },
-      { n: '02', id: 'mercedes', t: 'Pantalla LED Las Mercedes \u00b7 DOOH', badge: '',
-        d: 'Av. Paseo Enrique Erazo \u00b7 ' + FICHA.mercedes.medida + ' \u00b7 horizontal, 24 horas',
-        m: [['Tr\u00e1fico', '95.000 veh\u00edculos/d\u00eda'], ['Formato', 'Video / MP4 \u00b7 30 s']] },
-      { n: '03', id: 'vallas', t: 'Vallas \u00b7 OOH nacional', badge: '',
-        d: 'Caracas y arterias viales \u00b7 gran formato \u00b7 brand recall de largo plazo',
-        m: [['Rotaci\u00f3n', 'Alta vial'], ['Cobertura', 'Nacional']] },
-      { n: '04', id: 'rider', t: 'Rider Clon \u00b7 movilidad LED', badge: 'TRACKING',
-        d: 'Caracas \u00b7 San Antonio \u00b7 Valencia \u00b7 caja LED ' + FICHA.rider.medida + ' \u00b7 GPS en vivo',
-        m: [['Flota', '250 motos'], ['Turno', '8 h / d\u00eda']] },
-      { n: '05', id: 'totem', t: 'T\u00f3tem digital \u00b7 indoor', badge: '',
-        d: 'C.C. San Ignacio \u00b7 ' + FICHA.totem.medida + ' \u00b7 audiencia cautiva premium',
-        m: [['Salidas', '240/d\u00eda'], ['Ambiente', 'Indoor A+']] },
-    ];
+    // La tabla sale de su bloque de datos. {medida} la pone la ficha oficial de cada espacio:
+    // la medida de una pantalla no se escribe a mano en ningun sitio.
+    const fila = (num, id, badge) => ({ n: num, id: id, badge: badge, t: h(tb[id + '_titulo']),
+      d: huecos(h(tb[id + '_detalle']), { medida: (FICHA[id] || {}).medida }),
+      m: [[h(tb[id + '_dato1']), h(tb[id + '_valor1'])], [h(tb[id + '_dato2']), h(tb[id + '_valor2'])]] });
+    const INVENTARIO = [fila('01', 'led', a.slotsLed), fila('02', 'mercedes', ''), fila('03', 'vallas', ''),
+      fila('04', 'rider', h(tb.rider_distintivo)), fila('05', 'totem', '')];
     const vivos = activos(st).map(function (x) { return x.id; });
     let tabla = '';
     INVENTARIO.filter(function (f) { return vivos.indexOf(f.id) >= 0; }).forEach(function (f, i) {
@@ -1395,7 +1487,7 @@
     if (led) {
       P.push(row(fotoServicio(st, led, 536) +
         '<div style="font-family:' + FB + ';font-size:12px;color:' + k.apagado + ';padding:9px 0 0 0;">' +
-        '&uarr; LED Chacao, el frente con mayor rotaci\u00f3n en Caracas Este.</div>',
+        '&uarr; ' + realce(h(x.pieFoto), '<b>', '</b>') + '</div>',
         pad + 'padding-bottom:22px;'));
     }
 
@@ -1403,7 +1495,7 @@
     P.push(row('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
       '<td bgcolor="' + k.panel2 + '" style="background:' + k.panel2 + ';border-left:3px solid ' + k.vivo + ';padding:14px 16px;">' +
       '<div style="font-family:' + FH + ';font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:' + k.vivo + ';">' +
-        '\u25cf Disponibilidad al ' + esc(a.dispoFecha) + '</div>' +
+        '\u25cf ' + esc(h(x.dispoEtiqueta)) + ' ' + esc(a.dispoFecha) + '</div>' +
       '<div style="font-family:' + FB + ';font-size:14px;line-height:20px;color:' + k.texto + ';padding:6px 0 0 0;">' +
         esc(a.dispoTexto) + ' ' + esc(a.cierreTexto) + '</div>' +
       '</td></tr></table>', pad + 'padding-bottom:24px;'));
@@ -1435,18 +1527,18 @@
   // quiten el miedo. Tres fases en orden, cada una con el servicio que le corresponde.
   function plantillaF(st) {
     const tema = temaDe(st), o = tema !== 'claro', k = paleta(tema), P = [];
-    const a = B(st, 'asesor');
+    const a = B(st, 'asesor'), g = B(st, 'guia');
     const pad = 'padding-left:32px;padding-right:32px;background:' + k.panel + ';';
+    const h = t => huecos(t, { destinatario: st.destinatario || '[Nombre]' });
 
-    P.push(row(cabeceraAsesor(st, P, 'Gu\u00eda para empezar'),
+    P.push(row(cabeceraAsesor(st, P, h(g.meta)),
       'padding:26px 32px 22px 32px;background:' + k.panel + ';'));
 
     P.push(row(
       '<div style="font-family:' + FH + ';font-size:36px;line-height:1.06;font-weight:800;letter-spacing:-.03em;color:' + k.texto + ';">' +
-        'Que te conozcan. <span style="color:' + k.acento + ';">Que te recuerden.</span> Que te compren.</div>' +
+        realce(h(g.titulo), '<span style="color:' + k.acento + ';">', '</span>') + '</div>' +
       '<div style="font-family:' + FB + ';font-size:15px;line-height:1.6;color:' + k.apagado + ';padding:16px 0 0 0;">' +
-        'Esa es la secuencia. Tres fases, en ese orden, es c\u00f3mo crecen las marcas que aparecen en las calles. ' +
-        'Te la explicamos sin tecnicismos y sin comprometerte a nada.</div>',
+        realce(h(g.entrada), '<b>', '</b>') + '</div>',
       // El aire de arriba lo daba el epigrafe que habia aqui. Al quitarlo, el titular de
       // 36 px se quedaba a 22 px de la cabecera; esto le devuelve el respiro.
       pad + 'padding-top:12px;padding-bottom:26px;'));
@@ -1454,33 +1546,18 @@
     if (on(st, 'saludo')) {
       P.push(row(
         '<div style="font-family:' + FB + ';font-size:15px;line-height:1.65;color:' + k.texto + ';">' +
-          'Hola ' + esc(st.destinatario || '[Nombre]') + ',</div>' +
+          realce(h(g.saludo), '<b>', '</b>') + '</div>' +
         '<div style="font-family:' + FB + ';font-size:15px;line-height:1.65;color:' + k.apagado + ';padding:10px 0 0 0;">' +
-          'Gracias por interesarte en dar el paso a la <b style="color:' + k.texto + ';">publicidad exterior</b>. ' +
-          'Sabemos que es una decisi\u00f3n importante: hay muchos formatos, muchos precios y poca informaci\u00f3n clara ' +
-          'sobre por d\u00f3nde empezar. Este correo no es una cotizaci\u00f3n: es la gu\u00eda que les contamos a puerta ' +
-          'cerrada a las marcas que arrancan con nosotros. L\u00e9ela en 2 minutos y hablamos.</div>',
+          realce(h(g.parrafo), '<b style="color:' + k.texto + ';">', '</b>') + '</div>',
         pad + 'padding-bottom:26px;'));
     }
 
     // Las tres fases. Cada una lleva su servicio con mi carrusel animado.
-    const FASES = [
-      { n: '01', fase: 'Fase de atracci\u00f3n', tit: 'Que te conozcan', id: 'totem',
-        txt: 'Empezamos con <b>formatos digitales de alto tr\u00e1fico</b>. El brillo y el movimiento captan miradas ' +
-             'nuevas, explican qu\u00e9 haces y qu\u00e9 ofreces. Es la manera m\u00e1s r\u00e1pida de dejar de ser un desconocido.',
-        tag: 'Recomendado para empezar', svcTit: 'T\u00f3tem digital \u00b7 San Ignacio',
-        svcTxt: '240 salidas/d\u00eda en un centro comercial premium. Audiencia atenta, presupuesto de entrada.' },
-      { n: '02', fase: 'Fase de memoria', tit: 'Que te recuerden', id: 'led',
-        txt: 'Cuando ya te conocen, tu marca se instala en <b>las calles que tu cliente recorre todos los d\u00edas</b>. ' +
-             'Vallas y pantallas LED trabajando juntas: y cuando piensen en lo que vendes, aparecer\u00e1s t\u00fa.',
-        tag: 'Combinamos con la fase 1', svcTit: 'Pantalla LED \u00b7 Chacao',
-        svcTxt: '120.000 impactos/d\u00eda en la arteria de mayor rotaci\u00f3n de Caracas Este.' },
-      { n: '03', fase: 'Fase de decisi\u00f3n', tit: 'Que te compren', id: 'rider',
-        txt: 'La calle empuja, el m\u00f3vil cierra. En esta fase activamos promociones t\u00e1cticas y motos con LED que ' +
-             'aparecen justo donde y cuando decides. Es la parte donde la campa\u00f1a se convierte en ventas.',
-        tag: 'T\u00e1ctico y medible', svcTit: 'Rider Clon \u00b7 movilidad LED',
-        svcTxt: '250 motos con GPS. Elegimos las zonas y horas donde vive tu cliente.' },
-    ];
+    const fase = (num, id) => ({ n: String(num).padStart(2, '0'), id: id,
+      fase: h(g['fase' + num]), tit: h(g['fase' + num + 'Titulo']),
+      txt: realce(h(g['fase' + num + 'Texto']), '<b>', '</b>'), tag: h(g['fase' + num + 'Etiqueta']),
+      svcTit: h(g['fase' + num + 'Servicio']), svcTxt: h(g['fase' + num + 'Detalle']) });
+    const FASES = [fase(1, 'totem'), fase(2, 'led'), fase(3, 'rider')];
     FASES.forEach(function (f) {
       const svc = st.servicios.filter(function (x) { return x.id === f.id && x.on; })[0];
       P.push(row(
@@ -1508,16 +1585,16 @@
     P.push(row(
       '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
       '<td bgcolor="' + k.panel2 + '" style="background:' + k.panel2 + ';border-left:3px solid ' + k.acento + ';padding:16px 18px;">' +
-      '<div style="font-family:' + FH + ';font-size:15px;font-weight:800;color:' + k.texto + ';">Sin fricciones t\u00e9cnicas</div>' +
+      '<div style="font-family:' + FH + ';font-size:15px;font-weight:800;color:' + k.texto + ';">' + realce(h(g.cajaTitulo), '<span style="color:' + k.acento + ';">', '</span>') + '</div>' +
       '<div style="font-family:' + FB + ';font-size:14px;line-height:20px;color:' + k.apagado + ';padding:6px 0 0 0;">' +
-        'Nosotros nos encargamos de todo lo t\u00e9cnico. T\u00fa apruebas el dise\u00f1o.</div>' +
+        realce(h(g.cajaTexto), '<b>', '</b>') + '</div>' +
       '</td></tr></table>', pad + 'padding-bottom:26px;'));
 
     if (on(st, 'cta')) {
       P.push(row(
         '<div style="font-family:' + FB + ';font-size:15px;line-height:1.6;color:' + k.texto + ';padding:0 0 14px 0;">' +
-          'Cu\u00e9ntame de tu marca y te preparo una propuesta <b>a la medida de tu presupuesto</b>. Sin compromiso.</div>' +
-        botonAsesor(st, 'Cu\u00e9ntame de tu marca', B(st, 'cta').url) +
+          realce(h(g.ctaTexto), '<b>', '</b>') + '</div>' +
+        botonAsesor(st, h(g.boton), B(st, 'cta').url) +
         '<div style="font-family:' + FB + ';font-size:12px;color:' + k.apagado + ';padding:12px 0 0 0;">' + esc(a.respuesta) + '</div>',
         pad + 'padding-bottom:28px;'));
     }
@@ -1542,24 +1619,27 @@
   function plantillaG(st) {
     const tema = temaDe(st), o = tema !== 'claro', k = paleta(tema), P = [];
     const pad = 'padding-left:32px;padding-right:32px;background:' + k.panel + ';';
+    const p = B(st, 'phygital');
+    const h = t => huecos(t, { destinatario: st.destinatario || '[Nombre]' });
+    // En un titulo que ya va en negrita, la negrita no se nota: ahi el realce es el color.
+    const b = t => realce(h(t), '<b>', '</b>');
+    const c = t => realce(h(t), '<span style="color:' + k.acento + ';">', '</span>');
 
-    P.push(row(cabeceraAsesor(st, P, 'PHYGITAL \u00b7 Serie 2026'),
+    P.push(row(cabeceraAsesor(st, P, h(p.meta)),
       'padding:26px 32px 22px 32px;background:' + k.panel + ';'));
 
     P.push(row(
-      epigrafe(st, 'Physical + Digital') +
+      epigrafe(st, h(p.epigrafe)) +
       '<div style="font-family:' + FH + ';font-size:40px;line-height:1.02;font-weight:800;letter-spacing:-.035em;color:' + k.texto + ';">' +
-        'La pantalla capta.<br><span style="color:' + k.vivo + ';">El m\u00f3vil cierra.</span></div>',
+        realce(h(p.titulo), '<span style="color:' + k.vivo + ';">', '</span>') + '</div>',
       pad + 'padding-bottom:24px;'));
 
     if (on(st, 'saludo')) {
       P.push(row(
         '<div style="font-family:' + FB + ';font-size:15px;line-height:1.65;color:' + k.texto + ';">' +
-          'Hola ' + esc(st.destinatario || '[Nombre]') + ',</div>' +
+          b(p.saludo) + '</div>' +
         '<div style="font-family:' + FB + ';font-size:15px;line-height:1.65;color:' + k.apagado + ';padding:10px 0 0 0;">' +
-          'La gente ya no mira los anuncios. Los graba, los sube y los convierte en contenido, o los ignora. ' +
-          'Sabemos que necesitan algo que rompa el molde. Antes de mostrarte precios o formatos, mira c\u00f3mo se ve ' +
-          'una campa\u00f1a Phygital en <b style="color:' + k.texto + ';">tres minutos reales</b>. Despu\u00e9s conversamos.</div>',
+          realce(h(p.parrafo), '<b style="color:' + k.texto + ';">', '</b>') + '</div>',
         pad + 'padding-bottom:26px;'));
     }
 
@@ -1567,50 +1647,43 @@
     const led = st.servicios.filter(function (x) { return x.id === 'led' && x.on; })[0];
     P.push(row(
       '<div style="font-family:' + FH + ';font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:' + k.vivo + ';padding:0 0 10px 0;">' +
-        '\u25cf 09:00 AM \u00b7 Chacao</div>' +
+        '\u25cf ' + b(p.hora1) + '</div>' +
       (led ? fotoServicio(st, led, 536) : '') +
-      '<div style="font-family:' + FH + ';font-size:10px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:' + k.apagado + ';padding:12px 0 4px 0;">Escena 01</div>' +
+      '<div style="font-family:' + FH + ';font-size:10px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:' + k.apagado + ';padding:12px 0 4px 0;">' + b(p.escena1) + '</div>' +
       '<div style="font-family:' + FB + ';font-size:15px;line-height:1.6;color:' + k.texto + ';">' +
-        'Una persona mira arriba. Ve un QR gigante en la pantalla LED. Curiosidad. Levanta el tel\u00e9fono.</div>' +
-      '<div style="font-family:' + FH + ';font-size:11px;font-weight:800;letter-spacing:.2em;color:' + k.vivo + ';padding:14px 0 0 0;">3 SEGUNDOS &darr;</div>',
+        b(p.escena1Texto) + '</div>' +
+      '<div style="font-family:' + FH + ';font-size:11px;font-weight:800;letter-spacing:.2em;color:' + k.vivo + ';padding:14px 0 0 0;">' + b(p.puente) + ' &darr;</div>',
       pad + 'padding-bottom:26px;'));
 
     // Escena 02: el movil. Maqueta de la publicacion, construida con tablas.
     P.push(row(
       '<div style="font-family:' + FH + ';font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:' + k.acento + ';padding:0 0 10px 0;">' +
-        '\u25cf 09:03 AM \u00b7 Instagram</div>' +
+        '\u25cf ' + b(p.hora2) + '</div>' +
       '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
       '<td bgcolor="' + k.panel2 + '" style="background:' + k.panel2 + ';border:1px solid ' + k.linea + ';border-radius:12px;padding:14px 16px;">' +
-        '<div style="font-family:' + FH + ';font-size:13px;font-weight:800;color:' + k.texto + ';">@tu_marca_aqui</div>' +
-        '<div style="font-family:' + FB + ';font-size:11px;color:' + k.apagado + ';padding:2px 0 10px 0;">Caracas \u00b7 Venezuela</div>' +
-        '<div style="font-family:' + FH + ';font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:' + k.vivo + ';">Filtro AR activo</div>' +
+        '<div style="font-family:' + FH + ';font-size:13px;font-weight:800;color:' + k.texto + ';">' + b(p.cuenta) + '</div>' +
+        '<div style="font-family:' + FB + ';font-size:11px;color:' + k.apagado + ';padding:2px 0 10px 0;">' + b(p.lugar) + '</div>' +
+        '<div style="font-family:' + FH + ';font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:' + k.vivo + ';">' + b(p.filtro) + '</div>' +
         '<div style="font-family:' + FB + ';font-size:15px;line-height:1.5;color:' + k.texto + ';padding:8px 0 10px 0;">' +
-          'Encontr\u00e9 la valla \u26a1 <span style="color:' + k.acento + ';">#TuMarcaChacao</span></div>' +
-        '<div style="font-family:' + FH + ';font-size:12px;font-weight:800;color:' + k.texto + ';">2.847 me gusta</div>' +
+          realce(h(p.publicacion), '<span style="color:' + k.acento + ';">', '</span>') + '</div>' +
+        '<div style="font-family:' + FH + ';font-size:12px;font-weight:800;color:' + k.texto + ';">' + b(p.meGusta) + '</div>' +
         '<div style="font-family:' + FB + ';font-size:13px;line-height:19px;color:' + k.apagado + ';padding:8px 0 0 0;">' +
-          'Vieron mi campa\u00f1a. Se pararon. La grabaron. La subieron.</div>' +
+          b(p.comentario) + '</div>' +
       '</td></tr></table>', pad + 'padding-bottom:26px;'));
 
     P.push(row(
       '<div style="font-family:' + FH + ';font-size:26px;line-height:1.15;font-weight:800;letter-spacing:-.025em;color:' + k.texto + ';">' +
-        'La calle tambi\u00e9n es feed.</div>' +
+        c(p.remate) + '</div>' +
       '<div style="font-family:' + FB + ';font-size:15px;line-height:1.6;color:' + k.apagado + ';padding:10px 0 0 0;">' +
-        'Eso es Phygital. Una pantalla que no termina cuando el sem\u00e1foro cambia.</div>',
+        b(p.remateTexto) + '</div>',
       pad + 'padding-bottom:26px;'));
 
     // Como se arma: tres piezas.
-    P.push(row(epigrafe(st, 'C\u00f3mo se arma', k.acento) +
+    P.push(row(epigrafe(st, h(p.comoEpigrafe), k.acento) +
       '<div style="font-family:' + FB + ';font-size:14px;color:' + k.apagado + ';padding:0 0 4px 0;">' +
-      'Tres piezas. Una campa\u00f1a que se comparte.</div>', pad + 'padding-bottom:12px;'));
+      b(p.comoTexto) + '</div>', pad + 'padding-bottom:12px;'));
 
-    const PIEZAS = [
-      { n: '01', t: 'Pantalla LED \u00b7 el gancho f\u00edsico',
-        d: 'QR gigante en Chacao o Las Mercedes. Lleva a un filtro AR, un cup\u00f3n o tu e-commerce directo.' },
-      { n: '02', t: 'Rider Clon \u00b7 la campa\u00f1a que se mueve',
-        d: '250 motos con caja LED se convierten en caza-recompensas: los usuarios las fotograf\u00edan y suben, etiquet\u00e1ndote.' },
-      { n: '03', t: 'Capa digital \u00b7 el cierre en el m\u00f3vil',
-        d: 'Retargeting a quien escane\u00f3, filtros AR de tu marca, hashtag propio. El impacto f\u00edsico deja huella medible en redes.' },
-    ];
+    const PIEZAS = [1, 2, 3].map(num => ({ n: '0' + num, t: h(p['pieza' + num]), d: h(p['pieza' + num + 'Texto']) }));
     let piezas = '';
     PIEZAS.forEach(function (z) {
       piezas += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 12px 0;"><tr>' +
@@ -1625,15 +1698,15 @@
     P.push(row(
       '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
       '<td bgcolor="' + k.panel2 + '" style="background:' + k.panel2 + ';border-left:3px solid ' + k.vivo + ';padding:16px 18px;">' +
-      '<div style="font-family:' + FH + ';font-size:15px;font-weight:800;color:' + k.texto + ';">Lo que resolvemos</div>' +
+      '<div style="font-family:' + FH + ';font-size:15px;font-weight:800;color:' + k.texto + ';">' + c(p.cajaTitulo) + '</div>' +
       '<div style="font-family:' + FB + ';font-size:14px;line-height:20px;color:' + k.apagado + ';padding:6px 0 0 0;">' +
-        'Ya no eliges entre branding masivo o conversi\u00f3n digital. La calle capta. El m\u00f3vil cierra.</div>' +
+        b(p.cajaTexto) + '</div>' +
       '</td></tr></table>', pad + 'padding-bottom:26px;'));
 
     if (on(st, 'cta')) {
-      P.push(row(botonAsesor(st, 'Dise\u00f1emos una campa\u00f1a que se comparta', B(st, 'cta').url) +
+      P.push(row(botonAsesor(st, h(p.boton), B(st, 'cta').url) +
         '<div style="font-family:' + FB + ';font-size:12px;color:' + k.apagado + ';padding:12px 0 0 0;">' +
-        'Llamada creativa de 15 minutos, sin brief formal.</div>',
+        b(p.pieBoton) + '</div>',
         pad + 'padding-bottom:28px;'));
     }
 
