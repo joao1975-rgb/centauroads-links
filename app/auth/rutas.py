@@ -55,6 +55,9 @@ _RECHAZO = "Esa cuenta no tiene acceso al panel"
 # de verdad. Ahora es una constante y hay una prueba que comprueba que la ruta responde, porque
 # una dirección escrita a mano en dos sitios es una dirección que algún día deja de existir.
 COMPOSITOR = "/static/email/compositor.html"
+# La guia de instalacion para quien no es tecnico. Publica a proposito: se consulta ANTES de
+# poder entrar, y no lleva nada secreto (los comandos los rellena la propia pagina, en el navegador).
+GUIA = "/static/guia-instalacion.html"
 # Una ruta interna y nada mas: barra inicial, y despues solo lo que puede llevar una ruta
 # de esta aplicacion. Sin comillas, sin barras invertidas, sin espacios, sin "<".
 # El `(?!/)` no sobra: "//malo.tld" es una URL con protocolo heredado -lleva a OTRO sitio-
@@ -343,6 +346,8 @@ _ENTRADA = """<!DOCTYPE html>
   .aviso {{ margin:18px 0 0; padding:11px 13px; border-radius:8px; background:#3A1A22;
            border:1px solid #6B2B38; color:#F4C7CF; font-size:13px; }}
   .pie {{ margin-top:30px; font-size:12px; color:#8C8598; }}
+  .guia {{ margin-top:14px; font-size:13px; color:#8C8598; }}
+  .guia a {{ color:#C9A3D8; text-underline-offset:3px; }}
 </style>
 </head><body><main class="caja">
   <div class="marca">Centauro ADS</div>
@@ -361,6 +366,9 @@ _ENTRADA = """<!DOCTYPE html>
 
   <div class="aviso" id="aviso" role="alert" hidden></div>
   <p class="pie">Si no puedes entrar, pide que añadan tu correo a la lista del panel.</p>
+  <p class="guia">¿Vas a instalar la herramienta en otro ordenador?
+    <a href="{guia}" target="_blank" rel="noopener">Ver la guía de instalación</a> ·
+    <a href="{guia}" download="guia-instalacion-centauro-links.html">Descargarla</a></p>
 </main>
 <script>
   var aviso = document.getElementById('aviso');
@@ -435,7 +443,7 @@ def pantalla_de_entrada(request: Request, destino: str = COMPOSITOR,
     # produce un literal JavaScript valido. Interpolar dentro de comillas a mano es justo el
     # fallo que esto arregla.
     return HTMLResponse(_ENTRADA.format(script_google=script, bloque_google=bloque,
-                                        destino=json.dumps(destino)))
+                                        destino=json.dumps(destino), guia=GUIA))
 
 
 @router.get("/admin/entregas")

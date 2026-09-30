@@ -346,3 +346,23 @@ def test_el_navegador_no_guarda_el_compositor(cliente, admin):
     cliente.cookies.clear()
     r = cliente.get(rutas.COMPOSITOR, follow_redirects=False)
     assert r.status_code == 307 and r.headers.get("cache-control") == "no-store"
+
+
+# --- La guía de instalación, desde la pantalla de entrada (2026-09-30, petición del usuario) ----
+
+def test_la_entrada_enlaza_la_guia_para_verla_y_para_descargarla(cliente):
+    cliente.cookies.clear()
+    html = cliente.get("/panel/entrar").text
+    assert 'href="%s" target="_blank"' % rutas.GUIA in html
+    assert 'href="%s" download="guia-instalacion-centauro-links.html"' % rutas.GUIA in html
+
+
+def test_la_guia_se_abre_sin_haber_entrado(cliente):
+    """Se consulta antes de poder entrar: exigir sesión para leerla no tendría sentido."""
+    cliente.cookies.clear()
+    r = cliente.get(rutas.GUIA, follow_redirects=False)
+    assert r.status_code == 200
+    assert "<title>Instalar Centauro Links</title>" in r.text
+    assert r.text.lstrip().lower().startswith("<!doctype html>")
+    # y el compositor, en cambio, sigue pidiendo entrar
+    assert cliente.get(rutas.COMPOSITOR, follow_redirects=False).status_code == 307
