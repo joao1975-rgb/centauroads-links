@@ -42,7 +42,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from .. import models
 from . import google, local, sesion, superadmin
-from .dependencias import usuario_actual, solo_admin
+from .dependencias import usuario_actual, usuario_actual_opcional, solo_admin
 
 log = logging.getLogger("centaurads.auth")
 router = APIRouter()
@@ -393,8 +393,19 @@ _BLOQUE_GOOGLE = """<div id="g_id_onload" data-client_id="{client_id}"
 <div class="sep">o con tu contraseña</div>"""
 
 
+@router.get("/panel")
+def a_la_entrada():
+    """
+    La direccion que se comparte: links.centauroads.com/panel. Lleva a la pantalla de entrada,
+    que es por donde se empieza. Antes daba 404 y el enlace que circulaba era el del compositor,
+    que abria la herramienta sin preguntar quien eras y solo lo pedia al pulsar algo.
+    """
+    return RedirectResponse(url="/panel/entrar", status_code=307)
+
+
 @router.get("/panel/entrar", response_class=HTMLResponse)
-def pantalla_de_entrada(request: Request, destino: str = COMPOSITOR):
+def pantalla_de_entrada(request: Request, destino: str = COMPOSITOR,
+                        usuario: Optional[models.PanelUser] = Depends(usuario_actual_opcional)):
     """
     La pantalla de entrada. Ofrece Google solo si está configurado: enseñar un botón que fallaría
     al pulsarlo es peor que no enseñarlo.
@@ -408,6 +419,10 @@ def pantalla_de_entrada(request: Request, destino: str = COMPOSITOR):
     # navegador convierte la barra invertida en barra: redireccion abierta desde el login.
     if not _RUTA_INTERNA.fullmatch(destino or ""):
         destino = COMPOSITOR
+
+    # Quien ya tiene la sesion abierta no tiene que volver a identificarse: pasa directo.
+    if usuario is not None:
+        return RedirectResponse(url=destino, status_code=303)
 
     if google.esta_configurado():
         cid = os.getenv("GOOGLE_CLIENT_ID", "").strip()

@@ -62,6 +62,31 @@ from .mails.entregas import router as router_entregas  # noqa: E402
 app.include_router(router_auth)
 app.include_router(router_entregas)
 
+# Primero se entra, luego se usa la herramienta. El compositor es un fichero estatico y se
+# abria sin preguntar quien eras: solo al pulsar algo que hablaba con el servidor salia
+# "Hay que entrar al panel", que es el orden al reves. Sin sesion, a la pantalla de entrada,
+# que despues devuelve aqui. Basta la firma de la cookie: la pagina no trae datos, y cada
+# llamada al servidor vuelve a comprobar a la persona (y si sigue activa).
+# Las imagenes de /static siguen publicas: las cargan los correos de los clientes.
+from urllib.parse import quote  # noqa: E402
+from .auth import sesion as _sesion  # noqa: E402
+from .auth.rutas import COMPOSITOR as _COMPOSITOR  # noqa: E402
+
+
+@app.middleware("http")
+async def entrar_antes_del_compositor(request: Request, call_next):
+    if request.url.path != _COMPOSITOR:
+        return await call_next(request)
+    if not _sesion.leer(request.cookies.get(_sesion.COOKIE)):
+        respuesta = RedirectResponse(url="/panel/entrar?destino=" + quote(_COMPOSITOR, safe=""),
+                                     status_code=307)
+    else:
+        respuesta = await call_next(request)
+    # Sin esto el navegador guarda la pagina y, tras salir, la sigue abriendo de su cache sin
+    # preguntar al servidor: la puerta existia pero nadie llamaba a ella. Se vio probandolo.
+    respuesta.headers["Cache-Control"] = "no-store"
+    return respuesta
+
 # Con la lista de autorizados vacia no entra nadie, ni siquiera para anadir al primero.
 # PANEL_BOOTSTRAP asegura esos correos como administradores. Es configuracion, no un secreto.
 # `asegura_bootstrap` ya registra por su cuenta a quien da de alta. Aqui no se vuelve a
