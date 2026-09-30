@@ -353,7 +353,6 @@
       // al lado del propio fichero. En Node no hay window y se queda en 'img'.
       assetBase: (typeof window !== 'undefined' && window.ASSET_BASE) || 'img',
       assetBaseProd: 'https://links.centauroads.com/static/email',
-      linkBase: '',
       token: '',
       bloques: {
         hero: { on: true, img: 'svc_led_hero.jpg', imgPortada: 'cover_led.jpg', anim: 'hero.gif', alt: 'Pantalla LED de Chacao (Edificio Valmy) con piezas en rotación' },
@@ -455,10 +454,21 @@
     // y se ve en la vista previa antes de elegir contacto. Con el respaldo, la plantilla en
     // seco se lee igual que antes de que el campo existiera.
     .replace(/\{empresa\}/g, (st.bloques && st.bloques.entrega && st.bloques.entrega.empresa) || 'tu marca');
+  // El enlace de cada presentacion base es SUYO y editable en el panel: otro de Canva, o uno corto
+  // del acortador propio. Antes habia una base global que componia <base>/<slug> con slugs fijos
+  // que no existian en el acortador -los cinco daban 404, comprobado- y el enlace de cada
+  // servicio no se podia tocar.
+  //
+  // El token por destinatario (?c=) solo va en los del acortador: es el que registra quien pulso.
+  // A uno de Canva no le sirve, y ponerle parametros a un corto de canva.link es arriesgar que
+  // deje de resolver.
+  const ACORTADOR = /^https?:\/\/links\.centauroads\.com\//i;
   const linkFor = (st, s) => {
-    if (!st.linkBase) return s.canva;
-    const b = st.linkBase.replace(/\/$/, '');
-    return b + '/' + s.slug + (st.token ? '?c=' + encodeURIComponent(st.token) : '');
+    const url = String(s.canva || '').trim();
+    if (st.token && ACORTADOR.test(url)) {
+      return url + (url.indexOf('?') >= 0 ? '&' : '?') + 'c=' + encodeURIComponent(st.token);
+    }
+    return url;
   };
   const webHref = (w) => /^https?:\/\//.test(w || '') ? w : 'https://' + (w || '');
   const imgFor = (st, name) => (st.assetBase || 'img').replace(/\/$/, '') + '/' + name;
@@ -891,6 +901,10 @@
     if (st.temaEntrega === undefined) st.temaEntrega = st.tema || base.temaEntrega;
     if (!st.efectosPorServicio) st.efectosPorServicio = {};
     if (!st.banco) st.banco = {};
+    // La base global de enlaces cortos se retiro: componia <base>/<slug> con slugs que no
+    // existian en el acortador. Quien la tuviera puesta mandaba cinco 404; al quitarla,
+    // sus correos vuelven a llevar el enlace de cada servicio.
+    delete st.linkBase;
     // Paradas salio del catalogo (2026-09-21). El estado guardado lleva una COPIA de los
     // servicios, asi que hay que quitarla tambien de ahi: si no, seguiria saliendo en los
     // correos de quien ya uso la herramienta. Vale para cualquier servicio que se retire.
@@ -1759,5 +1773,5 @@
       : listo);
   };
 
-  return { C, SERVICIOS, GRUPOS, TEMPLATES, IMG_SETS, PERFILES, ASUNTOS, asuntosDe, EFECTOS, efectoDe, pesoDe, rangoPeso, ROLES, CORREOS, cargoDe, correosDe, BANCO, bancoDe, fotosDe, comandoCarrusel, FICHA, CONTENT_VERSION, defaultState, render, renderText, renderWhatsApp, pick, aplicaPerfil, aplicaAsunto, normaliza };
+  return { C, SERVICIOS, GRUPOS, TEMPLATES, IMG_SETS, PERFILES, ASUNTOS, asuntosDe, EFECTOS, efectoDe, pesoDe, rangoPeso, ROLES, CORREOS, cargoDe, correosDe, BANCO, bancoDe, fotosDe, comandoCarrusel, FICHA, CONTENT_VERSION, defaultState, render, renderText, renderWhatsApp, linkFor, pick, aplicaPerfil, aplicaAsunto, normaliza };
 });

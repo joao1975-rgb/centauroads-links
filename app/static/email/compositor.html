@@ -239,8 +239,8 @@
     ['destinatario', 'Destinatario (rellena {destinatario})'],
     ['imgSet', 'Imágenes de los servicios', 'select'],
     ['assetBaseProd', 'URL pública de las imágenes (se usa al copiar)'],
-    ['linkBase', 'Base de links cortos (vacío = canva.link actuales)'],
-    ['token', 'Token por destinatario (?c=)'],
+    // Ya no hay "base de links cortos": cada servicio lleva su propio enlace, en su ficha.
+    ['token', 'Token por destinatario (?c=) · solo en enlaces cortos de Centauro'],
   ];
   const BLOQUES = [
     { k: 'hero', label: 'Foto de cabecera (solo D)', hint: 'Archivo de img/. Solo la usa la plantilla D Cartelera móvil.',
@@ -312,6 +312,26 @@
     const t = el('button', 'svc-t', s.nombre); t.type = 'button'; t.addEventListener('click', () => w.classList.toggle('open')); h.appendChild(t); w.appendChild(h);
     const b = el('div', 'svc-b');
     b.appendChild(inputEl('servicios.' + i + '.nombre', 'Nombre', null, v => { t.textContent = v; }));
+
+    // El enlace de la presentación. Vale otro de Canva o uno corto del acortador propio. Debajo
+    // se dice qué enlace sale DE VERDAD en el correo —con el token, si lo lleva—: sin eso no hay
+    // forma de saber si lo escrito llega, y ya pasó que un enlace sin https:// acababa en un 404.
+    const sale = el('p', 'hint');
+    const avisa = v => {
+      const url = String(v || '').trim();
+      if (!/^https?:\/\//i.test(url)) {
+        sale.textContent = 'Tiene que empezar por https:// — sin eso el enlace no abre.';
+        sale.style.color = 'var(--danger, #E8836F)';
+        return;
+      }
+      const dom = /^https?:\/\/links\.centauroads\.com\//i.test(url) ? ' · enlace corto de Centauro' :
+                  /canva\.(link|com|site)/i.test(url) ? ' · Canva' : ' · otro sitio';
+      sale.textContent = 'Sale en el correo: ' + M.linkFor(st, Object.assign({}, s, { canva: url })) + dom;
+      sale.style.color = '';
+    };
+    b.appendChild(inputEl('servicios.' + i + '.canva', 'Enlace de la presentación', null, avisa));
+    b.appendChild(sale);
+    avisa(s.canva);
     b.appendChild(inputEl('servicios.' + i + '.cobertura', 'Cobertura / ubicación'));
     b.appendChild(inputEl('servicios.' + i + '.nota', 'Nota (opcional)'));
     b.appendChild(inputEl('servicios.' + i + '.cta', 'Texto del botón (plantilla D)'));
