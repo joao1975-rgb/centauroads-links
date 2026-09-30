@@ -108,6 +108,8 @@ Quien tenga Google no necesita contraseña si está configurado `GOOGLE_CLIENT_I
 
 > Si vas a entrar desde otro equipo de la red local por `http://192.168…` (sin HTTPS), añade
 > `COOKIE_INSEGURA=1`: sin HTTPS el navegador no guarda la sesión. En `localhost` no hace falta.
+> Ojo: eso vale para los navegadores. Herramientas como PowerShell (`Invoke-WebRequest`) no envían
+> la cookie por `http` ni en `localhost`: para probar el API con scripts, añade `COOKIE_INSEGURA=1`.
 
 ### 5. Pruebas y plantillas
 
