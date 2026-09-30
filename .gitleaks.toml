@@ -1,0 +1,43 @@
+# gitleaks · Centauro ADS (spec 001-saneamiento-ecosistema, T002-T004)
+# Reglas por defecto + reglas propias para los formatos de secreto encontrados en este ecosistema.
+
+title = "Centauro ADS · escaneo de secretos"
+
+[extend]
+useDefault = true
+
+# Clave RSA incrustada como componentes base64url en un firmador RS256 hecho a mano
+# (formato hallado en los nodos Code de n8n: `const n_b64 = "..."`, dentro de JSON con comillas escapadas).
+[[rules]]
+id = "centauro-rsa-componentes-base64"
+description = "Clave RSA en componentes base64 (n/e/d/p/q_b64) dentro de código"
+regex = '''(?i)\b[nedpq]_b64\s*[:=]\s*\\?["'`]?[A-Za-z0-9_\-]{64,}'''
+keywords = ["_b64"]
+
+# Cuenta de servicio de Google dentro de código o flujos: indica material de firma incrustado.
+[[rules]]
+id = "centauro-cuenta-servicio-google-en-codigo"
+description = "Cuenta de servicio de Google en archivos .js o .json (revisar si hay clave asociada)"
+regex = '''[a-z0-9\-]+@[a-z0-9\-]+\.iam\.gserviceaccount\.com'''
+path = '''\.(json|js)$'''
+keywords = ["iam.gserviceaccount.com"]
+
+# Cadena de conexión Postgres con contraseña.
+[[rules]]
+id = "centauro-postgres-url-con-contrasena"
+description = "URL de Postgres con usuario y contraseña"
+regex = '''postgres(?:ql)?://[^:\s"'/]+:[^@\s"']{6,}@[^\s"']+'''
+keywords = ["postgres"]
+
+# Contraseñas asignadas en texto plano en scripts (patrón hallado en los scripts de despliegue de qr-tracking).
+[[rules]]
+id = "centauro-contrasena-en-script"
+description = "Contraseña asignada en texto plano"
+regex = '''(?i)\b(password|passwd|pwd|contrasena|contraseña)\s*=\s*["'][^"'\s]{6,}["']'''
+path = '''\.(py|js|ps1|sh)$'''
+keywords = ["password", "passwd", "pwd", "contrasena", "contraseña"]
+
+[allowlist]
+description = "Marcadores de ejemplo"
+regexes = ['''USUARIO:CONTRASEÑA@HOST''', '''CAMBIAR_ESTE_VALOR''']
+paths = ['''\.gitleaks\.toml$''']

@@ -113,9 +113,9 @@ Abrir: `http://localhost:8000/admin`
 
 ## API Reference
 
-Todos los endpoints de API requieren la clave de administración en la cabecera `X-Admin-Key: <clave>` (el query parameter `?admin_key=` se acepta por compatibilidad, pero está obsoleto porque queda en logs y en el historial del navegador).
+Todos los endpoints de API requieren la clave de administración en la cabecera `X-Admin-Key: <clave>` (solo la cabecera: el query parameter `?admin_key=` ya no se acepta, porque quedaba en los logs de acceso y en el historial del navegador).
 
-Variables de entorno (ver `.env.example`): `ADMIN_KEY` (si no se define, el servicio genera una aleatoria al arrancar, la guarda en `data/admin.key` y la muestra una sola vez en el log), `SUPERADMIN_USER` y `SUPERADMIN_PASS` (obligatorias para el cambio de clave desde la portada; sin ellas esos endpoints responden 503). Nunca escribir credenciales en el código ni en el repositorio.
+Variables de entorno (ver `.env.example`): `ADMIN_KEY` (si no se define, el servicio genera una aleatoria al arrancar, la guarda en `data/admin.key` con permisos 600 y el log solo indica esa ruta, nunca la clave), `SUPERADMIN_USER` y `SUPERADMIN_PASS` (obligatorias para el cambio de clave desde la portada; sin ellas esos endpoints responden 503). Nunca escribir credenciales en el código ni en el repositorio.
 
 ### Endpoints públicos
 

@@ -54,3 +54,8 @@ prototipos/mail/demo-dir-*.html
 prototipos/mail/Tres-direcciones-*.html
 
 prototipos/mail/demo-*.html
+
+# Cobertura de pruebas
+.coverage
+.coverage.*
+htmlcov/

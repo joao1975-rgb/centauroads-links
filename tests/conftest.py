@@ -40,5 +40,7 @@ os.environ.setdefault("SUPERADMIN_USER", "super@ejemplo.test")
 os.environ.setdefault("SUPERADMIN_PASS", "contrasena-de-prueba")
 # Sin HTTPS en las pruebas, así TestClient conserva la cookie de sesión.
 os.environ.setdefault("COOKIE_INSEGURA", "1")
+# Un origen propio de prueba para CORS (tests/test_cors.py). Valor sintético.
+os.environ.setdefault("CORS_ORIGINS", "https://panel.ejemplo.test")
 
 DIRECTORIO_TEMPORAL = _TMP
