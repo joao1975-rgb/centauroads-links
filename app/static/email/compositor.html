@@ -40,11 +40,6 @@
   .seg button:hover:not([aria-pressed="true"]) { background:var(--hover); color:var(--text); }
   .grow { flex:1; }
   .acts { display:flex; gap:8px; }
-  /* La guia de instalacion, tambien aqui: con la sesion abierta, /panel pasa directo al compositor y
-     la pantalla de entrada -donde estaba el enlace- no se llega a ver. */
-  .ayuda { display:flex; gap:12px; font-size:12px; }
-  .ayuda a { color:var(--dim); text-underline-offset:3px; }
-  .ayuda a:hover, .ayuda a:focus-visible { color:var(--text); }
   .btn { padding:8px 14px; border-radius:7px; font-weight:600; font-size:13px; border:1px solid var(--border); background:var(--card); color:var(--text); }
   .btn:hover { background:var(--hover); }
   .btn.primary { background:var(--orange); border-color:var(--orange); color:#141016; }
@@ -189,11 +184,7 @@
 </head>
 <body>
 <header class="bar">
-  <div class="brand"><img src="img/logo.jpg" alt="" width="30" height="30"><h1>Compositor de mails</h1><span class="tag">PROTOTIPO</span>
-    <nav class="ayuda" id="ayuda" aria-label="Ayuda" hidden>
-      <a href="/panel/guia" target="_blank" rel="noopener">Guía de instalación</a>
-      <a href="/panel/guia/descargar">Descargarla</a>
-    </nav></div>
+  <div class="brand"><img src="img/logo.jpg" alt="" width="30" height="30"><h1>Compositor de mails</h1><span class="tag">PROTOTIPO</span></div>
   <div class="seg" id="tpl" role="group" aria-label="Plantilla"></div>
   <div class="grow"></div>
   <div class="acts">
@@ -691,8 +682,6 @@
   // ver el formato: se pegan el enlace y la imagen a mano. Lo que no se puede es subir el PDF ni
   // guardar la entrega, y eso se dice, no se deja adivinar.
   const HAY_SERVIDOR = /^https?:$/.test(location.protocol);
-  // Los enlaces de la guia apuntan al servidor: en la copia autonoma no llevarian a ninguna parte.
-  if (HAY_SERVIDOR && document.getElementById('ayuda')) document.getElementById('ayuda').hidden = false;
   let paginasSubidas = [];   // lo que devolvio la subida: {indice, url, rotulo, aviso_precio}
   let elegidas = [];         // indices elegidos, EN ORDEN
   // Si se esta dando de alta un contacto a mano, y lo escrito hasta ahora. Vive FUERA de

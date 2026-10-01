@@ -348,51 +348,19 @@ def test_el_navegador_no_guarda_el_compositor(cliente, admin):
     assert r.status_code == 307 and r.headers.get("cache-control") == "no-store"
 
 
-# --- La guía de instalación, desde la pantalla de entrada (2026-09-30, petición del usuario) ----
+# --- Sin guía de instalación (2026-10-01, petición del usuario) ------------------------------------
+# La herramienta se usa en mails.centauroads.com: no se instala en ningún equipo. La guía que
+# explicaba cómo instalarla se retiró de la app, y con ella sus direcciones y sus enlaces.
 
-def test_la_entrada_enlaza_la_guia_para_verla_y_para_descargarla(cliente):
+def test_la_guia_de_instalacion_ya_no_existe(cliente):
+    cliente.cookies.clear()
+    for ruta in ("/panel/guia", "/panel/guia/descargar", "/static/guia-instalacion.html"):
+        assert cliente.get(ruta, follow_redirects=False).status_code == 404, ruta
+
+
+def test_ni_la_entrada_ni_el_compositor_enlazan_la_guia(cliente, admin):
+    html = cliente.get(rutas.COMPOSITOR).text
+    assert "/panel/guia" not in html and "guia-instalacion" not in html
     cliente.cookies.clear()
     html = cliente.get("/panel/entrar").text
-    assert 'href="/panel/guia" target="_blank"' in html
-    assert 'href="/panel/guia/descargar"' in html
-
-
-def test_la_guia_se_abre_sin_haber_entrado(cliente):
-    """Se consulta antes de poder entrar: exigir sesión para leerla no tendría sentido."""
-    cliente.cookies.clear()
-    r = cliente.get(rutas.GUIA, follow_redirects=False)
-    assert r.status_code == 200
-    assert "<title>Instalar Centauro Links</title>" in r.text
-    assert r.text.lstrip().lower().startswith("<!doctype html>")
-    # y el compositor, en cambio, sigue pidiendo entrar
-    assert cliente.get(rutas.COMPOSITOR, follow_redirects=False).status_code == 307
-
-
-def test_la_direccion_corta_de_la_guia_funciona_con_y_sin_sesion(cliente, admin):
-    """Se puede mandar a cualquiera. Con la sesión abierta, antes no había forma de llegar a la guía."""
-    r = cliente.get("/panel/guia", follow_redirects=False)
-    assert r.status_code == 307 and r.headers["location"] == rutas.GUIA
-    cliente.cookies.clear()
-    assert cliente.get("/panel/guia", follow_redirects=False).headers["location"] == rutas.GUIA
-
-
-def test_con_la_sesion_abierta_la_guia_esta_en_el_compositor(cliente, admin):
-    """
-    Con la sesión abierta, /panel pasa directo al compositor y la pantalla de entrada no se ve: los
-    enlaces de la guía tienen que estar también dentro.
-    """
-    assert cliente.get("/panel", follow_redirects=True).url.path == rutas.COMPOSITOR
-    html = cliente.get(rutas.COMPOSITOR).text
-    assert 'href="/panel/guia" target="_blank"' in html
-    assert 'href="/panel/guia/descargar"' in html
-    cliente.cookies.clear()
-
-
-def test_la_descarga_la_entrega_el_servidor_como_archivo(cliente):
-    """Content-Disposition: attachment obliga a guardar en cualquier navegador, con o sin sesión."""
-    cliente.cookies.clear()
-    r = cliente.get("/panel/guia/descargar")
-    assert r.status_code == 200
-    assert r.headers["content-disposition"].startswith("attachment")
-    assert 'filename="guia-instalacion-centauro-links.html"' in r.headers["content-disposition"]
-    assert "<title>Instalar Centauro Links</title>" in r.text
+    assert "/panel/guia" not in html and "guia-instalacion" not in html

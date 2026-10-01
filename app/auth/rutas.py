@@ -35,7 +35,7 @@ from datetime import datetime, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -55,9 +55,6 @@ _RECHAZO = "Esa cuenta no tiene acceso al panel"
 # de verdad. Ahora es una constante y hay una prueba que comprueba que la ruta responde, porque
 # una dirección escrita a mano en dos sitios es una dirección que algún día deja de existir.
 COMPOSITOR = "/static/email/compositor.html"
-# La guia de instalacion para quien no es tecnico. Publica a proposito: se consulta ANTES de
-# poder entrar, y no lleva nada secreto (los comandos los rellena la propia pagina, en el navegador).
-GUIA = "/static/guia-instalacion.html"
 # Una ruta interna y nada mas: barra inicial, y despues solo lo que puede llevar una ruta
 # de esta aplicacion. Sin comillas, sin barras invertidas, sin espacios, sin "<".
 # El `(?!/)` no sobra: "//malo.tld" es una URL con protocolo heredado -lleva a OTRO sitio-
@@ -346,8 +343,6 @@ _ENTRADA = """<!DOCTYPE html>
   .aviso {{ margin:18px 0 0; padding:11px 13px; border-radius:8px; background:#3A1A22;
            border:1px solid #6B2B38; color:#F4C7CF; font-size:13px; }}
   .pie {{ margin-top:30px; font-size:12px; color:#8C8598; }}
-  .guia {{ margin-top:14px; font-size:13px; color:#8C8598; }}
-  .guia a {{ color:#C9A3D8; text-underline-offset:3px; }}
 </style>
 </head><body><main class="caja">
   <div class="marca">Centauro ADS</div>
@@ -366,9 +361,6 @@ _ENTRADA = """<!DOCTYPE html>
 
   <div class="aviso" id="aviso" role="alert" hidden></div>
   <p class="pie">Si no puedes entrar, pide que añadan tu correo a la lista del panel.</p>
-  <p class="guia">¿Vas a instalar la herramienta en otro ordenador?
-    <a href="/panel/guia" target="_blank" rel="noopener">Ver la guía de instalación</a> ·
-    <a href="/panel/guia/descargar">Descargarla</a></p>
 </main>
 <script>
   var aviso = document.getElementById('aviso');
@@ -401,32 +393,10 @@ _BLOQUE_GOOGLE = """<div id="g_id_onload" data-client_id="{client_id}"
 <div class="sep">o con tu contraseña</div>"""
 
 
-@router.get("/panel/guia")
-def a_la_guia():
-    """
-    Direccion corta y fija de la guia de instalacion: se puede mandar a quien sea, tenga sesion o no.
-    Hacia falta porque, con la sesion abierta, /panel pasa directo al compositor y la pantalla de
-    entrada -donde estaban los enlaces a la guia- no llega a verse.
-    """
-    return RedirectResponse(url=GUIA, status_code=307)
-
-
-@router.get("/panel/guia/descargar")
-def descargar_la_guia():
-    """
-    La guia como descarga. La marca `download` de un enlace la ignoran o la cancelan algunos
-    navegadores (se vio en uno de prueba); la cabecera Content-Disposition la respetan todos.
-    """
-    ruta = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                        "static", "guia-instalacion.html")
-    return FileResponse(ruta, media_type="text/html; charset=utf-8",
-                        filename="guia-instalacion-centauro-links.html")
-
-
 @router.get("/panel")
 def a_la_entrada():
     """
-    La direccion que se comparte: links.centauroads.com/panel. Lleva a la pantalla de entrada,
+    La direccion del panel (mails.centauroads.com lleva aqui). Lleva a la pantalla de entrada,
     que es por donde se empieza. Antes daba 404 y el enlace que circulaba era el del compositor,
     que abria la herramienta sin preguntar quien eras y solo lo pedia al pulsar algo.
     """
@@ -465,7 +435,7 @@ def pantalla_de_entrada(request: Request, destino: str = COMPOSITOR,
     # produce un literal JavaScript valido. Interpolar dentro de comillas a mano es justo el
     # fallo que esto arregla.
     return HTMLResponse(_ENTRADA.format(script_google=script, bloque_google=bloque,
-                                        destino=json.dumps(destino), guia=GUIA))
+                                        destino=json.dumps(destino)))
 
 
 @router.get("/admin/entregas")
