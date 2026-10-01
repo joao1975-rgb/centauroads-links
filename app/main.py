@@ -74,9 +74,11 @@ app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), na
 #   fichero es lo que lo cuenta a quien lo lea.
 # ---------------------------------------------------------------------------
 from .auth.rutas import router as router_auth, asegura_bootstrap  # noqa: E402
+from .auth.equipo import router as router_equipo  # noqa: E402
 from .mails.entregas import router as router_entregas  # noqa: E402
 
 app.include_router(router_auth)
+app.include_router(router_equipo)
 app.include_router(router_entregas)
 
 # Primero se entra, luego se usa la herramienta. El compositor es un fichero estatico y se
