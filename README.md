@@ -11,8 +11,9 @@ Tres piezas en un mismo servicio:
 | **Entregas a medida** | La plantilla H: sube el PDF de Canva, genera el carrusel y un enlace propio con tarjeta de WhatsApp | Dentro del compositor |
 | **Acortador** | Enlaces cortos con registro de clics | `/admin` y `/{slug}` |
 
-El enlace para el equipo es **`https://links.centauroads.com/panel`**: pide el correo y después abre
-el compositor. El compositor no se abre sin haber entrado.
+El enlace para el equipo es **`https://mails.centauroads.com`**: pide el correo y después abre el
+compositor. El compositor no se abre sin haber entrado. `links.centauroads.com` es el mismo servicio
+con el nombre del acortador: sus enlaces cortos no cambian.
 
 ---
 

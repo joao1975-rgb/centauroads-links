@@ -366,8 +366,16 @@ async def register_delivery(
 # ---------------------------------------------------------------------------
 # PORTADA / LANDING PAGE
 # ---------------------------------------------------------------------------
+# El mismo servicio responde a dos nombres. `links.` es el del acortador y su portada no cambia: los
+# enlaces cortos que ya circulan dependen de el. `mails.` es la direccion que se da al equipo, y
+# quien la escribe a secas va a la pantalla de entrada.
+NOMBRE_DEL_PANEL = "mails."
+
+
 @app.get("/", response_class=HTMLResponse)
 async def index_page(request: Request):
+    if (request.url.hostname or "").startswith(NOMBRE_DEL_PANEL):
+        return RedirectResponse(url="/panel/entrar", status_code=307)
     return templates.TemplateResponse("index.html", {"request": request})
 
 # ---------------------------------------------------------------------------
