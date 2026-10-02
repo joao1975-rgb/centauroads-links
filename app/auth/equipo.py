@@ -90,6 +90,11 @@ _PAGINA = """<!DOCTYPE html>
   button.peligro { background:transparent; border:1px solid #6B2B38; color:#F4C7CF;
                    font-weight:600; padding:7px 12px; font-size:13px; }
   button.peligro:hover { background:#3A1A22; }
+  /* El editor de una persona se abre debajo de su fila, ocupando las dos columnas. */
+  .editor { grid-column:1 / -1; display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));
+            gap:0 12px; padding:14px 14px 0; background:#1A1622; border:1px solid #2E2838; border-radius:10px; }
+  .editor .botones { grid-column:1 / -1; display:flex; gap:8px; margin:0 0 14px; }
+  .editor .nota { grid-column:1 / -1; margin:-6px 0 12px; }
   button:focus-visible, a:focus-visible { outline:2px solid #EEEDF2; outline-offset:2px; }
   button:disabled { opacity:.5; cursor:default; }
   .msg { margin:0 0 16px; padding:11px 13px; border-radius:8px; font-size:13px; }
@@ -202,7 +207,9 @@ _PAGINA = """<!DOCTYPE html>
 
   function fecha(iso) {
     if (!iso) return 'Aún no ha entrado';
-    var d = new Date(iso);
+    // La base guarda la hora en UTC sin marcarlo; sin la Z, el navegador la toma por hora local
+    // y de noche en Venezuela la fecha salia un dia adelantada.
+    var d = new Date(/(Z|[+-][0-9][0-9]:?[0-9][0-9])$/.test(iso) ? iso : iso + 'Z');
     return 'Última entrada: ' + d.toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
   }
 
@@ -216,6 +223,8 @@ _PAGINA = """<!DOCTYPE html>
 
   function formClave(fila, u) {
     if (fila.querySelector('.clave-otro')) return;
+    var editor = fila.querySelector('.editor');
+    if (editor) editor.remove();
     var caja = el('div', 'clave-otro');
     var entrada = el('input');
     entrada.type = 'text'; entrada.minLength = 12; entrada.spellcheck = false;
@@ -230,6 +239,58 @@ _PAGINA = """<!DOCTYPE html>
     caja.appendChild(boton('Cancelar', 'suave', function () { caja.remove(); }));
     fila.appendChild(caja);
     entrada.focus(); entrada.select();
+  }
+
+  function campo(caja, id, texto, control) {
+    var envoltura = el('div');
+    var etiqueta = el('label', null, texto);
+    etiqueta.htmlFor = id; control.id = id;
+    envoltura.appendChild(etiqueta); envoltura.appendChild(control);
+    caja.appendChild(envoltura);
+    return control;
+  }
+
+  // Editar a quien ya esta: corregir su correo o su nombre, o cambiarle el rol. Solo se manda lo
+  // que cambio. El rol propio no se puede tocar: la API lo rechaza para que siempre quede alguien
+  // que administre, y aqui se dice antes de intentarlo.
+  function formEdita(fila, u) {
+    if (fila.querySelector('.editor')) return;
+    var abierto = fila.querySelector('.clave-otro');
+    if (abierto) abierto.remove();
+    var soyYo = yo && yo.email === u.email;
+    var caja = el('div', 'editor');
+    var correo = el('input'); correo.type = 'email'; correo.value = u.email; correo.required = true;
+    var nombre = el('input'); nombre.type = 'text'; nombre.maxLength = 200; nombre.value = u.nombre || '';
+    var rol = el('select');
+    [['comercial', 'Comercial'], ['admin', 'Administrador']].forEach(function (o) {
+      var opcion = el('option', null, o[1]); opcion.value = o[0];
+      if (o[0] === u.rol) opcion.selected = true;
+      rol.appendChild(opcion);
+    });
+    campo(caja, 'e-' + u.id + '-correo', 'Correo', correo);
+    campo(caja, 'e-' + u.id + '-nombre', 'Nombre', nombre);
+    campo(caja, 'e-' + u.id + '-rol', 'Rol', rol);
+    if (soyYo) {
+      rol.disabled = true;
+      caja.appendChild(el('p', 'nota', 'Tu propio rol no se puede cambiar: así siempre queda alguien que administre el equipo.'));
+    }
+    var botones = el('div', 'botones');
+    botones.appendChild(boton('Guardar cambios', '', function () {
+      var cambios = {};
+      if (correo.value.trim().toLowerCase() !== u.email) cambios.email = correo.value.trim();
+      if (nombre.value.trim() !== (u.nombre || '')) cambios.nombre = nombre.value.trim();
+      if (!soyYo && rol.value !== u.rol) cambios.rol = rol.value;
+      if (!Object.keys(cambios).length) { caja.remove(); return; }
+      api('PATCH', '/api/panel/usuarios/' + u.id, cambios).then(function (d) {
+        if (soyYo) { yo.email = d.email; document.getElementById('soy').textContent = 'Has entrado como ' + d.email + '.'; }
+        di('Cambios guardados: ' + d.email + ' · ' + (d.rol === 'admin' ? 'Administrador' : 'Comercial'), true);
+        carga();
+      }).catch(function (e) { di(e.message, false); });
+    }));
+    botones.appendChild(boton('Cancelar', 'suave', function () { caja.remove(); }));
+    caja.appendChild(botones);
+    fila.appendChild(caja);
+    correo.focus();
   }
 
   function pinta(lista) {
@@ -247,6 +308,7 @@ _PAGINA = """<!DOCTYPE html>
       quien.appendChild(meta);
       li.appendChild(quien);
       var acc = el('div', 'acciones');
+      acc.appendChild(boton('Editar', 'suave', function () { formEdita(li, u); }));
       if (u.activo) {
         acc.appendChild(boton('Poner contraseña', 'suave', function () { formClave(li, u); }));
         if (!yo || yo.email !== u.email) {

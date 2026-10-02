@@ -106,3 +106,89 @@ def test_el_recorrido_completo_por_la_api_que_usa_la_pantalla(cliente, db):
     r = cliente.post("/api/auth/local",
                      json={"email": "nueva.equipo@gmail.com", "password": "una-clave-larga-de-prueba"})
     assert r.status_code == 200
+
+
+# --- Editar a quien ya está (2026-10-01, petición del usuario) ---------------------------------
+# Corregir un correo mal escrito, el nombre, o pasar a alguien de comercial a administrador sin
+# darle de baja y de alta. La sesión va por el número de la persona, no por su correo, así que
+# cambiarle el correo no le cierra la sesión.
+
+def _ruta(u):
+    return f"/api/panel/usuarios/{u.id}"
+
+
+def test_un_administrador_edita_correo_nombre_y_rol(cliente, db):
+    _entra(cliente, _alta(db, "jefa.equipo@gmail.com", "admin"))
+    otro = _alta(db, "mal.escrito@gmail.con", "comercial")
+    r = cliente.patch(_ruta(otro), json={"email": " Bien.Escrito@Gmail.com ", "nombre": "Bien Escrito",
+                                         "rol": "admin"})
+    assert r.status_code == 200, r.text
+    assert r.json() == {"id": otro.id, "email": "bien.escrito@gmail.com", "nombre": "Bien Escrito",
+                        "rol": "admin", "activo": True}
+    db.refresh(otro)
+    assert (otro.email, otro.nombre, otro.rol) == ("bien.escrito@gmail.com", "Bien Escrito", "admin")
+
+
+def test_solo_cambia_lo_que_se_manda(cliente, db):
+    _entra(cliente, _alta(db, "jefa.equipo@gmail.com", "admin"))
+    otro = _alta(db, "parcial.equipo@gmail.com", "comercial")
+    assert cliente.patch(_ruta(otro), json={"rol": "admin"}).status_code == 200
+    db.refresh(otro)
+    assert (otro.email, otro.rol) == ("parcial.equipo@gmail.com", "admin")
+
+
+def test_un_comercial_no_puede_editar(cliente, db):
+    otro = _alta(db, "victima.equipo@gmail.com", "comercial")
+    _entra(cliente, _alta(db, "vendedor.equipo@gmail.com", "comercial"))
+    assert cliente.patch(_ruta(otro), json={"rol": "admin"}).status_code == 403
+
+
+def test_el_correo_no_puede_repetirse(cliente, db):
+    _entra(cliente, _alta(db, "jefa.equipo@gmail.com", "admin"))
+    _alta(db, "ocupado.equipo@gmail.com", "comercial")
+    otro = _alta(db, "libre.equipo@gmail.com", "comercial")
+    r = cliente.patch(_ruta(otro), json={"email": "OCUPADO.equipo@gmail.com"})
+    assert r.status_code == 409
+
+
+@pytest.mark.parametrize("malo", ["sin-arroba", "a@b", "@gmail.com", "uno dos@gmail.com", ""])
+def test_el_correo_tiene_que_parecer_un_correo(cliente, db, malo):
+    _entra(cliente, _alta(db, "jefa.equipo@gmail.com", "admin"))
+    otro = _alta(db, "formato.equipo@gmail.com", "comercial")
+    assert cliente.patch(_ruta(otro), json={"email": malo}).status_code in (400, 422)
+
+
+def test_el_rol_solo_admin_o_comercial(cliente, db):
+    _entra(cliente, _alta(db, "jefa.equipo@gmail.com", "admin"))
+    otro = _alta(db, "rol.equipo@gmail.com", "comercial")
+    assert cliente.patch(_ruta(otro), json={"rol": "dueño"}).status_code == 400
+
+
+def test_nadie_se_quita_a_si_mismo_el_rol_de_administrador(cliente, db):
+    """Así siempre queda al menos un administrador: nadie puede dejar el panel sin quien lo gestione."""
+    jefa = _alta(db, "jefa.equipo@gmail.com", "admin")
+    _entra(cliente, jefa)
+    r = cliente.patch(_ruta(jefa), json={"rol": "comercial"})
+    assert r.status_code == 400
+    db.refresh(jefa)
+    assert jefa.rol == "admin"
+
+
+def test_cambiarse_el_propio_correo_no_cierra_la_sesion(cliente, db):
+    jefa = _alta(db, "jefa.vieja@gmail.com", "admin")
+    _entra(cliente, jefa)
+    assert cliente.patch(_ruta(jefa), json={"email": "jefa.nueva@gmail.com"}).status_code == 200
+    assert cliente.get("/api/auth/yo").json()["email"] == "jefa.nueva@gmail.com"
+
+
+def test_editar_a_quien_no_existe_da_404(cliente, db):
+    _entra(cliente, _alta(db, "jefa.equipo@gmail.com", "admin"))
+    assert cliente.patch("/api/panel/usuarios/999999", json={"rol": "admin"}).status_code == 404
+
+
+def test_la_pantalla_trae_el_editor_con_el_rol_desplegable(cliente, db):
+    _entra(cliente, _alta(db, "jefa.equipo@gmail.com", "admin"))
+    html = cliente.get(PANTALLA).text
+    assert "'Editar'" in html
+    assert "createElement('select')" in html or "el('select'" in html
+    assert "'PATCH'" in html

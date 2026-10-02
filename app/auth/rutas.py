@@ -219,6 +219,61 @@ def baja_usuario(usuario_id: int, db: Session = Depends(get_db),
     return {"ok": True, "email": usuario.email}
 
 
+# Lo justo para no guardar algo que no puede ser un correo: algo antes de la arroba, un dominio
+# con punto y sin espacios. La comprobación de verdad la hace quien entra (Google, o la contraseña).
+_CORREO = re.compile(r"[^@\s]+@[^@\s]+\.[^@\s]+")
+
+
+class UsuarioCambios(BaseModel):
+    """Solo cambia lo que se manda: un campo ausente se deja como estaba."""
+    email: Optional[str] = Field(default=None, max_length=200)
+    nombre: Optional[str] = Field(default=None, max_length=200)
+    rol: Optional[str] = None
+
+
+@router.patch("/api/panel/usuarios/{usuario_id}")
+def edita_usuario(usuario_id: int, datos: UsuarioCambios, db: Session = Depends(get_db),
+                  quien: models.PanelUser = Depends(solo_admin)):
+    """
+    Corregir el correo o el nombre de alguien, o cambiarle el rol, sin darle de baja y de alta.
+
+    La sesión va por el número de la persona, no por su correo: cambiárselo no le cierra la
+    sesión. Nadie puede quitarse a sí mismo el rol de administrador; como tampoco puede
+    retirarse el acceso, siempre queda al menos un administrador que gestione el panel.
+
+    Ojo con `PANEL_BOOTSTRAP`: si se cambia el correo de una cuenta que está en esa variable, al
+    siguiente arranque se vuelve a crear la del correo viejo (sin contraseña). Lo que hay que
+    corregir entonces es la variable.
+    """
+    usuario = db.query(models.PanelUser).filter(models.PanelUser.id == usuario_id).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail="No encontrado")
+    antes = (usuario.email, usuario.rol)
+    if datos.rol is not None:
+        if datos.rol not in ("admin", "comercial"):
+            raise HTTPException(status_code=400, detail="El rol solo puede ser admin o comercial")
+        if usuario.id == quien.id and datos.rol != "admin":
+            raise HTTPException(status_code=400,
+                                detail="No puedes quitarte a ti mismo el rol de administrador")
+        usuario.rol = datos.rol
+    if datos.email is not None:
+        email = datos.email.strip().lower()
+        if not _CORREO.fullmatch(email):
+            raise HTTPException(status_code=400, detail="Ese correo no tiene un formato válido")
+        otro = db.query(models.PanelUser).filter(models.PanelUser.email == email,
+                                                 models.PanelUser.id != usuario.id).first()
+        if otro:
+            raise HTTPException(status_code=409, detail="Ya hay otra persona con ese correo")
+        usuario.email = email
+    if datos.nombre is not None:
+        usuario.nombre = datos.nombre.strip() or usuario.email.split("@")[0]
+    db.commit()
+    log.info("%s edita a %s: correo %s -> %s, rol %s -> %s", quien.email, antes[0],
+             antes[0], usuario.email, antes[1], usuario.rol)
+    return {"id": usuario.id, "email": usuario.email, "nombre": usuario.nombre,
+            "rol": usuario.rol, "activo": usuario.activo}
+
+
 # ---------------------------------------------------------------------------
 # Contraseñas
 #
