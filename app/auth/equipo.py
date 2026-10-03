@@ -166,6 +166,9 @@ _PAGINA = """<!DOCTYPE html>
 (function () {
   var aviso = document.getElementById('aviso');
   var yo = null;
+  // La fila propia: tu contrasena se cambia en «Tu contrasena», que pide la actual. Ofrecer
+  // «Poner contrasena» en tu fila permitia cambiartela de un clic sin querer (paso el 2026-10-03).
+  function esYo(u) { return !!yo && yo.email === u.email; }
 
   function di(texto, bien, clave) {
     aviso.textContent = texto;
@@ -257,7 +260,7 @@ _PAGINA = """<!DOCTYPE html>
     if (fila.querySelector('.editor')) return;
     var abierto = fila.querySelector('.clave-otro');
     if (abierto) abierto.remove();
-    var soyYo = yo && yo.email === u.email;
+    var soyYo = esYo(u);
     var caja = el('div', 'editor');
     var correo = el('input'); correo.type = 'email'; correo.value = u.email; correo.required = true;
     var nombre = el('input'); nombre.type = 'text'; nombre.maxLength = 200; nombre.value = u.nombre || '';
@@ -310,8 +313,8 @@ _PAGINA = """<!DOCTYPE html>
       var acc = el('div', 'acciones');
       acc.appendChild(boton('Editar', 'suave', function () { formEdita(li, u); }));
       if (u.activo) {
-        acc.appendChild(boton('Poner contraseña', 'suave', function () { formClave(li, u); }));
-        if (!yo || yo.email !== u.email) {
+        if (!esYo(u)) acc.appendChild(boton('Poner contraseña', 'suave', function () { formClave(li, u); }));
+        if (!esYo(u)) {
           acc.appendChild(boton('Retirar acceso', 'peligro', function () {
             if (!confirm('¿Retirar el acceso de ' + u.email + '? Podrás devolvérselo después.')) return;
             api('DELETE', '/api/panel/usuarios/' + u.id)
