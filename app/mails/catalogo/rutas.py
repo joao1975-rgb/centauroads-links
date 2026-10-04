@@ -17,6 +17,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ... import models
@@ -27,6 +28,9 @@ from . import fotos
 router = APIRouter()
 
 LETRAS = "ABCDEFGH"
+# Nombres que todo objeto de JavaScript ya tiene: como identificador de linea, el motor los
+# encontraria en BANCO o FICHA sin que nadie los hubiera puesto ahi.
+RESERVADOS = {"constructor", "prototype"}
 # Límites de data-model.md. El nombre aparte: es obligatorio.
 LIMITES = {"eyebrow": 60, "cta": 60, "cobertura": 200, "nota": 300, "canva": 500, "slug": 80,
            "alt": 200}
@@ -93,6 +97,8 @@ def _id_desde(nombre: str, db: Session) -> str:
     """`Producción audiovisual` → `produccion-audiovisual`; si ya existe, `-2`, `-3`…"""
     plano = unicodedata.normalize("NFKD", nombre).encode("ascii", "ignore").decode("ascii")
     base = re.sub(r"[^a-z0-9]+", "-", plano.lower()).strip("-")[:40].rstrip("-") or "linea"
+    if base in RESERVADOS:
+        base = "linea-" + base
     candidato, n = base, 2
     while db.get(models.LineaNegocio, candidato) is not None:
         candidato, n = "%s-%d" % (base, n), n + 1
@@ -161,7 +167,12 @@ def alta(cuerpo: LineaNueva, db: Session = Depends(get_db),
                                 orden=(ultima.orden + 1) if ultima else 0,
                                 activa=True, actualizado_por=usuario.email, **datos)
     db.add(linea)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # Dos altas con el mismo nombre a la vez: la segunda llega aqui, no a la comprobacion.
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Ya existe una línea con ese nombre.")
     db.refresh(linea)
     return _para_panel(linea)
 

@@ -1322,6 +1322,18 @@
     });
   }
 
+  // ── Datos que caducan ──
+  // Los del asesor anuncian trimestres y fechas que pasan. No se corrigen solos -que se vende y
+  // cuando es cosa del negocio-, pero el panel lo dice. La decision es del motor (M.fechasPasadas).
+  function avisaFechasPasadas() {
+    const b = document.querySelector('#panel [data-bloque="asesor"]');
+    if (!b) return;
+    const avisos = M.fechasPasadas((st.bloques || {}).asesor, new Date());
+    b.classList.toggle('caduco', avisos.length > 0);
+    if (avisos.length) b.title = 'Fechas vencidas: ' + avisos.join(' · ');
+    else b.removeAttribute('title');
+  }
+
   function toast(msg, ms) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), ms || 1800); }
   // La Personalizada sin enlace mandaria un boton que no lleva a ninguna parte (href="#"):
   // lo vio la auditoria del 2026-10-03. Se avisa y no se copia.

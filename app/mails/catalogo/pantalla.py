@@ -175,7 +175,8 @@ _PAGINA = """<!DOCTYPE html>
     return fetch(ruta, op).then(function (r) {
       if (r.status === 401) { location.href = '/panel/entrar?destino=%2Fpanel%2Flineas'; throw new Error('Hay que entrar de nuevo'); }
       return r.json().catch(function () { return {}; }).then(function (d) {
-        if (!r.ok) throw new Error(d.detail || 'No se pudo completar');
+        // Un 422 de FastAPI trae la lista de campos, no una frase.
+        if (!r.ok) throw new Error(typeof d.detail === 'string' ? d.detail : 'Revisa los datos del formulario');
         return d;
       });
     });

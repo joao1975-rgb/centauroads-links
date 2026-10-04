@@ -30,8 +30,11 @@ MAXIMO_BYTES = 8 * 1024 * 1024
 # de alta densidad sin que el correo pese de más.
 ANCHO_MAXIMO = 1072
 CALIDAD_JPEG = 82
-# Una imagen de 8 MB puede declarar dimensiones enormes y reventar la memoria al abrirla.
+# Una imagen de 8 MB puede declarar dimensiones enormes y reventar la memoria al cargarla: se mira
+# el tamano declarado ANTES de cargar. Y solo formatos de foto: Pillow abre muchos mas (EPS llega a
+# llamar a Ghostscript), y la pantalla promete JPG, PNG o WebP.
 PIXELES_MAXIMOS = 40_000_000
+FORMATOS = ["JPEG", "PNG", "WEBP"]
 
 _NOMBRE = re.compile(r"^[a-z0-9][a-z0-9-]{0,60}-[0-9a-f]{8}\.jpg$")
 
@@ -46,14 +49,18 @@ def raiz() -> str:
 
 def prepara(datos: bytes) -> bytes:
     """De lo que se subió a un JPEG listo para un correo: derecho, en RGB, ≤ 1072 px de ancho."""
-    Image.MAX_IMAGE_PIXELS = PIXELES_MAXIMOS
+    demasiado = FotoNoValida("La imagen es demasiado grande. Usa una de menos de 40 megapíxeles.")
     try:
-        with Image.open(io.BytesIO(datos)) as prueba:
+        with Image.open(io.BytesIO(datos), formats=FORMATOS) as prueba:
+            if prueba.width * prueba.height > PIXELES_MAXIMOS:
+                raise demasiado
             prueba.verify()
-        imagen = Image.open(io.BytesIO(datos))
+        imagen = Image.open(io.BytesIO(datos), formats=FORMATOS)
         imagen.load()
+    except FotoNoValida:
+        raise
     except Image.DecompressionBombError:
-        raise FotoNoValida("La imagen es demasiado grande. Usa una de menos de 40 megapíxeles.")
+        raise demasiado
     except Exception:
         raise FotoNoValida("El archivo no es una imagen que se pueda usar (JPG, PNG o WebP).")
 
@@ -78,7 +85,7 @@ def prepara(datos: bytes) -> bytes:
 def guarda(linea_id: str, jpeg: bytes) -> str:
     """Escribe la foto y devuelve su ruta pública (`/media/lineas/<id>-<huella>.jpg`)."""
     nombre = "%s-%s.jpg" % (linea_id, hashlib.sha256(jpeg).hexdigest()[:8])
-    if not _NOMBRE.match(nombre):
+    if not _NOMBRE.fullmatch(nombre):
         raise ValueError("nombre de foto no permitido: %r" % (nombre,))
     os.makedirs(raiz(), exist_ok=True)
     with open(os.path.join(raiz(), nombre), "wb") as f:
@@ -88,7 +95,7 @@ def guarda(linea_id: str, jpeg: bytes) -> str:
 
 def resuelve(nombre: str) -> Optional[str]:
     """La ruta en disco de una foto pedida desde fuera, o None si no se debe servir."""
-    if not _NOMBRE.match(nombre or ""):
+    if not _NOMBRE.fullmatch(nombre or ""):
         return None
     try:
         base = os.path.realpath(raiz())

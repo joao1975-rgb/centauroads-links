@@ -184,6 +184,14 @@ def test_el_identificador_sale_sin_acentos(admin):
     assert r.json()["id"] == "produccion-audiovisual"
 
 
+def test_un_nombre_no_da_un_identificador_reservado_del_navegador(admin):
+    """`constructor` es una propiedad de todo objeto de JavaScript: como identificador de linea,
+    el motor la encontraria en BANCO y FICHA sin estar ahi (revision de seguridad, 2026-10-03)."""
+    r = _alta(admin, nombre="Constructor")
+    assert r.status_code == 201, r.text
+    assert r.json()["id"] == "linea-constructor"
+
+
 @pytest.mark.parametrize("enlace", ["ftp://x.test/a", "canva.link/sin-protocolo", "javascript:alert(1)"])
 def test_el_enlace_tiene_que_ser_http(admin, enlace):
     r = _alta(admin, nombre="Con enlace raro " + enlace[:3], canva=enlace)
@@ -266,6 +274,23 @@ def test_un_fichero_que_no_es_imagen_se_rechaza(admin):
     assert r.status_code == 400
 
 
+@pytest.mark.parametrize("formato", ["BMP", "TIFF"])
+def test_solo_jpg_png_o_webp(admin, formato):
+    buf = io.BytesIO()
+    Image.new("RGB", (20, 20)).save(buf, formato)
+    r = admin.post("/api/panel/lineas/alquiler-de-pantallas/foto",
+                   files={"fichero": ("a." + formato.lower(), buf.getvalue(), "image/" + formato.lower())})
+    assert r.status_code == 400
+
+
+def test_una_imagen_de_mas_de_40_megapixeles_se_rechaza_sin_cargarla(admin):
+    buf = io.BytesIO()
+    Image.new("1", (7000, 6000)).save(buf, "PNG")   # 42 MP que ocupan pocos KB
+    r = admin.post("/api/panel/lineas/alquiler-de-pantallas/foto",
+                   files={"fichero": ("grande.png", buf.getvalue(), "image/png")})
+    assert r.status_code == 400 and "megapíxeles" in r.json()["detail"]
+
+
 def test_mas_de_8_mb_se_rechaza(admin):
     r = admin.post("/api/panel/lineas/alquiler-de-pantallas/foto",
                    files={"fichero": ("enorme.jpg", b"0" * (fotos.MAXIMO_BYTES + 1), "image/jpeg")})
@@ -302,6 +327,7 @@ def test_un_comercial_no_sube_fotos(comercial):
     "/media/lineas/foto.png",
     "/media/lineas/.jpg",
     "/media/lineas/no-existe-12345678.jpg",
+    "/media/lineas/alquiler-12345678.jpg%0A",
 ])
 def test_la_ruta_publica_solo_sirve_fotos_de_linea(anonimo, pedido):
     assert anonimo.get(pedido).status_code == 404

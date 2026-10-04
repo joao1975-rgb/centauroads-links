@@ -170,3 +170,18 @@ def test_python_fijado_a_una_version_que_instala():
     """
     assert (RAIZ / ".python-version").read_text(encoding="utf-8").strip() == "3.12"
     assert "3.14" in (RAIZ / "requirements.txt").read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize("compositor", [RAIZ / "prototipos" / "mail" / "compositor.html",
+                                        ESTATICO / "compositor.html"])
+def test_el_aviso_de_fechas_vencidas_existe(compositor):
+    """
+    7cdfa29 dejo la llamada `avisaFechasPasadas()` al final de cada vista previa, y el estilo
+    «fechas vencidas», pero no la funcion: cada repintado acababa en un ReferenceError y el aviso
+    no salia nunca. Lo destapo la 003, que pone codigo detras del primer repintado (2026-10-03).
+    """
+    html = compositor.read_text(encoding="utf-8")
+    assert "avisaFechasPasadas();" in html
+    assert "function avisaFechasPasadas()" in html
+    assert "M.fechasPasadas(" in html
+
