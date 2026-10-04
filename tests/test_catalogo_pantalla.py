@@ -63,6 +63,17 @@ def test_se_eligen_las_plantillas_a_a_h(comercial):
         assert 'value="%s"' % letra in html
 
 
+def test_editar_ordenar_y_retirar_estan_en_la_pantalla(comercial):
+    """US3: editar en la fila, subir/bajar y retirar/devolver; las retiradas, aparte."""
+    html = comercial.get(PANTALLA).text
+    assert '<section id="retiradas"' in html
+    assert "api('PATCH', '/api/panel/lineas/'" in html
+    assert "api('POST', '/api/panel/lineas/orden'" in html
+    for texto in ("'Subir ' + l.nombre", "'Bajar ' + l.nombre", "'Retirar ' + l.nombre", "'Devolver ' + l.nombre"):
+        assert texto in html
+    assert "if (!esAdmin) return li;" in html
+
+
 @pytest.mark.parametrize("compositor", ["prototipos/mail/compositor.html",
                                         "app/static/email/compositor.html"])
 def test_el_compositor_enlaza_la_pantalla_y_pide_el_catalogo(compositor):

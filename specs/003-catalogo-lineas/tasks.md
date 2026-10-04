@@ -89,14 +89,14 @@ empieza por sus pruebas, que deben fallar antes de implementar.
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T323 [P] [US3] Pruebas de API: `PATCH` edita solo lo enviado; retirar y devolver; `POST /api/panel/lineas/orden`; `/api/catalogo` no entrega retiradas; comercial 403
-- [ ] T324 [P] [US3] Pruebas de migración del estado en `tests/test_catalogo_motor.py`: con un estado guardado viejo, la línea nueva entra, la retirada sale y el texto escrito a mano en una línea que sigue se conserva; un perfil con orden propio deja las líneas no nombradas detrás (FR-316)
+- [x] T323 [P] [US3] Pruebas de API: `PATCH` edita solo lo enviado; retirar y devolver; `POST /api/panel/lineas/orden`; `/api/catalogo` no entrega retiradas; comercial 403
+- [x] T324 [P] [US3] Pruebas de migración del estado en `tests/test_catalogo_motor.py`: con un estado guardado viejo, la línea nueva entra, la retirada sale y el texto escrito a mano en una línea que sigue se conserva; un perfil con orden propio deja las líneas no nombradas detrás (FR-316)
 
 ### Implementation for User Story 3
 
-- [ ] T325 [US3] `PATCH /api/panel/lineas/{id}` y `POST /api/panel/lineas/orden` en `app/mails/catalogo/rutas.py`
-- [ ] T326 [US3] Pantalla: editar en la fila, retirar/devolver (retiradas aparte) y subir/bajar en el orden
-- [ ] T327 [US3] Ajustar `normaliza()` solo si las pruebas de T324 lo exigen (sin subir `CONTENT_VERSION`)
+- [x] T325 [US3] `PATCH /api/panel/lineas/{id}` y `POST /api/panel/lineas/orden` en `app/mails/catalogo/rutas.py`
+- [x] T326 [US3] Pantalla: editar en la fila, retirar/devolver (retiradas aparte) y subir/bajar en el orden
+- [x] T327 [US3] Ajustar `normaliza()` solo si las pruebas de T324 lo exigen (sin subir `CONTENT_VERSION`)
 
 ---
 

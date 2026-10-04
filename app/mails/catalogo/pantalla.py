@@ -40,6 +40,8 @@ _CASILLAS = "\n".join(
     '        <label class="casilla"><input type="checkbox" name="plantilla" value="%s" checked>'
     '<b>%s</b> %s</label>' % (k, k, n) for k, n in _PLANTILLAS)
 
+_NOMBRES_JS = "[" + ", ".join("['%s', '%s']" % (k, n) for k, n in _PLANTILLAS) + "]"
+
 _PAGINA = """<!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -73,7 +75,16 @@ _PAGINA = """<!DOCTYPE html>
   .letra.no { background:transparent; color:#5E5869; border:1px dashed #3A3445; font-weight:600; }
   .etq { font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:3px 8px;
          border-radius:999px; background:#3A1A22; color:#F4C7CF; margin-left:8px; }
-  .acciones { display:flex; gap:8px; justify-content:flex-end; }
+  .acciones { display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap; }
+  button.flecha { background:#241F2E; color:#EEEDF2; font-weight:700; padding:6px 10px; font-size:14px; }
+  button.flecha:hover { background:#2E2838; }
+  button.peligro { background:transparent; border:1px solid #6B2B38; color:#F4C7CF;
+                   font-weight:600; padding:7px 12px; font-size:13px; }
+  button.peligro:hover { background:#3A1A22; }
+  /* El editor de una linea se abre debajo de su fila, a todo lo ancho. */
+  .editor { grid-column:1 / -1; padding:14px 14px 0; background:#1A1622; border:1px solid #2E2838; border-radius:10px; }
+  .editor .botones { display:flex; gap:8px; margin:0 0 14px; }
+  .retiradas .miniatura { opacity:.55; }
   @media (max-width:560px) { .fila { grid-template-columns:72px minmax(0,1fr); }
     .miniatura { width:72px; height:48px; } .acciones { grid-column:1 / -1; justify-content:flex-start; } }
   label { display:block; font-size:12px; color:#A9A2B5; margin:0 0 4px; }
@@ -120,6 +131,12 @@ _PAGINA = """<!DOCTYPE html>
     <ul class="lista" id="filas"></ul>
   </section>
 
+  <section id="retiradas" class="retiradas" aria-labelledby="t-retiradas" hidden>
+    <h2 id="t-retiradas">Retiradas</h2>
+    <p class="nota">No salen en los correos nuevos; los ya enviados no cambian. Se pueden devolver tal como estaban.</p>
+    <ul class="lista" id="filas-retiradas"></ul>
+  </section>
+
   <section id="alta" aria-labelledby="t-alta" hidden>
     <h2 id="t-alta">Añadir una línea</h2>
     <p class="nota">Sale en las plantillas marcadas, para todo el equipo, desde el próximo correo que se arme.</p>
@@ -159,6 +176,8 @@ _PAGINA = """<!DOCTYPE html>
   var aviso = document.getElementById('aviso');
   var LETRAS = 'ABCDEFGH';
   var esAdmin = false;
+  var todas = [], familias = [];
+  var NOMBRES = """ + _NOMBRES_JS + """;
 
   function di(texto, bien) {
     aviso.textContent = texto;
@@ -226,16 +245,121 @@ _PAGINA = """<!DOCTYPE html>
         .then(function () { di('Foto guardada: ' + l.nombre, true); carga(); })
         .catch(function (e) { di(e.message, false); b.disabled = false; });
     });
-    var caja = el('div', 'acciones');
-    caja.appendChild(b); caja.appendChild(entrada);
-    return caja;
+    return [b, entrada];
   }
 
-  function pinta(d) {
-    var ul = document.getElementById('filas');
-    ul.textContent = '';
-    d.lineas.forEach(function (l) {
+  function casillasPlantillas(caja, l) {
+    var grupo = el('fieldset');
+    grupo.appendChild(el('legend', null, 'Plantillas en que sale'));
+    var rejilla = el('div', 'casillas');
+    NOMBRES.forEach(function (par) {
+      var etiqueta = el('label', 'casilla');
+      var c = el('input'); c.type = 'checkbox'; c.value = par[0]; c.checked = l.plantillas.indexOf(par[0]) >= 0;
+      etiqueta.appendChild(c); etiqueta.appendChild(el('b', null, par[0]));
+      etiqueta.appendChild(document.createTextNode(' ' + par[1]));
+      rejilla.appendChild(etiqueta);
+    });
+    grupo.appendChild(rejilla);
+    caja.appendChild(grupo);
+    return function () {
+      return Array.prototype.filter.call(rejilla.querySelectorAll('input'), function (c) { return c.checked; })
+        .map(function (c) { return c.value; }).join('');
+    };
+  }
+
+  function campo(caja, id, texto, control) {
+    var envoltura = el('div');
+    var etiqueta = el('label', null, texto);
+    etiqueta.htmlFor = id; control.id = id;
+    envoltura.appendChild(etiqueta); envoltura.appendChild(control);
+    caja.appendChild(envoltura);
+    return control;
+  }
+
+  // Editar en la fila: solo se manda lo que cambio. El identificador no cambia aunque cambie el
+  // nombre: es lo que reconoce el estado guardado de cada compositor.
+  function formEdita(li, l) {
+    if (li.querySelector('.editor')) return;
+    var caja = el('div', 'editor');
+    var rejilla = el('div', 'rejilla');
+    var CAMPOS = [['nombre', 'Nombre', 120], ['eyebrow', 'Etiqueta corta', 60], ['cobertura', 'Cobertura o ubicación', 200],
+                  ['nota', 'Nota (opcional)', 300], ['canva', 'Enlace de la presentación', 500],
+                  ['cta', 'Texto de su botón (opcional)', 60], ['alt', 'Qué se ve en la foto', 200]];
+    var entradas = {};
+    CAMPOS.forEach(function (f) {
+      var i = el('input'); i.type = f[0] === 'canva' ? 'url' : 'text'; i.maxLength = f[2]; i.value = l[f[0]] || '';
+      entradas[f[0]] = campo(rejilla, 'e-' + l.id + '-' + f[0], f[1], i);
+    });
+    var familia = el('select');
+    familia.appendChild(el('option', null, 'Ninguno · va a «Otros servicios»')).value = '';
+    familias.forEach(function (f) {
+      var o = el('option', null, f.titulo); o.value = f.id; o.selected = f.id === l.familia; familia.appendChild(o);
+    });
+    campo(rejilla, 'e-' + l.id + '-familia', 'Grupo en la plantilla D', familia);
+    caja.appendChild(rejilla);
+    var plantillas = casillasPlantillas(caja, l);
+    var botones = el('div', 'botones');
+    botones.appendChild(boton('Guardar cambios', '', function () {
+      var cambios = {};
+      Object.keys(entradas).forEach(function (k) {
+        if (entradas[k].value.trim() !== (l[k] || '')) cambios[k] = entradas[k].value.trim();
+      });
+      if (familia.value !== (l.familia || '')) cambios.familia = familia.value;
+      var letras = plantillas();
+      if (letras !== l.plantillas) {
+        if (!letras && !confirm('No has marcado ninguna plantilla: la línea no saldrá en ningún correo. ¿Seguir?')) return;
+        cambios.plantillas = letras;
+        if (!letras) cambios.confirmarSinPlantillas = true;
+      }
+      if (!Object.keys(cambios).length) { caja.remove(); return; }
+      api('PATCH', '/api/panel/lineas/' + encodeURIComponent(l.id), cambios)
+        .then(function (d) { di('Cambios guardados: ' + d.nombre + '. Los compositores del equipo los reciben al abrirse.', true); carga(); })
+        .catch(function (e) { di(e.message, false); });
+    }));
+    botones.appendChild(boton('Cancelar', 'suave', function () { caja.remove(); li.querySelector('.acciones button').focus(); }));
+    caja.appendChild(botones);
+    li.appendChild(caja);
+    entradas.nombre.focus();
+  }
+
+  function boton(texto, clase, accion, etiqueta) {
+    var b = el('button', clase, texto);
+    b.type = 'button';
+    if (etiqueta) b.setAttribute('aria-label', etiqueta);
+    b.addEventListener('click', accion);
+    return b;
+  }
+
+  // Subir o bajar cambia el sitio con la activa de al lado. El orden se manda completo, con las
+  // retiradas en su sitio: la API no acepta una lista a medias.
+  function mueve(l, paso) {
+    var activas = todas.filter(function (x) { return x.activa !== false; });
+    var i = activas.indexOf(l), otra = activas[i + paso];
+    if (!otra) return;
+    var ids = todas.map(function (x) { return x.id; });
+    var a = ids.indexOf(l.id), b = ids.indexOf(otra.id);
+    ids[a] = otra.id; ids[b] = l.id;
+    api('POST', '/api/panel/lineas/orden', { ids: ids }).then(function () {
+      return carga();
+    }).then(function () {
+      // El foco sigue en la misma flecha; si llego al extremo y se apago, pasa a la otra.
+      var fila = document.querySelector('[data-linea="' + l.id + '"]');
+      var vuelta = fila && fila.querySelector('.flecha' + (paso < 0 ? '.sube' : '.baja'));
+      if (vuelta && vuelta.disabled) vuelta = fila.querySelector('.flecha' + (paso < 0 ? '.baja' : '.sube'));
+      if (vuelta && !vuelta.disabled) vuelta.focus();
+    }).catch(function (e) { di(e.message, false); });
+  }
+
+  function activa(l, si) {
+    if (!si && !confirm('¿Retirar «' + l.nombre + '»? Deja de salir en los correos nuevos; los ya enviados no cambian. Podrás devolverla.')) return;
+    api('PATCH', '/api/panel/lineas/' + encodeURIComponent(l.id), { activa: si })
+      .then(function () { di((si ? 'Devuelta: ' : 'Retirada: ') + l.nombre, true); carga(); })
+      .catch(function (e) { di(e.message, false); });
+  }
+
+  function fila(l, i, n) {
       var li = el('li', 'fila');
+      li.dataset.linea = l.id;
       li.appendChild(miniatura(l));
       var quien = el('div', 'quien');
       var nombre = el('b', null, l.nombre);
@@ -253,10 +377,36 @@ _PAGINA = """<!DOCTYPE html>
       });
       quien.appendChild(letras);
       li.appendChild(quien);
-      // Solo las fotos que se subieron aqui: las de serie van con su carrusel generado.
-      if (esAdmin && (!l.img || l.img.charAt(0) === '/')) li.appendChild(botonFoto(l));
-      ul.appendChild(li);
-    });
+      if (!esAdmin) return li;
+      var acc = el('div', 'acciones');
+      if (l.activa !== false) {
+        var sube = boton('↑', 'flecha sube', function () { mueve(l, -1); }, 'Subir ' + l.nombre);
+        var baja = boton('↓', 'flecha baja', function () { mueve(l, 1); }, 'Bajar ' + l.nombre);
+        sube.disabled = i === 0; baja.disabled = i === n - 1;
+        acc.appendChild(sube); acc.appendChild(baja);
+        acc.appendChild(boton('Editar', 'suave', function () { formEdita(li, l); }, 'Editar ' + l.nombre));
+        // Solo las fotos que se subieron aqui: las de serie van con su carrusel generado.
+        if (!l.img || l.img.charAt(0) === '/') botonFoto(l).forEach(function (pieza) { acc.appendChild(pieza); });
+        acc.appendChild(boton('Retirar', 'peligro', function () { activa(l, false); }, 'Retirar ' + l.nombre));
+      } else {
+        acc.appendChild(boton('Devolver', 'suave', function () { activa(l, true); }, 'Devolver ' + l.nombre));
+      }
+      li.appendChild(acc);
+      return li;
+  }
+
+  function pinta(d) {
+    todas = d.lineas;
+    familias = d.familias;
+    var activas = d.lineas.filter(function (l) { return l.activa !== false; });
+    var fuera = d.lineas.filter(function (l) { return l.activa === false; });
+    var ul = document.getElementById('filas');
+    ul.textContent = '';
+    activas.forEach(function (l, i) { ul.appendChild(fila(l, i, activas.length)); });
+    var ur = document.getElementById('filas-retiradas');
+    ur.textContent = '';
+    fuera.forEach(function (l, i) { ur.appendChild(fila(l, i, fuera.length)); });
+    document.getElementById('retiradas').hidden = !fuera.length;
     var sel = document.getElementById('a-familia');
     while (sel.options.length > 1) sel.remove(1);
     d.familias.forEach(function (f) {

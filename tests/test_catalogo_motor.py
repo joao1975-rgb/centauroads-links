@@ -64,6 +64,41 @@ if (escenario === 'serie') {
   const st = M.normaliza(JSON.parse(JSON.stringify(vieja)));
   out.ids = st.servicios.map(s => s.id);
   out.cobertura = st.servicios.find(s => s.id === 'vallas').cobertura;
+} else if (escenario === 'edicion') {
+  // Lo que el panel edita llega a quien ya uso el compositor, sin pisar lo escrito a mano (US3).
+  const copia = o => JSON.parse(JSON.stringify(o));
+  const vieja = M.defaultState();
+  vieja.servicios.find(s => s.id === 'vallas').cobertura = 'MI TEXTO A MANO';
+  const sinVisto = copia(vieja); delete sinVisto.catalogoVisto;   // sesion de antes de la 003
+  const cat = M.catalogoActual();
+  cat.lineas.find(l => l.id === 'led').nombre = 'LED EDITADA EN EL PANEL';
+  cat.lineas.find(l => l.id === 'vallas').cobertura = 'COBERTURA DEL PANEL';
+  const rider = cat.lineas.splice(cat.lineas.findIndex(l => l.id === 'rider'), 1)[0];
+  cat.lineas.unshift(rider);                                      // reordenada: rider primero
+  M.ponCatalogo(cat);
+  const st = M.normaliza(copia(vieja));
+  out.led = st.servicios.find(s => s.id === 'led').nombre;
+  out.vallas = st.servicios.find(s => s.id === 'vallas').cobertura;
+  out.ids = st.servicios.map(s => s.id);
+  out.ledSinVisto = M.normaliza(sinVisto).servicios.find(s => s.id === 'led').nombre;
+  // Segunda vuelta: la persona cambia a mano la cobertura de led; el panel la cambia otra vez,
+  // y tambien el nombre. El nombre llega; la cobertura suya se queda.
+  st.servicios.find(s => s.id === 'led').cobertura = 'LED A MANO';
+  const cat2 = M.catalogoActual();
+  cat2.lineas.find(l => l.id === 'led').nombre = 'LED OTRA VEZ';
+  cat2.lineas.find(l => l.id === 'led').cobertura = 'COBERTURA OTRA VEZ';
+  M.ponCatalogo(cat2);
+  const st2 = M.normaliza(copia(st));
+  out.led2 = st2.servicios.find(s => s.id === 'led').nombre;
+  out.ledCobertura2 = st2.servicios.find(s => s.id === 'led').cobertura;
+} else if (escenario === 'perfil') {
+  // Un perfil con orden propio deja detras, en el orden del catalogo, las lineas que no nombra.
+  const cat = M.catalogoActual();
+  cat.lineas.unshift(Object.assign({}, NUEVA));
+  M.ponCatalogo(cat);
+  const st = M.defaultState(); st.perfil = 'agencia';
+  out.orden = M.aplicaPerfil(M.normaliza(st)).servicios.map(s => s.id);
+  out.ordenPerfil = M.PERFILES.agencia.orden;
 }
 process.stdout.write(JSON.stringify(out));
 """
@@ -165,3 +200,38 @@ def test_la_sesion_vieja_recibe_la_nueva_pierde_la_retirada_y_conserva_lo_suyo(m
     assert "alquiler" in migracion["ids"]
     assert "rider" not in migracion["ids"]
     assert migracion["cobertura"] == "MI TEXTO A MANO"
+
+
+# --- Editar y ordenar desde el panel llega a las sesiones guardadas (US3, T324) ------------------
+
+@pytest.fixture(scope="module")
+def edicion(tmp_path_factory):
+    return _corre(tmp_path_factory, "edicion")
+
+
+def test_una_edicion_del_panel_llega_a_la_sesion_guardada(edicion):
+    assert edicion["led"] == "LED EDITADA EN EL PANEL"
+
+
+def test_lo_escrito_a_mano_no_lo_pisa_el_panel(edicion):
+    assert edicion["vallas"] == "MI TEXTO A MANO"
+
+
+def test_la_sesion_sigue_el_orden_del_catalogo(edicion):
+    assert edicion["ids"][0] == "rider"
+
+
+def test_una_sesion_anterior_a_la_003_tambien_recibe_la_edicion(edicion):
+    assert edicion["ledSinVisto"] == "LED EDITADA EN EL PANEL"
+
+
+def test_la_segunda_edicion_llega_y_respeta_lo_cambiado_entre_medias(edicion):
+    assert edicion["led2"] == "LED OTRA VEZ"
+    assert edicion["ledCobertura2"] == "LED A MANO"
+
+
+def test_un_perfil_con_orden_propio_deja_detras_las_lineas_que_no_nombra(tmp_path_factory):
+    r = _corre(tmp_path_factory, "perfil")
+    assert r["orden"][:len(r["ordenPerfil"])] == r["ordenPerfil"]
+    assert r["orden"][-1] == "alquiler"
+

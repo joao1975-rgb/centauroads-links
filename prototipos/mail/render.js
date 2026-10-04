@@ -59,6 +59,22 @@
   const CON_CARRUSEL = {};
   SERVICIOS.forEach(function (s) { CON_CARRUSEL[s.id] = true; });
 
+  // Los campos de una linea del catalogo (003), y lo que cada sesion recibio del catalogo la
+  // ultima vez (`st.catalogoVisto`). El estado guardado lleva una COPIA de cada linea: sin saber
+  // que valor le llego, una edicion del panel no se distingue de un texto escrito a mano.
+  const CAMPOS_LINEA = ['id', 'nombre', 'eyebrow', 'cta', 'cobertura', 'nota', 'slug', 'canva',
+    'img', 'alt', 'cover', 'altCover'];
+  function vistoDe() {
+    const v = {};
+    SERVICIOS.forEach(function (x) {
+      v[x.id] = {};
+      CAMPOS_LINEA.forEach(function (k) { if (k !== 'id') v[x.id][k] = x[k] == null ? '' : x[k]; });
+    });
+    return v;
+  }
+  // Una sesion de antes de la 003 no tiene `catalogoVisto`: lo que recibio fue el catalogo de serie.
+  const SERIE_INICIAL = vistoDe();
+
   // ── Grupos de la plantilla D (taxonomía del flyer "Servicios de publicidad exterior") ──
   const GRUPOS = [
     { id: 'vallas', eyebrow: 'Gran formato', titulo: 'Vallas (OOH)', servicios: ['vallas'] },
@@ -544,6 +560,7 @@
         pie: { on: true, texto: 'Recibes este correo porque solicitaste información sobre espacios publicitarios de Centauro ADS.' },
       },
       servicios: SERVICIOS.map(s => Object.assign({ on: true }, s)),
+      catalogoVisto: vistoDe(),
     };
   }
 
@@ -1093,6 +1110,25 @@
           if (r.antes.indexOf(x[r.campo]) >= 0) x[r.campo] = actual[r.campo];
         });
       });
+      // Lo que se edito en el panel (003): cada campo que sigue con el valor que esta sesion
+      // recibio del catalogo pasa al valor nuevo. Si la persona lo cambio, se queda lo suyo.
+      const visto = st.catalogoVisto || {};
+      st.servicios.forEach(function (x) {
+        const actual = SERVICIOS.filter(function (y) { return y.id === x.id; })[0];
+        const antes = visto[x.id] || SERIE_INICIAL[x.id];
+        if (!actual || !antes) return;
+        CAMPOS_LINEA.forEach(function (k) {
+          if (k === 'id' || antes[k] === undefined) return;
+          const recibido = x[k] == null ? '' : x[k];
+          const nuevo = actual[k] == null ? '' : actual[k];
+          if (recibido === antes[k] && nuevo !== antes[k]) x[k] = nuevo;
+        });
+      });
+      // El orden es el del catalogo: el compositor no tiene orden propio de lineas.
+      const posicion = {};
+      SERVICIOS.forEach(function (y, i) { posicion[y.id] = i; });
+      st.servicios.sort(function (a, b) { return posicion[a.id] - posicion[b.id]; });
+      st.catalogoVisto = vistoDe();
     }
     delete st.banco.paradas;
     if (st.efectosPorServicio) delete st.efectosPorServicio.paradas;
@@ -2023,8 +2059,6 @@
   // que hay UNA sola fuente. `ponCatalogo()` hace lo contrario: recibe el catalogo del servidor y
   // reemplaza EN SITIO las constantes, que son las mismas referencias que usa todo el motor.
   // Sin llamarla, el motor se queda exactamente como estaba.
-  const CAMPOS_LINEA = ['id', 'nombre', 'eyebrow', 'cta', 'cobertura', 'nota', 'slug', 'canva',
-    'img', 'alt', 'cover', 'altCover'];
   function catalogoActual() {
     const familiaDe = {};
     GRUPOS.forEach(function (g) { g.servicios.forEach(function (id) { familiaDe[id] = g.id; }); });

@@ -12,7 +12,7 @@ puede llamar a la API sin pasar por ella.
 
 import re
 import unicodedata
-from typing import Optional
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
@@ -48,6 +48,26 @@ class LineaNueva(BaseModel):
     familia: Optional[str] = None
     plantillas: Optional[str] = None
     confirmarSinPlantillas: bool = False
+
+
+class LineaCambios(BaseModel):
+    """Una edicion: solo cuenta lo que llega. `activa: false` la retira; `true`, la devuelve."""
+    nombre: Optional[str] = None
+    eyebrow: Optional[str] = None
+    cta: Optional[str] = None
+    cobertura: Optional[str] = None
+    nota: Optional[str] = None
+    canva: Optional[str] = None
+    slug: Optional[str] = None
+    alt: Optional[str] = None
+    familia: Optional[str] = None
+    plantillas: Optional[str] = None
+    confirmarSinPlantillas: bool = False
+    activa: Optional[bool] = None
+
+
+class Orden(BaseModel):
+    ids: List[str]
 
 
 # --- Forma de salida -----------------------------------------------------------------------------
@@ -118,31 +138,42 @@ def _plantillas(valor: Optional[str], confirmado: bool) -> str:
     return "".join(c for c in LETRAS if c in valor)
 
 
-def _valida(cuerpo: LineaNueva, db: Session) -> dict:
-    nombre = cuerpo.nombre.strip()
-    if not nombre:
-        raise HTTPException(status_code=400, detail="Falta el nombre de la línea.")
-    if len(nombre) > 120:
-        raise HTTPException(status_code=400, detail="El nombre admite 120 caracteres como mucho.")
-    if any(l.nombre.strip().lower() == nombre.lower() for l in db.query(models.LineaNegocio)):
-        raise HTTPException(status_code=409, detail="Ya existe una línea con ese nombre.")
+def _valida(cambios: dict, db: Session, propia: Optional[str] = None) -> dict:
+    """
+    Las reglas de una línea, para el alta (llegan todos los campos) y para una edición (llegan
+    solo los que cambian). `propia` es la línea que se edita: su propio nombre no es un duplicado.
+    """
+    datos = {}
+    if "nombre" in cambios:
+        nombre = (cambios["nombre"] or "").strip()
+        if not nombre:
+            raise HTTPException(status_code=400, detail="Falta el nombre de la línea.")
+        if len(nombre) > 120:
+            raise HTTPException(status_code=400, detail="El nombre admite 120 caracteres como mucho.")
+        if any(l.id != propia and l.nombre.strip().lower() == nombre.lower()
+               for l in db.query(models.LineaNegocio)):
+            raise HTTPException(status_code=409, detail="Ya existe una línea con ese nombre.")
+        datos["nombre"] = nombre
 
-    datos = {"nombre": nombre}
     for campo, limite in LIMITES.items():
-        valor = getattr(cuerpo, campo).strip()
+        if campo not in cambios:
+            continue
+        valor = (cambios[campo] or "").strip()
         if len(valor) > limite:
             raise HTTPException(status_code=400,
                                 detail="«%s» admite %d caracteres como mucho." % (campo, limite))
         datos[campo] = valor
-    if datos["canva"] and not re.match(r"^https?://[^\s]+$", datos["canva"], re.I):
+    if datos.get("canva") and not re.match(r"^https?://[^\s]+$", datos["canva"], re.I):
         raise HTTPException(status_code=400,
                             detail="El enlace tiene que empezar por https:// (o http://).")
 
-    familia = (cuerpo.familia or "").strip() or None
-    if familia and db.get(models.FamiliaD, familia) is None:
-        raise HTTPException(status_code=400, detail="Esa familia de la plantilla D no existe.")
-    datos["familia_id"] = familia
-    datos["plantillas"] = _plantillas(cuerpo.plantillas, cuerpo.confirmarSinPlantillas)
+    if "familia" in cambios:
+        familia = (cambios["familia"] or "").strip() or None
+        if familia and db.get(models.FamiliaD, familia) is None:
+            raise HTTPException(status_code=400, detail="Esa familia de la plantilla D no existe.")
+        datos["familia_id"] = familia
+    if "plantillas" in cambios:
+        datos["plantillas"] = _plantillas(cambios["plantillas"], cambios.get("confirmarSinPlantillas", False))
     return datos
 
 
@@ -161,7 +192,7 @@ def lista(db: Session = Depends(get_db), _: models.PanelUser = Depends(solo_admi
 @router.post("/api/panel/lineas", status_code=201)
 def alta(cuerpo: LineaNueva, db: Session = Depends(get_db),
          usuario: models.PanelUser = Depends(solo_admin)):
-    datos = _valida(cuerpo, db)
+    datos = _valida(cuerpo.model_dump(), db)
     ultima = db.query(models.LineaNegocio).order_by(models.LineaNegocio.orden.desc()).first()
     linea = models.LineaNegocio(id=_id_desde(datos["nombre"], db),
                                 orden=(ultima.orden + 1) if ultima else 0,
@@ -175,6 +206,42 @@ def alta(cuerpo: LineaNueva, db: Session = Depends(get_db),
         raise HTTPException(status_code=409, detail="Ya existe una línea con ese nombre.")
     db.refresh(linea)
     return _para_panel(linea)
+
+
+@router.patch("/api/panel/lineas/{linea_id}")
+def edita(linea_id: str, cuerpo: LineaCambios, db: Session = Depends(get_db),
+          usuario: models.PanelUser = Depends(solo_admin)):
+    linea = db.get(models.LineaNegocio, linea_id)
+    if linea is None:
+        raise HTTPException(status_code=404, detail="Esa línea no existe.")
+    cambios = cuerpo.model_dump(exclude_unset=True)
+    datos = _valida(cambios, db, propia=linea.id)
+    if cambios.get("activa") is not None:
+        if not cambios["activa"] and linea.activa:
+            # Sin ninguna activa, el compositor se quedaria con el catalogo de serie sin decirlo.
+            otras = db.query(models.LineaNegocio).filter(models.LineaNegocio.activa.is_(True),
+                                                         models.LineaNegocio.id != linea.id).count()
+            if not otras:
+                raise HTTPException(status_code=400, detail="Tiene que quedar al menos una línea activa.")
+        datos["activa"] = bool(cambios["activa"])
+    for campo, valor in datos.items():
+        setattr(linea, campo, valor)
+    linea.actualizado_por = usuario.email
+    db.commit()
+    db.refresh(linea)
+    return _para_panel(linea)
+
+
+@router.post("/api/panel/lineas/orden")
+def ordena(cuerpo: Orden, db: Session = Depends(get_db), _: models.PanelUser = Depends(solo_admin)):
+    """El orden completo, retiradas incluidas: una lista a medias dejaría posiciones repetidas."""
+    lineas = {l.id: l for l in db.query(models.LineaNegocio)}
+    if len(set(cuerpo.ids)) != len(cuerpo.ids) or set(cuerpo.ids) != set(lineas):
+        raise HTTPException(status_code=400, detail="El orden tiene que incluir cada línea una vez.")
+    for posicion, linea_id in enumerate(cuerpo.ids):
+        lineas[linea_id].orden = posicion
+    db.commit()
+    return {"ids": cuerpo.ids}
 
 
 @router.post("/api/panel/lineas/{linea_id}/foto")
