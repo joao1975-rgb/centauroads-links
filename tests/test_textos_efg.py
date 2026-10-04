@@ -25,7 +25,10 @@ BLOQUES = {"E": ["inventario", "tablaInventario"], "F": ["guia"], "G": ["phygita
 GUION = r"""
 const M = require(process.argv[2]);
 const BLOQUES = JSON.parse(process.argv[3]);
-const base = k => { const st = M.defaultState(); st.plantilla = k; st.destinatario = 'Ana'; return st; };
+// En E el recuadro de disponibilidad solo sale si hay algun dato (desde 2026-10-03 no trae ninguno
+// por defecto): se le da uno para que su rotulo tambien se pueda comprobar.
+const base = k => { const st = M.defaultState(); st.plantilla = k; st.destinatario = 'Ana';
+  if (k === 'E') st.bloques.asesor.dispoTexto = 'Quedan dos espacios.'; return st; };
 const out = { noLlegan: [], realce: {}, huecos: {}, escape: {}, viejo: {}, campos: {} };
 
 // 1. Cada campo llega al correo de su plantilla.

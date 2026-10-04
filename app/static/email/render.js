@@ -373,16 +373,17 @@
         // partida es el que entrego el asesor, sin tocar; aqui solo se puede actualizar.
         asesor: {
           on: true,
-          periodo: 'Octubre – Diciembre 2026',
-          etiquetaMeta: 'Q1 2026 · AGENCIAS',
-          dispoFecha: '19-sep',
-          dispoTexto: 'LED Chacao: 3 slots libres en octubre.',
-          cierreTexto: 'Cerramos programación de Q1 el 15 de noviembre.',
-          slotsLed: '3 SLOTS',
+          periodo: '',
+          // Sin trimestre ni fecha: son datos del negocio que caducan, y los da quien envia
+          // (peticion del usuario, 2026-10-03). Vacios, E no los muestra.
+          etiquetaMeta: 'AGENCIAS',
+          dispoFecha: '',
+          dispoTexto: '',
+          cierreTexto: '',
+          slotsLed: '',
           pieCta: 'Instalación llave en mano · reporte de campaña incluido',
-          // El texto del boton de E. Era un literal, y se quedaba diciendo "Q1" aunque el
-          // periodo cambiara. Por defecto el de siempre: cambiarlo es cosa del negocio.
-          botonTexto: 'Solicitar disponibilidad Q1',
+          // El texto del boton de E. Sin trimestre por defecto: si se quiere uno, se escribe.
+          botonTexto: 'Solicitar disponibilidad',
           respuesta: 'Respuesta en menos de 24 horas hábiles.',
         },
         // Textos de E, F y G. Eran literales en el codigo y no se podian tocar desde el panel.
@@ -1038,6 +1039,13 @@
   };
   // El texto inicial de la respuesta, antes de nombrar la presentacion. Mismo criterio.
   const CUERPO_CTA_ANTES = ['Hola, quiero pedir una cotización. Me interesan estos espacios:\n\n'];
+  // Los datos de negocio que E traia por defecto y se quitaron (2026-10-03). Solo se limpian si
+  // la sesion guardada conserva exactamente el valor viejo: lo escrito a mano se respeta.
+  const ASESOR_ANTES = {
+    etiquetaMeta: 'Q1 2026 · AGENCIAS', dispoFecha: '19-sep', periodo: 'Octubre – Diciembre 2026',
+    dispoTexto: 'LED Chacao: 3 slots libres en octubre.', slotsLed: '3 SLOTS',
+    cierreTexto: 'Cerramos programación de Q1 el 15 de noviembre.', botonTexto: 'Solicitar disponibilidad Q1',
+  };
 
   function normaliza(st) {
     const base = defaultState();
@@ -1091,6 +1099,9 @@
       });
     });
     if (st.bloques.cta && CUERPO_CTA_ANTES.indexOf(st.bloques.cta.cuerpo) >= 0) st.bloques.cta.cuerpo = base.bloques.cta.cuerpo;
+    if (st.bloques.asesor) Object.keys(ASESOR_ANTES).forEach(function (k) {
+      if (st.bloques.asesor[k] === ASESOR_ANTES[k]) st.bloques.asesor[k] = base.bloques.asesor[k];
+    });
     Object.keys(ENLACES_ANTES).forEach(function (k) {
       if (st.bloques[k] && ENLACES_ANTES[k].indexOf(st.bloques[k].url) >= 0) st.bloques[k].url = base.bloques[k].url;
     });
@@ -1475,7 +1486,7 @@
 
     // Hero. El acento va en "Share of Voice" porque es el termino que la agencia busca.
     P.push(row(
-      epigrafe(st, h(x.epigrafe)) +
+      epigrafe(st, String(h(x.epigrafe)).replace(/\s*[·|–-]\s*$/, '')) +
       '<div style="font-family:' + FH + ';font-size:40px;line-height:1.02;font-weight:800;letter-spacing:-.035em;color:' + k.texto + ';">' +
         realce(h(x.titulo), acento, '</span>') + '</div>' +
       '<div style="font-family:' + FB + ';font-size:15px;line-height:1.6;color:' + k.apagado + ';padding:16px 0 0 0;">' +
@@ -1551,17 +1562,22 @@
         pad + 'padding-bottom:22px;'));
     }
 
-    // Disponibilidad: los datos que caducan salen del estado, no del codigo.
-    P.push(row('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
-      '<td bgcolor="' + k.panel2 + '" style="background:' + k.panel2 + ';border-left:3px solid ' + k.vivo + ';padding:14px 16px;">' +
-      '<div style="font-family:' + FH + ';font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:' + k.vivo + ';">' +
-        '\u25cf ' + esc(h(x.dispoEtiqueta)) + ' ' + esc(a.dispoFecha) + '</div>' +
-      '<div style="font-family:' + FB + ';font-size:14px;line-height:20px;color:' + k.texto + ';padding:6px 0 0 0;">' +
-        esc(a.dispoTexto) + ' ' + esc(a.cierreTexto) + '</div>' +
-      '</td></tr></table>', pad + 'padding-bottom:24px;'));
+    // Disponibilidad: los datos que caducan salen del estado, no del codigo. Sin fecha, el rotulo
+    // no termina en «al»; sin ningun dato, el recuadro no sale (mejor nada que una caja vacia).
+    const dispoCuerpo = [a.dispoTexto, a.cierreTexto].map(function (t) { return String(t || '').trim(); }).filter(Boolean).join(' ');
+    const dispoFecha = String(a.dispoFecha || '').trim();
+    if (dispoCuerpo || dispoFecha) {
+      const rotuloDispo = dispoFecha ? h(x.dispoEtiqueta) + ' ' + dispoFecha : String(h(x.dispoEtiqueta)).replace(/\s+al$/i, '');
+      P.push(row('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
+        '<td bgcolor="' + k.panel2 + '" style="background:' + k.panel2 + ';border-left:3px solid ' + k.vivo + ';padding:14px 16px;">' +
+        '<div style="font-family:' + FH + ';font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:' + k.vivo + ';">' +
+          '\u25cf ' + esc(rotuloDispo) + '</div>' +
+        (dispoCuerpo ? '<div style="font-family:' + FB + ';font-size:14px;line-height:20px;color:' + k.texto + ';padding:6px 0 0 0;">' + esc(dispoCuerpo) + '</div>' : '') +
+        '</td></tr></table>', pad + 'padding-bottom:24px;'));
+    }
 
     if (on(st, 'cta')) {
-      P.push(row(botonAsesor(st, B(st, 'asesor').botonTexto || 'Solicitar disponibilidad Q1', ctaHref(st, h(x.titulo))) +
+      P.push(row(botonAsesor(st, B(st, 'asesor').botonTexto || 'Solicitar disponibilidad', ctaHref(st, h(x.titulo))) +
         '<div style="font-family:' + FB + ';font-size:12px;color:' + k.apagado + ';padding:12px 0 0 0;">' + esc(a.pieCta) + '</div>',
         pad + 'padding-bottom:28px;'));
     }
