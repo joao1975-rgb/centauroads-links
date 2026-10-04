@@ -17,20 +17,20 @@ empieza por sus pruebas, que deben fallar antes de implementar.
 
 ## Phase 1: Setup
 
-- [ ] T301 Crear el módulo `app/mails/catalogo/__init__.py` (router vacío) y montarlo en `app/main.py` junto a los de auth y entregas
-- [ ] T302 [P] Hacer que `prototipos/mail/build.js` exporte `app/static/email/catalogo-serie.json` (líneas con ficha y familia, familias, plantillas = `ABCDEFGH`) a partir de `SERVICIOS`, `GRUPOS` y `FICHA` de `render.js`
+- [x] T301 Crear el módulo `app/mails/catalogo/__init__.py` (router vacío) y montarlo en `app/main.py` junto a los de auth y entregas
+- [x] T302 [P] Hacer que `prototipos/mail/build.js` exporte `app/static/email/catalogo-serie.json` (líneas con ficha y familia, familias, plantillas = `ABCDEFGH`) a partir de `SERVICIOS`, `GRUPOS` y `FICHA` de `render.js`
 
 ---
 
 ## Phase 2: Foundational (bloquea todas las historias)
 
-- [ ] T303 Pruebas de siembra en `tests/test_catalogo_api.py`: con base vacía se crean las 5 líneas y las 3 familias exactamente como en `catalogo-serie.json`; la siembra es idempotente; no pisa una base que ya tiene catálogo
-- [ ] T304 Pruebas del motor en `tests/test_catalogo_motor.py`: sin `ponCatalogo` los 16 correos de referencia no cambian; con `ponCatalogo(catálogo de serie)` tampoco; con una línea nueva, `normaliza()` la incorpora
-- [ ] T305 Modelos `LineaNegocio` y `FamiliaD` en `app/models.py` según `data-model.md`
-- [ ] T306 Siembra en `app/mails/catalogo/siembra.py` y llamada al arrancar en `app/main.py`, después de `create_all` y `migrar`
-- [ ] T307 `ponCatalogo({lineas, familias})` en `prototipos/mail/render.js`: reemplaza en sitio `SERVICIOS`, `GRUPOS`, `FICHA` y `BANCO` (una línea nueva entra con su foto principal en el banco); exportarlo; `imgFor()` respeta direcciones absolutas
-- [ ] T308 `GET /api/catalogo` en `app/mails/catalogo/rutas.py` (solo activas, en orden, forma de `ponCatalogo`) con pruebas de 401 sin sesión y 200 con sesión
-- [ ] T309 Compositor (`prototipos/mail/compositor.html`): con servidor, pedir `/api/catalogo` y llamar a `ponCatalogo` antes de construir el panel y pintar; si falla, seguir con el catálogo de serie y avisarlo (FR-323)
+- [x] T303 Pruebas de siembra en `tests/test_catalogo_api.py`: con base vacía se crean las 5 líneas y las 3 familias exactamente como en `catalogo-serie.json`; la siembra es idempotente; no pisa una base que ya tiene catálogo
+- [x] T304 Pruebas del motor en `tests/test_catalogo_motor.py`: sin `ponCatalogo` los 16 correos de referencia no cambian; con `ponCatalogo(catálogo de serie)` tampoco; con una línea nueva, `normaliza()` la incorpora
+- [x] T305 Modelos `LineaNegocio` y `FamiliaD` en `app/models.py` según `data-model.md`
+- [x] T306 Siembra en `app/mails/catalogo/siembra.py` y llamada al arrancar en `app/main.py`, después de `create_all` y `migrar`
+- [x] T307 `ponCatalogo({lineas, familias})` en `prototipos/mail/render.js`: reemplaza en sitio `SERVICIOS`, `GRUPOS`, `FICHA` y `BANCO` (una línea nueva entra con su foto principal en el banco); exportarlo; `imgFor()` respeta direcciones absolutas
+- [x] T308 `GET /api/catalogo` en `app/mails/catalogo/rutas.py` (solo activas, en orden, forma de `ponCatalogo`) con pruebas de 401 sin sesión y 200 con sesión
+- [x] T309 Compositor (`prototipos/mail/compositor.html`): con servidor, pedir `/api/catalogo` y llamar a `ponCatalogo` antes de construir el panel y pintar; si falla, seguir con el catálogo de serie y avisarlo (FR-323)
 
 **Checkpoint**: el motor acepta un catálogo externo sin cambiar nada de lo que ya sale.
 
@@ -44,17 +44,17 @@ empieza por sus pruebas, que deben fallar antes de implementar.
 
 ### Tests for User Story 1 ⚠️ (escribir primero, deben fallar)
 
-- [ ] T310 [P] [US1] Pruebas de alta en `tests/test_catalogo_api.py`: administrador 201; comercial 403; sin sesión 401; nombre repetido 409 (sin distinguir mayúsculas); enlace que no es `http(s)` 400; id derivado del nombre y estable al renombrar
-- [ ] T311 [P] [US1] Pruebas de fotos en `tests/test_catalogo_api.py`: imagen válida se reduce a 1072 px y se sirve en `/media/lineas/…`; archivo que no es imagen 400; más de 8 MB 413; nombre fuera de la lista blanca 404
-- [ ] T312 [P] [US1] Pruebas de la pantalla en `tests/test_catalogo_pantalla.py`: sin sesión 307 a la entrada; comercial la ve en solo lectura; la página no usa `innerHTML`; el compositor la enlaza
-- [ ] T313 [P] [US1] Pruebas del motor en `tests/test_catalogo_motor.py`: una línea nueva activa sale en las 8 plantillas × 4 perfiles con su nombre, foto, alt y enlace; sin foto no deja imagen rota
+- [x] T310 [P] [US1] Pruebas de alta en `tests/test_catalogo_api.py`: administrador 201; comercial 403; sin sesión 401; nombre repetido 409 (sin distinguir mayúsculas); enlace que no es `http(s)` 400; id derivado del nombre y estable al renombrar
+- [x] T311 [P] [US1] Pruebas de fotos en `tests/test_catalogo_api.py`: imagen válida se reduce a 1072 px y se sirve en `/media/lineas/…`; archivo que no es imagen 400; más de 8 MB 413; nombre fuera de la lista blanca 404
+- [x] T312 [P] [US1] Pruebas de la pantalla en `tests/test_catalogo_pantalla.py`: sin sesión 307 a la entrada; comercial la ve en solo lectura; la página no usa `innerHTML`; el compositor la enlaza
+- [x] T313 [P] [US1] Pruebas del motor en `tests/test_catalogo_motor.py`: una línea nueva activa sale en las 8 plantillas × 4 perfiles con su nombre, foto, alt y enlace; sin foto no deja imagen rota
 
 ### Implementation for User Story 1
 
-- [ ] T314 [US1] `POST /api/panel/lineas` y `GET /api/panel/lineas` en `app/mails/catalogo/rutas.py` con la validación de `contracts/api.md` (solo administradores)
-- [ ] T315 [US1] Fotos en `app/mails/catalogo/fotos.py` (validar con Pillow, reducir, JPEG 82, nombre con huella, carpeta `/app/data/lineas`) y rutas `POST /api/panel/lineas/{id}/foto` y `GET /media/lineas/{archivo}`
-- [ ] T316 [US1] Pantalla `/panel/lineas` en `app/mails/catalogo/pantalla.py` (patrón de `app/auth/equipo.py`): lista de líneas y formulario de alta con foto y texto alternativo; enlace «Líneas de negocio» en el menú del compositor
-- [ ] T317 [US1] Motor: una línea sin foto sale sin imagen rota en todas las plantillas (`prototipos/mail/render.js`)
+- [x] T314 [US1] `POST /api/panel/lineas` y `GET /api/panel/lineas` en `app/mails/catalogo/rutas.py` con la validación de `contracts/api.md` (solo administradores)
+- [x] T315 [US1] Fotos en `app/mails/catalogo/fotos.py` (validar con Pillow, reducir, JPEG 82, nombre con huella, carpeta `/app/data/lineas`) y rutas `POST /api/panel/lineas/{id}/foto` y `GET /media/lineas/{archivo}`
+- [x] T316 [US1] Pantalla `/panel/lineas` en `app/mails/catalogo/pantalla.py` (patrón de `app/auth/equipo.py`): lista de líneas y formulario de alta con foto y texto alternativo; enlace «Líneas de negocio» en el menú del compositor
+- [x] T317 [US1] Motor: una línea sin foto sale sin imagen rota en todas las plantillas (`prototipos/mail/render.js`)
 
 **Checkpoint**: alta completa y visible en los correos; US1 probada sola.
 
@@ -68,14 +68,14 @@ empieza por sus pruebas, que deben fallar antes de implementar.
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T318 [P] [US2] Pruebas del motor en `tests/test_catalogo_motor.py`: matriz 8 plantillas × 4 perfiles con una línea en `AH` → 100 % en A y H, 0 % en el resto, también en texto plano y WhatsApp; el estado de la persona no se modifica
-- [ ] T319 [P] [US2] Pruebas de API en `tests/test_catalogo_api.py`: `plantillas` por defecto `ABCDEFGH`; letras inválidas o repetidas 400; vacío sin `confirmarSinPlantillas` 400 y con él 201
+- [x] T318 [P] [US2] Pruebas del motor en `tests/test_catalogo_motor.py`: matriz 8 plantillas × 4 perfiles con una línea en `AH` → 100 % en A y H, 0 % en el resto, también en texto plano y WhatsApp; el estado de la persona no se modifica
+- [x] T319 [P] [US2] Pruebas de API en `tests/test_catalogo_api.py`: `plantillas` por defecto `ABCDEFGH`; letras inválidas o repetidas 400; vacío sin `confirmarSinPlantillas` 400 y con él 201
 
 ### Implementation for User Story 2
 
-- [ ] T320 [US2] `render()` en `prototipos/mail/render.js`: trabajar sobre una copia con `on = false` en las líneas no incluidas en la plantilla del correo
-- [ ] T321 [US2] Compositor: junto a cada línea, «no se usa en esta plantilla» cuando corresponda (FR-310), usando la misma marca `nousa` que los bloques
-- [ ] T322 [US2] Pantalla y API: casillas A–H (todas marcadas por defecto) y confirmación al guardar sin ninguna
+- [x] T320 [US2] `render()` en `prototipos/mail/render.js`: trabajar sobre una copia con `on = false` en las líneas no incluidas en la plantilla del correo
+- [x] T321 [US2] Compositor: junto a cada línea, «no se usa en esta plantilla» cuando corresponda (FR-310), usando la misma marca `nousa` que los bloques
+- [x] T322 [US2] Pantalla y API: casillas A–H (todas marcadas por defecto) y confirmación al guardar sin ninguna
 
 **Checkpoint**: US1 + US2 = MVP entregable.
 
@@ -139,7 +139,7 @@ empieza por sus pruebas, que deben fallar antes de implementar.
 
 - [ ] T335 `node prototipos/mail/build.js`: guardia byte a byte (16 correos idénticos) y guardia de contenido; suite completa en verde
 - [ ] T336 Verificación visual con Playwright de A, D, E y H con una línea nueva, a 600 y 375 px, sin desborde (principio III)
-- [ ] T337 [P] Revisión de seguridad (agente `security-reviewer`) de las rutas nuevas y la subida de fotos
+- [x] T337 [P] Revisión de seguridad (agente `security-reviewer`) de las rutas nuevas y la subida de fotos
 - [ ] T338 Recorrido de `quickstart.md` en local con datos de prueba; `/health` y un enlace corto del acortador intactos
 - [ ] T339 [P] README (sección «Líneas de negocio») y nota de Obsidian `Centauro-Mails-Servicios.md`
 
