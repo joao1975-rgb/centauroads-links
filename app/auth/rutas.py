@@ -404,7 +404,7 @@ _ENTRADA = """<!DOCTYPE html>
   .sep {{ display:flex; align-items:center; gap:12px; color:#8C8598; font-size:12px; margin:26px 0; }}
   .sep::before, .sep::after {{ content:""; flex:1; height:1px; background:#2E2838; }}
   label {{ display:block; font-size:12px; color:#A9A2B5; margin:0 0 4px; }}
-  input {{ width:100%; box-sizing:border-box; background:#1E1A26; border:1px solid #2E2838;
+  input {{ width:100%; box-sizing:border-box; background:#1E1A26; border:1px solid #6B6885;
           color:#EEEDF2; border-radius:8px; padding:11px 12px; font-size:14px; margin:0 0 14px; }}
   input:focus {{ outline:2px solid #B98FC7; outline-offset:1px; border-color:#B98FC7; }}
   button {{ width:100%; background:#85439A; color:#fff; border:0; border-radius:8px;

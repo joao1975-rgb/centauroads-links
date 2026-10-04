@@ -58,9 +58,11 @@
   .fld-l { display:block; font-size:12px; color:var(--dim); margin-bottom:4px; }
   /* Lo que no sale en la plantilla elegida. Atenuado y dicho con palabras: el color solo no
      basta para entender por que escribir ahi no cambia nada. */
-  .fld.nousa, .sw.nousa { opacity:.45; }
+  .sw.nousa { opacity:.45; }
+  .fld.nousa .fld-l { color:var(--faint); }
+  .fld.nousa input, .fld.nousa textarea, .fld.nousa select { border-style:dashed; }
   .fld.nousa .fld-l::after { content:' \00B7  no cambia este correo'; font-style:italic; }
-  .blk.nousa { opacity:.55; }
+  .blk.nousa .blk-t { color:var(--faint); }
   .blk.nousa > .blk-h::after { content:'no se usa aqu\00ED'; font-size:11px; font-style:italic;
     color:var(--faint); white-space:nowrap; }
   /* Fechas ya pasadas en los datos que caducan. Se ve aunque el bloque este cerrado. */
@@ -76,7 +78,7 @@
   .paso h2 { display:flex; align-items:baseline; gap:8px; }
   .paso h2 .n { font:700 11px/1 var(--mono); color:var(--purple-l); }
   .paso h2 .n[data-hecho="1"] { color:var(--ok); }
-  .suelta { border:1px dashed var(--control); border-radius:var(--radius); padding:20px 14px;
+  .suelta { display:block; width:100%; border:1px dashed var(--control); border-radius:var(--radius); padding:20px 14px;
             text-align:center; color:var(--dim); font-size:13px; cursor:pointer;
             background:var(--bg); }
   .suelta:hover, .suelta.encima { border-color:var(--purple-l); color:var(--text); }
@@ -183,6 +185,10 @@
   .toast.show { opacity:1; transform:translate(-50%,0); }
 
   @media (max-width:900px) { main { grid-template-columns:1fr; } aside { max-height:45vh; border-right:0; border-bottom:1px solid var(--border); } }
+  /* En pantallas estrechas la pagina se desplaza y la barra de plantillas se parte en filas:
+     antes medía 746 px fijos y E-H quedaban fuera, sin forma de tocarlas (auditoria 2026-10-03). */
+  #tpl { flex-wrap:wrap; }
+  @media (max-width:900px) { html, body { height:auto; } body { overflow:auto; } main { min-height:92vh; } }
   @media (prefers-reduced-motion:reduce) { * { transition:none !important; } }
 </style>
 </head>
@@ -390,22 +396,27 @@
   // Un interruptor como campo de un bloque, con su explicacion al lado: la misma fila que el
   // "Tema oscuro" del perfil.
   function filaInterruptor(path, etiqueta, ayuda) {
-    const r = el('div', 'row'); r.appendChild(switchEl(path, () => {}));
+    const r = el('div', 'row'); r.appendChild(switchEl(path, () => {}, etiqueta));
     const t = el('div', 'row-t'); t.appendChild(document.createTextNode(etiqueta));
     if (ayuda) t.appendChild(el('i', null, ayuda));
     r.appendChild(t); return r;
   }
-  function switchEl(path, onChange) {
+  // Un titulo que abre y cierra su seccion, y lo anuncia (aria-expanded).
+  function plegable(boton, caja) {
+    const di = () => boton.setAttribute('aria-expanded', String(caja.classList.contains('open')));
+    di(); boton.addEventListener('click', () => { caja.classList.toggle('open'); di(); });
+  }
+  function switchEl(path, onChange, nombre) {
     const l = el('label', 'sw'); const c = document.createElement('input'); c.type = 'checkbox'; c.checked = !!get(st, path);
     l.dataset.ruta = path;
-    c.setAttribute('aria-label', 'Mostrar u ocultar');
+    c.setAttribute('aria-label', nombre ? 'Mostrar ' + nombre : 'Mostrar u ocultar');
     c.addEventListener('change', () => { set(st, path, c.checked); onChange(c.checked); touch(); });
     l.appendChild(c); l.appendChild(el('i', 'sw-k')); return l;
   }
   function servicioEl(s, i) {
     const w = el('div', 'svc'); w.classList.toggle('off', !s.on);
-    const h = el('div', 'svc-h'); h.appendChild(switchEl('servicios.' + i + '.on', on => w.classList.toggle('off', !on)));
-    const t = el('button', 'svc-t', s.nombre); t.type = 'button'; t.addEventListener('click', () => w.classList.toggle('open')); h.appendChild(t); w.appendChild(h);
+    const h = el('div', 'svc-h'); h.appendChild(switchEl('servicios.' + i + '.on', on => w.classList.toggle('off', !on), s.nombre));
+    const t = el('button', 'svc-t', s.nombre); t.type = 'button'; plegable(t, w); h.appendChild(t); w.appendChild(h);
     const b = el('div', 'svc-b');
     b.appendChild(inputEl('servicios.' + i + '.nombre', 'Nombre', null, v => { t.textContent = v; }));
 
@@ -439,8 +450,8 @@
     // mostrar u ocultar. El del asesor tenia uno y no cambiaba nada en ninguna plantilla.
     if (!def.sinInterruptor) b.classList.toggle('off', !get(st, 'bloques.' + def.k + '.on'));
     const head = el('header', 'blk-h');
-    if (!def.sinInterruptor) head.appendChild(switchEl('bloques.' + def.k + '.on', on => b.classList.toggle('off', !on)));
-    const t = el('button', 'blk-t', def.label); t.type = 'button'; t.addEventListener('click', () => b.classList.toggle('open'));
+    if (!def.sinInterruptor) head.appendChild(switchEl('bloques.' + def.k + '.on', on => b.classList.toggle('off', !on), def.label));
+    const t = el('button', 'blk-t', def.label); t.type = 'button'; plegable(t, b);
     head.appendChild(t); b.appendChild(head);
     const body = el('div', 'blk-b');
     if (def.hint) body.appendChild(el('p', 'hint', def.hint));
@@ -723,7 +734,10 @@
     return b;
   }
 
-  function estadoEl(texto, clase) { return el('p', 'estado' + (clase ? ' ' + clase : ''), texto); }
+  function estadoEl(texto, clase) {
+    const p = el('p', 'estado' + (clase ? ' ' + clase : ''), texto);
+    p.setAttribute('role', 'status'); p.setAttribute('aria-live', 'polite'); return p;
+  }
   // Un error del servidor, junto al boton que lo provoco. Si es de sesion, con la salida al lado:
   // el aviso general esta arriba del todo y, con el panel bajado, nadie lo ve. «Hay que entrar al
   // panel» a secas dejaba sin saber que hacer.
@@ -896,7 +910,7 @@
     // 03 - Las paginas
     const p3 = pasoEl('03', 'Las páginas', elegidas.length >= 2);
     if (HAY_SERVIDOR) {
-      const suelta = el('div', 'suelta');
+      const suelta = el('button', 'suelta'); suelta.type = 'button';
       suelta.innerHTML = 'Suelta aquí el <b>PDF que descarga Canva</b>, o varias imágenes';
       const fichero = el('input'); fichero.type = 'file';
       fichero.accept = '.pdf,image/*'; fichero.multiple = true; fichero.hidden = true;
@@ -988,9 +1002,9 @@
       const b = el('section', 'blk');
       const apagado = () => b.classList.toggle('off', !st.bloques.entrega[clave]);
       const head = el('header', 'blk-h');
-      head.appendChild(switchEl('bloques.entrega.' + clave, apagado));
+      head.appendChild(switchEl('bloques.entrega.' + clave, apagado, nombre));
       const t = el('button', 'blk-t', nombre); t.type = 'button';
-      t.addEventListener('click', () => b.classList.toggle('open'));
+      plegable(t, b);
       head.appendChild(t); b.appendChild(head);
       const body = el('div', 'blk-b');
       campos.forEach(([ruta, etiqueta, tipo]) => body.appendChild(inputEl(ruta, etiqueta, tipo)));
@@ -1190,6 +1204,7 @@
   }
 
   async function copiaWhatsApp() {
+    if (faltaEnlaceH()) return;
     const texto = M.renderWhatsApp(prod());
     toast(await copiaTexto(texto)
       ? "WhatsApp copiado · un solo enlace, al principio"
@@ -1297,7 +1312,15 @@
     });
   }
 
-  function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 1800); }
+  function toast(msg, ms) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), ms || 1800); }
+  // La Personalizada sin enlace mandaria un boton que no lleva a ninguna parte (href="#"):
+  // lo vio la auditoria del 2026-10-03. Se avisa y no se copia.
+  function faltaEnlaceH() {
+    const e = (st.bloques && st.bloques.entrega) || {};
+    if (st.plantilla !== 'H' || String(e.enlace || e.url || '').trim()) return false;
+    toast('Falta el enlace de la propuesta: el botón no llevaría a ninguna parte. Ponlo en el paso 01.', 5000);
+    return true;
+  }
   async function copyRich(html, text) {
     try {
       if (navigator.clipboard && window.ClipboardItem) {
@@ -1312,10 +1335,12 @@
     sel.removeAllRanges(); d.remove(); return ok;
   }
   $('#copyGmail').addEventListener('click', async () => {
+    if (faltaEnlaceH()) return;
     const full = M.render(prod()); const body = (full.match(/<body[^>]*>([\s\S]*)<\/body>/) || [0, full])[1];
     toast((await copyRich(body, M.renderText(prod()))) ? 'Copiado: pega en un correo nuevo de Gmail (Ctrl+V)' : 'No se pudo copiar: el navegador bloqueó el portapapeles');
   });
   $('#copyHtml').addEventListener('click', async () => {
+    if (faltaEnlaceH()) return;
     try { await navigator.clipboard.writeText(M.render(prod())); toast('HTML completo copiado'); } catch (e) { toast('No se pudo copiar el HTML'); }
   });
     // El boton de la barra. Estaba puesto y sin conectar: se vaciaba el hueco visual y no hacia
@@ -1323,6 +1348,7 @@
   // entrara cada quien.
   $('#copyWa').addEventListener('click', copiaWhatsApp);
   $('#copyText').addEventListener('click', async () => {
+    if (faltaEnlaceH()) return;
     try { await navigator.clipboard.writeText(M.renderText(prod())); toast('Versión en texto plano copiada'); } catch (e) { toast('No se pudo copiar el texto'); }
   });
   $('#vDesk').addEventListener('click', () => { $('#stage').classList.remove('mobile'); $('#vDesk').setAttribute('aria-pressed', 'true'); $('#vMob').setAttribute('aria-pressed', 'false'); });

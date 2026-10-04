@@ -75,7 +75,7 @@ _PAGINA = """<!DOCTYPE html>
   .clave-otro { grid-column:1 / -1; display:flex; gap:8px; flex-wrap:wrap; }
   .clave-otro input { flex:1 1 220px; margin:0; }
   label { display:block; font-size:12px; color:#A9A2B5; margin:0 0 4px; }
-  input, select { width:100%; background:#1E1A26; border:1px solid #2E2838; color:#EEEDF2;
+  input, select { width:100%; background:#1E1A26; border:1px solid #6B6885; color:#EEEDF2;
                   border-radius:8px; padding:11px 12px; font-size:14px; margin:0 0 14px; font-family:inherit; }
   input:focus, select:focus { outline:2px solid #B98FC7; outline-offset:1px; border-color:#B98FC7; }
   .rejilla { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:0 16px; }
@@ -113,7 +113,7 @@ _PAGINA = """<!DOCTYPE html>
   <h1>Equipo</h1>
   <p class="sub" id="soy">Quién puede entrar al panel, y tu contraseña.</p>
 
-  <div class="msg" id="aviso" role="status" aria-live="polite" hidden></div>
+  <div class="msg" id="aviso" role="status" aria-live="polite" tabindex="-1" hidden></div>
 
   <section id="lista" aria-labelledby="t-lista" hidden>
     <h2 id="t-lista">Personas con acceso</h2>
@@ -180,6 +180,7 @@ _PAGINA = """<!DOCTYPE html>
     aviso.className = 'msg ' + (bien ? 'ok' : 'mal');
     aviso.hidden = false;
     aviso.scrollIntoView({ block: 'nearest' });
+    aviso.focus({ preventScroll: true });
   }
 
   function api(metodo, ruta, cuerpo) {
@@ -201,8 +202,9 @@ _PAGINA = """<!DOCTYPE html>
     return n;
   }
 
-  function boton(texto, clase, accion) {
+  function boton(texto, clase, accion, etiqueta) {
     var b = el('button', clase, texto);
+    if (etiqueta) b.setAttribute('aria-label', etiqueta);
     b.type = 'button';
     b.addEventListener('click', accion);
     return b;
@@ -239,7 +241,7 @@ _PAGINA = """<!DOCTYPE html>
         .then(function () { caja.remove(); di('Contraseña nueva de ' + u.email + ':', true, entrada.value); })
         .catch(function (e) { di(e.message, false); });
     }));
-    caja.appendChild(boton('Cancelar', 'suave', function () { caja.remove(); }));
+    caja.appendChild(boton('Cancelar', 'suave', function () { caja.remove(); fila.querySelector('.acciones button').focus(); }));
     fila.appendChild(caja);
     entrada.focus(); entrada.select();
   }
@@ -290,7 +292,7 @@ _PAGINA = """<!DOCTYPE html>
         carga();
       }).catch(function (e) { di(e.message, false); });
     }));
-    botones.appendChild(boton('Cancelar', 'suave', function () { caja.remove(); }));
+    botones.appendChild(boton('Cancelar', 'suave', function () { caja.remove(); fila.querySelector('.acciones button').focus(); }));
     caja.appendChild(botones);
     fila.appendChild(caja);
     correo.focus();
@@ -311,9 +313,9 @@ _PAGINA = """<!DOCTYPE html>
       quien.appendChild(meta);
       li.appendChild(quien);
       var acc = el('div', 'acciones');
-      acc.appendChild(boton('Editar', 'suave', function () { formEdita(li, u); }));
+      acc.appendChild(boton('Editar', 'suave', function () { formEdita(li, u); }, 'Editar a ' + u.email));
       if (u.activo) {
-        if (!esYo(u)) acc.appendChild(boton('Poner contraseña', 'suave', function () { formClave(li, u); }));
+        if (!esYo(u)) acc.appendChild(boton('Poner contraseña', 'suave', function () { formClave(li, u); }, 'Poner contraseña a ' + u.email));
         if (!esYo(u)) {
           acc.appendChild(boton('Retirar acceso', 'peligro', function () {
             if (!confirm('¿Retirar el acceso de ' + u.email + '? Podrás devolvérselo después.')) return;

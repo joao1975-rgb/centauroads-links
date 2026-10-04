@@ -882,7 +882,8 @@
     } : {
       fondo: C.sand, panel: C.paper, panel2: C.sand, linea: C.rule,
       texto: C.text, apagado: C.muted,
-      acento: C.purple, vivo: C.orangeInk, sobreVivo: '#FFFFFF',
+      // #B35E0A sobre la arena daba 4,2:1 en etiquetas pequenas; este llega a 5,9:1.
+      acento: C.purple, vivo: '#8F4A06', sobreVivo: '#FFFFFF',
       botonFondo: C.purple, botonTexto: '#FFFFFF',
     };
   }
@@ -904,8 +905,8 @@
       : '';
     return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
       '<td valign="middle">' + marca(st, temaDe(st), 150) + '</td>' +
-      '<td valign="middle" align="right" style="font-family:' + FH + ';font-size:10px;font-weight:800;' +
-        'letter-spacing:.24em;text-transform:uppercase;color:' + k.apagado + ';">' + esc(meta) + abajo + '</td>' +
+      '<td valign="middle" align="right" style="font-family:' + FH + ';font-size:11px;font-weight:800;' +
+        'letter-spacing:.1em;text-transform:uppercase;color:' + k.apagado + ';">' + esc(meta) + abajo + '</td>' +
       '</tr></table>';
   }
 
@@ -921,7 +922,7 @@
   // Epigrafe pequeno en mayusculas. Es el recurso tipografico que ordena sus tres disenos.
   function epigrafe(st, txt, color) {
     const k = paleta(temaDe(st));
-    return '<div style="font-family:' + FH + ';font-size:11px;font-weight:800;letter-spacing:.26em;' +
+    return '<div style="font-family:' + FH + ';font-size:12px;font-weight:800;letter-spacing:.26em;' +
       'text-transform:uppercase;color:' + (color || k.vivo) + ';padding:0 0 12px 0;">' + esc(txt) + '</div>';
   }
 
@@ -958,7 +959,7 @@
   function textoComplemento(st, s, k) {
     return '<div style="font-family:' + FH + ';font-size:14px;font-weight:800;color:' + k.texto + ';padding:8px 0 2px 0;">' + esc(s.nombre) + '</div>' +
       '<div style="font-family:' + FB + ';font-size:12px;line-height:17px;color:' + k.apagado + ';">' + esc(s.cobertura) + '</div>' +
-      '<div style="padding:6px 0 0 0;"><a href="' + esc(linkFor(st, s)) + '" style="font-family:' + FH + ';font-size:11px;font-weight:800;color:' + k.acento + ';text-decoration:none;">Ver presentaci\u00f3n &rarr;</a></div>';
+      '<div style="padding:0;"><a href="' + esc(linkFor(st, s)) + '" style="display:inline-block;padding:12px 0;font-family:' + FH + ';font-size:14px;line-height:20px;font-weight:800;color:' + k.acento + ';text-decoration:none;">Ver presentaci\u00f3n &rarr;</a></div>';
   }
 
   // opts.titulo === false quita el "Tambien disponible" de encima (la Guia no lo lleva).
@@ -1495,7 +1496,7 @@
     const cifra = function (n, l) {
       return '<td width="33%" valign="top" style="padding:14px 10px;border-top:1px solid ' + k.linea + ';border-bottom:1px solid ' + k.linea + ';">' +
         '<div style="font-family:' + FH + ';font-size:17px;font-weight:800;color:' + k.vivo + ';">' + esc(n) + '</div>' +
-        '<div style="font-family:' + FH + ';font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:' + k.apagado + ';padding:4px 0 0 0;">' + esc(l) + '</div></td>';
+        '<div style="font-family:' + FH + ';font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:' + k.apagado + ';padding:4px 0 0 0;">' + esc(l) + '</div></td>';
     };
     P.push(row('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
       cifra(h(x.cifra1), h(x.etiqueta1)) + cifra(h(x.cifra2), h(x.etiqueta2)) + cifra(h(x.cifra3), h(x.etiqueta3)) +
@@ -1520,18 +1521,20 @@
       const cebra = i % 2 ? k.panel2 : k.panel;
       const svc = st.servicios.filter(function (x) { return x.id === f.id; })[0];
       tabla += '<tr><td bgcolor="' + cebra + '" style="background:' + cebra + ';padding:16px 14px;border-bottom:1px solid ' + k.linea + ';">' +
-        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
-        '<td width="26" valign="top" style="font-family:' + FH + ';font-size:11px;font-weight:800;color:' + k.apagado + ';padding-top:3px;">' + f.n + '</td>' +
-        '<td valign="top">' +
+        // Dos bloques flotantes: lado a lado en el ordenador, uno debajo de otro en el movil.
+        '<table role="presentation" width="250" align="left" cellpadding="0" cellspacing="0" border="0" style="width:250px;max-width:100%;"><tr>' +
+        '<td width="26" valign="top" style="font-family:' + FH + ';font-size:12px;font-weight:800;color:' + k.apagado + ';padding-top:3px;">' + f.n + '</td>' +
+        '<td valign="top" style="padding:0 14px 8px 0;">' +
           '<div style="font-family:' + FH + ';font-size:15px;font-weight:800;color:' + k.texto + ';">' + esc(f.t) +
-            (f.badge ? ' <span style="font-family:' + FH + ';font-size:9px;font-weight:800;letter-spacing:.14em;color:' + k.sobreVivo + ';background:' + k.vivo + ';padding:3px 7px;border-radius:100px;">' + esc(f.badge) + '</span>' : '') +
+            (f.badge ? ' <span style="font-family:' + FH + ';font-size:12px;font-weight:800;letter-spacing:.14em;color:' + k.sobreVivo + ';background:' + k.vivo + ';padding:3px 7px;border-radius:100px;">' + esc(f.badge) + '</span>' : '') +
           '</div>' +
           '<div style="font-family:' + FB + ';font-size:12px;line-height:17px;color:' + k.apagado + ';padding:5px 0 0 0;">' + esc(f.d) + '</div>' +
-          (svc ? '<div style="padding:7px 0 0 0;"><a href="' + esc(linkFor(st, svc)) + '" style="font-family:' + FH + ';font-size:11px;font-weight:800;color:' + k.acento + ';text-decoration:none;">Ver presentaci\u00f3n &rarr;</a></div>' : '') +
-        '</td>' +
-        '<td width="150" valign="top" align="right">' +
+          (svc ? '<div style="padding:0;"><a href="' + esc(linkFor(st, svc)) + '" style="display:inline-block;padding:12px 0;font-family:' + FH + ';font-size:14px;line-height:20px;font-weight:800;color:' + k.acento + ';text-decoration:none;">Ver presentaci\u00f3n &rarr;</a></div>' : '') +
+        '</td></tr></table>' +
+        '<table role="presentation" width="150" align="left" cellpadding="0" cellspacing="0" border="0" style="width:150px;max-width:100%;"><tr>' +
+        '<td valign="top" style="padding:0 0 0 26px;">' +
           f.m.map(function (par) {
-            return '<div style="font-family:' + FH + ';font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:' + k.apagado + ';">' + esc(par[0]) + '</div>' +
+            return '<div style="font-family:' + FH + ';font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:' + k.apagado + ';">' + esc(par[0]) + '</div>' +
               '<div style="font-family:' + FH + ';font-size:13px;font-weight:800;color:' + k.texto + ';padding:1px 0 7px 0;">' + esc(par[1]) + '</div>';
           }).join('') +
         '</td></tr></table></td></tr>';
@@ -1551,7 +1554,7 @@
     // Disponibilidad: los datos que caducan salen del estado, no del codigo.
     P.push(row('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
       '<td bgcolor="' + k.panel2 + '" style="background:' + k.panel2 + ';border-left:3px solid ' + k.vivo + ';padding:14px 16px;">' +
-      '<div style="font-family:' + FH + ';font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:' + k.vivo + ';">' +
+      '<div style="font-family:' + FH + ';font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:' + k.vivo + ';">' +
         '\u25cf ' + esc(h(x.dispoEtiqueta)) + ' ' + esc(a.dispoFecha) + '</div>' +
       '<div style="font-family:' + FB + ';font-size:14px;line-height:20px;color:' + k.texto + ';padding:6px 0 0 0;">' +
         esc(a.dispoTexto) + ' ' + esc(a.cierreTexto) + '</div>' +
@@ -1573,7 +1576,7 @@
         'padding:24px 32px 26px 32px;background:' + k.panel + ';border-top:1px solid ' + k.linea + ';'));
     }
     if (on(st, 'pie')) {
-      P.push(row('<div style="font-family:' + FB + ';font-size:11px;line-height:16px;color:' + k.apagado + ';">' +
+      P.push(row('<div style="font-family:' + FB + ';font-size:13px;line-height:19px;color:' + k.apagado + ';">' +
         nl2br(B(st, 'pie').texto) + '</div>', 'padding:0 32px 24px 32px;background:' + k.panel + ';'));
     }
     return doc(st, P.join(''));
@@ -1621,20 +1624,23 @@
         '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
         '<td width="54" valign="top" style="font-family:' + FH + ';font-size:34px;font-weight:800;color:' + k.acento + ';letter-spacing:-.03em;">' + f.n + '</td>' +
         '<td valign="top">' +
-          '<div style="font-family:' + FH + ';font-size:10px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:' + k.vivo + ';">' + esc(f.fase) + '</div>' +
+          '<div style="font-family:' + FH + ';font-size:12px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:' + k.vivo + ';">' + esc(f.fase) + '</div>' +
           '<div style="font-family:' + FH + ';font-size:21px;font-weight:800;letter-spacing:-.02em;color:' + k.texto + ';padding:4px 0 8px 0;">' + esc(f.tit) + '</div>' +
           '<div style="font-family:' + FB + ';font-size:14px;line-height:21px;color:' + k.apagado + ';">' + f.txt + '</div>' +
         '</td></tr></table>' +
         (svc ?
           '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:14px 0 0 0;"><tr>' +
           '<td bgcolor="' + k.panel2 + '" style="background:' + k.panel2 + ';border:1px solid ' + k.linea + ';border-radius:10px;padding:14px;">' +
-          '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
-          '<td width="180" valign="top" style="font-size:0;line-height:0;">' + fotoServicio(st, svc, 180) + '</td>' +
-          '<td valign="top" style="padding:0 0 0 14px;">' +
-            '<div style="font-family:' + FH + ';font-size:9px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:' + k.vivo + ';">' + esc(f.tag) + '</div>' +
+          // Foto y texto como bloques flotantes: en el movil el texto baja bajo la foto en vez
+          // de quedar en una columna de 70 px con una palabra por linea.
+          '<table role="presentation" width="180" align="left" cellpadding="0" cellspacing="0" border="0" style="width:180px;max-width:100%;"><tr>' +
+          '<td valign="top" style="font-size:0;line-height:0;padding:0 14px 10px 0;">' + fotoServicio(st, svc, 180) + '</td></tr></table>' +
+          '<table role="presentation" width="250" align="left" cellpadding="0" cellspacing="0" border="0" style="width:250px;max-width:100%;"><tr>' +
+          '<td valign="top">' +
+            '<div style="font-family:' + FH + ';font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:' + k.vivo + ';">' + esc(f.tag) + '</div>' +
             '<div style="font-family:' + FH + ';font-size:15px;font-weight:800;color:' + k.texto + ';padding:5px 0 4px 0;">' + esc(f.svcTit) + '</div>' +
             '<div style="font-family:' + FB + ';font-size:13px;line-height:18px;color:' + k.apagado + ';">' + esc(f.svcTxt) + '</div>' +
-            '<div style="padding:7px 0 0 0;"><a href="' + esc(linkFor(st, svc)) + '" style="font-family:' + FH + ';font-size:11px;font-weight:800;color:' + k.acento + ';text-decoration:none;">Ver presentaci\u00f3n &rarr;</a></div>' +
+            '<div style="padding:0;"><a href="' + esc(linkFor(st, svc)) + '" style="display:inline-block;padding:12px 0;font-family:' + FH + ';font-size:14px;line-height:20px;font-weight:800;color:' + k.acento + ';text-decoration:none;">Ver presentaci\u00f3n &rarr;</a></div>' +
           '</td></tr></table></td></tr></table>' : ''),
         pad + 'padding-bottom:28px;'));
     });
@@ -1664,7 +1670,7 @@
         'padding:24px 32px 26px 32px;background:' + k.panel + ';border-top:1px solid ' + k.linea + ';'));
     }
     if (on(st, 'pie')) {
-      P.push(row('<div style="font-family:' + FB + ';font-size:11px;line-height:16px;color:' + k.apagado + ';">' +
+      P.push(row('<div style="font-family:' + FB + ';font-size:13px;line-height:19px;color:' + k.apagado + ';">' +
         nl2br(B(st, 'pie').texto) + '</div>', 'padding:0 32px 24px 32px;background:' + k.panel + ';'));
     }
     return doc(st, P.join(''));
@@ -1703,24 +1709,24 @@
     // Escena 01: la calle.
     const led = st.servicios.filter(function (x) { return x.id === 'led' && x.on; })[0];
     P.push(row(
-      '<div style="font-family:' + FH + ';font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:' + k.vivo + ';padding:0 0 10px 0;">' +
+      '<div style="font-family:' + FH + ';font-size:12px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:' + k.vivo + ';padding:0 0 10px 0;">' +
         '\u25cf ' + b(p.hora1) + '</div>' +
       (led ? fotoServicio(st, led, 536) : '') +
-      '<div style="font-family:' + FH + ';font-size:10px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:' + k.apagado + ';padding:12px 0 4px 0;">' + b(p.escena1) + '</div>' +
+      '<div style="font-family:' + FH + ';font-size:12px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:' + k.apagado + ';padding:12px 0 4px 0;">' + b(p.escena1) + '</div>' +
       '<div style="font-family:' + FB + ';font-size:15px;line-height:1.6;color:' + k.texto + ';">' +
         b(p.escena1Texto) + '</div>' +
-      '<div style="font-family:' + FH + ';font-size:11px;font-weight:800;letter-spacing:.2em;color:' + k.vivo + ';padding:14px 0 0 0;">' + b(p.puente) + ' &darr;</div>',
+      '<div style="font-family:' + FH + ';font-size:12px;font-weight:800;letter-spacing:.2em;color:' + k.vivo + ';padding:14px 0 0 0;">' + b(p.puente) + ' &darr;</div>',
       pad + 'padding-bottom:26px;'));
 
     // Escena 02: el movil. Maqueta de la publicacion, construida con tablas.
     P.push(row(
-      '<div style="font-family:' + FH + ';font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:' + k.acento + ';padding:0 0 10px 0;">' +
+      '<div style="font-family:' + FH + ';font-size:12px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:' + k.acento + ';padding:0 0 10px 0;">' +
         '\u25cf ' + b(p.hora2) + '</div>' +
       '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
       '<td bgcolor="' + k.panel2 + '" style="background:' + k.panel2 + ';border:1px solid ' + k.linea + ';border-radius:12px;padding:14px 16px;">' +
         '<div style="font-family:' + FH + ';font-size:13px;font-weight:800;color:' + k.texto + ';">' + b(p.cuenta) + '</div>' +
-        '<div style="font-family:' + FB + ';font-size:11px;color:' + k.apagado + ';padding:2px 0 10px 0;">' + b(p.lugar) + '</div>' +
-        '<div style="font-family:' + FH + ';font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:' + k.vivo + ';">' + b(p.filtro) + '</div>' +
+        '<div style="font-family:' + FB + ';font-size:13px;color:' + k.apagado + ';padding:2px 0 10px 0;">' + b(p.lugar) + '</div>' +
+        '<div style="font-family:' + FH + ';font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:' + k.vivo + ';">' + b(p.filtro) + '</div>' +
         '<div style="font-family:' + FB + ';font-size:15px;line-height:1.5;color:' + k.texto + ';padding:8px 0 10px 0;">' +
           realce(h(p.publicacion), '<span style="color:' + k.acento + ';">', '</span>') + '</div>' +
         '<div style="font-family:' + FH + ';font-size:12px;font-weight:800;color:' + k.texto + ';">' + b(p.meGusta) + '</div>' +
@@ -1775,7 +1781,7 @@
         'padding:24px 32px 26px 32px;background:' + k.panel + ';border-top:1px solid ' + k.linea + ';'));
     }
     if (on(st, 'pie')) {
-      P.push(row('<div style="font-family:' + FB + ';font-size:11px;line-height:16px;color:' + k.apagado + ';">' +
+      P.push(row('<div style="font-family:' + FB + ';font-size:13px;line-height:19px;color:' + k.apagado + ';">' +
         nl2br(B(st, 'pie').texto) + '</div>', 'padding:0 32px 24px 32px;background:' + k.panel + ';'));
     }
     return doc(st, P.join(''));
