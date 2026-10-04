@@ -1,0 +1,131 @@
+{
+ "lineas": [
+  {
+   "id": "vallas",
+   "nombre": "Vallas (OOH)",
+   "eyebrow": "Publicidad exterior",
+   "cta": "Ver inventario general",
+   "cobertura": "Disponibilidad a nivel nacional",
+   "nota": "",
+   "slug": "vallas",
+   "canva": "https://canva.link/fgsgrl8vj329ue0",
+   "img": "svc_vallas.jpg",
+   "alt": "Valla de Centauro ADS bajo el elevado de Las Mercedes, Caracas",
+   "cover": "cover_vallas.jpg",
+   "altCover": "Portada: Disponibilidad de vallas Gran Caracas",
+   "ficha": {
+    "ubic": "Caracas y nivel nacional",
+    "medida": "Según ubicación",
+    "trafico": "Alta rotación vial",
+    "desde": ""
+   },
+   "familia": "vallas",
+   "plantillas": "ABCDEFGH"
+  },
+  {
+   "id": "led",
+   "nombre": "Pantalla LED Chacao",
+   "eyebrow": "Digital outdoor",
+   "cta": "Consultar disponibilidad",
+   "cobertura": "Ubicación: Chacao · Av. Francisco de Miranda",
+   "nota": "Servicio de videos (por cotizar) · Alquiler y venta de pantallas LED",
+   "slug": "pantallas-led",
+   "canva": "https://canva.link/p69pybf8jctaq8d",
+   "img": "svc_led.jpg",
+   "alt": "Pantalla LED vertical de Chacao, Av. Francisco de Miranda con Calle Elice",
+   "cover": "cover_led.jpg",
+   "altCover": "Portada: Circuito pantallas LED Chacao y Las Mercedes",
+   "ficha": {
+    "ubic": "Chacao · Av. F. de Miranda",
+    "medida": "1024 × 2048 px",
+    "trafico": "120.000 impactos/día",
+    "desde": "1.500"
+   },
+   "familia": "dooh",
+   "plantillas": "ABCDEFGH"
+  },
+  {
+   "id": "mercedes",
+   "nombre": "Pantalla LED Las Mercedes",
+   "eyebrow": "Digital outdoor",
+   "cta": "Consultar disponibilidad",
+   "cobertura": "Ubicación: Las Mercedes · Av. Paseo Enrique Erazo",
+   "nota": "Formato horizontal · transmisión 24 horas",
+   "slug": "pantalla-las-mercedes",
+   "canva": "https://canva.link/p69pybf8jctaq8d",
+   "img": "svc_mercedes.jpg",
+   "alt": "Pantalla LED horizontal bajo el elevado de la Av. Paseo Enrique Erazo, Las Mercedes",
+   "cover": "cover_mercedes.jpg",
+   "altCover": "Ficha técnica: Pantalla LED Las Mercedes",
+   "ficha": {
+    "ubic": "Las Mercedes · Av. P. Enrique Erazo",
+    "medida": "1920 × 1200 px",
+    "trafico": "95.000 vehículos/día",
+    "desde": ""
+   },
+   "familia": "dooh",
+   "plantillas": "ABCDEFGH"
+  },
+  {
+   "id": "totem",
+   "nombre": "Tótem digital",
+   "eyebrow": "Outdoor · Indoor",
+   "cta": "Consultar disponibilidad",
+   "cobertura": "Ubicación: C.C. San Ignacio",
+   "nota": "Alquiler y venta de tótems digitales",
+   "slug": "totem-san-ignacio",
+   "canva": "https://canva.link/p5gmvy032ba3sbm",
+   "img": "svc_totem.jpg",
+   "alt": "Tótem digital en la entrada del C.C. San Ignacio, La Castellana",
+   "cover": "cover_totem.jpg",
+   "altCover": "Portada: Tótem digital C.C. San Ignacio",
+   "ficha": {
+    "ubic": "C.C. San Ignacio",
+    "medida": "1440 × 2560 px",
+    "trafico": "240 salidas/día",
+    "desde": "300"
+   },
+   "familia": "dooh",
+   "plantillas": "ABCDEFGH"
+  },
+  {
+   "id": "rider",
+   "nombre": "Publicidad móvil · Rider Clon",
+   "eyebrow": "Movilidad",
+   "cta": "Ver presentación",
+   "cobertura": "A nivel nacional",
+   "nota": "Motos con caja de luz LED · flota de 250 · tracking en tiempo real",
+   "slug": "rider-clon",
+   "canva": "https://canva.link/rider-clon",
+   "img": "svc_rider.jpg",
+   "alt": "Motorizado Rider Clon con caja de luz LED en Caracas",
+   "cover": "cover_rider.jpg",
+   "altCover": "Portada: Rider Clon publicidad móvil",
+   "ficha": {
+    "ubic": "Caracas · San Antonio · Valencia",
+    "medida": "0,42 × 0,59 m",
+    "trafico": "250 motos · 8 h/día",
+    "desde": "1.500"
+   },
+   "familia": "movil",
+   "plantillas": "ABCDEFGH"
+  }
+ ],
+ "familias": [
+  {
+   "id": "vallas",
+   "eyebrow": "Gran formato",
+   "titulo": "Vallas (OOH)"
+  },
+  {
+   "id": "dooh",
+   "eyebrow": "Digital outdoor",
+   "titulo": "Pantallas LED y Tótem (DOOH)"
+  },
+  {
+   "id": "movil",
+   "eyebrow": "Movilidad",
+   "titulo": "Publicidad móvil · Rider Clon"
+  }
+ ]
+}

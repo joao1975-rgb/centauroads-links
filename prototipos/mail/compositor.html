@@ -156,6 +156,8 @@
   .svc-b { display:none; padding-top:6px; }
   .svc.open .svc-b { display:block; }
   .svc.off .svc-t { color:var(--faint); text-decoration:line-through; }
+  .svc.fuera .svc-t { color:var(--faint); }
+  .svc.fuera .svc-t::after { content:' \00B7  no se usa en esta plantilla'; font-size:11px; font-style:italic; }
 
   /* interruptor */
   .sw { position:relative; width:34px; height:20px; flex:none; }
@@ -196,6 +198,7 @@
 <header class="bar">
   <div class="brand"><img src="img/logo.jpg" alt="" width="30" height="30"><h1>Compositor de mails</h1><span class="tag">PROTOTIPO</span>
     <nav class="menu" id="menu" aria-label="Panel" hidden>
+      <a href="/panel/lineas">Líneas de negocio</a>
       <a href="/panel/equipo">Equipo</a>
       <a href="/panel/salir">Salir</a>
     </nav></div>
@@ -414,7 +417,7 @@
     l.appendChild(c); l.appendChild(el('i', 'sw-k')); return l;
   }
   function servicioEl(s, i) {
-    const w = el('div', 'svc'); w.classList.toggle('off', !s.on);
+    const w = el('div', 'svc'); w.classList.toggle('off', !s.on); w.dataset.servicio = s.id;
     const h = el('div', 'svc-h'); h.appendChild(switchEl('servicios.' + i + '.on', on => w.classList.toggle('off', !on), s.nombre));
     const t = el('button', 'svc-t', s.nombre); t.type = 'button'; plegable(t, w); h.appendChild(t); w.appendChild(h);
     const b = el('div', 'svc-b');
@@ -1305,6 +1308,12 @@
       if (no) nodo.title = 'No cambia el correo con la plantilla ' + key + ' y la configuracion actual';
       else nodo.removeAttribute('title');
     });
+    // Una linea del catalogo limitada a otras plantillas (003, FR-310): se dice en su cabecera.
+    // Sus campos ya salen como «no cambia este correo» por la regla de arriba.
+    document.querySelectorAll('#panel .svc[data-servicio]').forEach(w => {
+      const linea = M.SERVICIOS.find(x => x.id === w.dataset.servicio);
+      w.classList.toggle('fuera', !!linea && typeof linea.plantillas === 'string' && linea.plantillas.indexOf(key) < 0);
+    });
     document.querySelectorAll('#panel [data-bloque]').forEach(b => {
       const nodos = Array.from(b.querySelectorAll('[data-ruta]'))
         .filter(n => n.classList.contains('sw') || n.querySelector('input[type=text], textarea'));
@@ -1365,6 +1374,18 @@
     if (window.ASSET_BASE) im.src = String(window.ASSET_BASE).replace(/\/$/, '') + '/logo.jpg';
   })();
   buildPanel(); buildSeg(); renderPreview();
+
+  // Catalogo de lineas de negocio (003). El del servidor manda: se pinta primero con el de serie
+  // para no dejar la pantalla vacia y, en cuanto llega, se rehace con el vigente. Las fotos subidas
+  // llegan como /media/...; el correo necesita la direccion completa, como en las entregas.
+  // Si no llega, se sigue con el de serie y se dice (FR-323).
+  if (HAY_SERVIDOR) {
+    api('/api/catalogo').then(cat => {
+      (cat.lineas || []).forEach(l => { if (/^\/[^/]/.test(l.img || '')) l.img = location.origin + l.img; });
+      if (!M.ponCatalogo(cat)) return;
+      st = M.normaliza(st); save(); buildPanel(); buildSeg(); renderPreview();
+    }).catch(() => toast('No se pudo cargar el catálogo de líneas: se usa el de serie', 5000));
+  }
 })();
 </script>
 </body>

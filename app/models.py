@@ -247,3 +247,55 @@ class EntregaPagina(Base):
     created_at = Column(DateTime, default=ahora)
 
     entrega = relationship("Entrega", back_populates="paginas")
+
+
+# ---------------------------------------------------------------------------
+# Catalogo de lineas de negocio (especificacion 003). Lo que el compositor ofrece como servicios.
+# Se siembra con las cinco lineas de serie (catalogo-serie.json, que sale de render.js) y desde ahi
+# lo administra el panel. Nunca se borra una fila: retirar es `activa = False`, porque un correo ya
+# enviado puede seguir apuntando a su foto.
+# ---------------------------------------------------------------------------
+
+class FamiliaD(Base):
+    """Los grupos en que la plantilla D presenta las lineas."""
+    __tablename__ = "familias_d"
+
+    id = Column(String(60), primary_key=True)
+    titulo = Column(String(120), nullable=False)
+    eyebrow = Column(String(60), nullable=False, default="")
+    orden = Column(Integer, nullable=False, default=0)
+
+
+class LineaNegocio(Base):
+    """
+    Una linea de negocio. `id` es estable: lo usa el estado guardado de cada compositor para
+    reconocerla, asi que no cambia aunque cambie el nombre.
+
+    `img` es el nombre de un archivo de serie (`svc_led.jpg`, que el correo cuelga de su base de
+    imagenes) o la ruta de una foto subida (`/media/lineas/...`). `plantillas` son las letras A-H
+    en las que sale; vacio = en ninguna, que es una decision explicita.
+    """
+    __tablename__ = "lineas_negocio"
+
+    id = Column(String(60), primary_key=True)
+    nombre = Column(String(120), nullable=False)
+    eyebrow = Column(String(60), nullable=False, default="")
+    cta = Column(String(60), nullable=False, default="")
+    cobertura = Column(String(200), nullable=False, default="")
+    nota = Column(String(300), nullable=False, default="")
+    canva = Column(String(500), nullable=False, default="")
+    slug = Column(String(80), nullable=False, default="")
+    img = Column(String(500), nullable=False, default="")
+    alt = Column(String(200), nullable=False, default="")
+    cover = Column(String(500), nullable=False, default="")
+    alt_cover = Column(String(200), nullable=False, default="")
+    ficha_ubic = Column(String(120), nullable=False, default="")
+    ficha_medida = Column(String(120), nullable=False, default="")
+    ficha_trafico = Column(String(120), nullable=False, default="")
+    ficha_desde = Column(String(120), nullable=False, default="")
+    familia_id = Column(String(60), ForeignKey("familias_d.id"), nullable=True)
+    plantillas = Column(String(8), nullable=False, default="ABCDEFGH")
+    orden = Column(Integer, nullable=False, default=0)
+    activa = Column(Boolean, nullable=False, default=True)
+    actualizado_por = Column(String(200), nullable=False, default="")
+    actualizado_en = Column(DateTime, default=ahora, onupdate=ahora)

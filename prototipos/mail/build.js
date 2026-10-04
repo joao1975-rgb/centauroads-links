@@ -90,6 +90,14 @@ if (kbOut > 15 * 1024) {
   console.log('OK app/static/email/compositor.html + render.js', Math.round(kb), 'KB (publicable)');
 }
 
+// Catalogo de serie (003): el servidor siembra sus lineas de negocio de este archivo, que sale del
+// propio render.js. Una sola fuente: si cambia el catalogo de serie, cambia aqui al construir.
+{
+  const destino = path.join(here, '..', '..', 'app', 'static', 'email', 'catalogo-serie.json');
+  fs.writeFileSync(destino, JSON.stringify(M.catalogoActual(), null, 1) + '\n', 'utf8');
+  console.log('OK app/static/email/catalogo-serie.json', M.catalogoActual().lineas.length, 'lineas');
+}
+
 // 3. Guardia de contenido: la construcción falla si reaparece un dato de contacto retirado, o si falta uno vigente.
 const PROHIBIDO = ['412 000 0000', '412 1003559', 'www.centauroads.com', 'contacto@centauroads'];
 const OBLIGATORIO = ['+58 412 100 3559', 'linktr.ee/centauroadss', 'mercadeo@centauroads.com'];

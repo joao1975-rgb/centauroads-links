@@ -76,10 +76,13 @@ app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), na
 from .auth.rutas import router as router_auth, asegura_bootstrap  # noqa: E402
 from .auth.equipo import router as router_equipo  # noqa: E402
 from .mails.entregas import router as router_entregas  # noqa: E402
+from .mails.catalogo import router as router_catalogo  # noqa: E402
+from .mails.catalogo.siembra import siembra as siembra_catalogo  # noqa: E402
 
 app.include_router(router_auth)
 app.include_router(router_equipo)
 app.include_router(router_entregas)
+app.include_router(router_catalogo)
 
 # Primero se entra, luego se usa la herramienta. El compositor es un fichero estatico y se
 # abria sin preguntar quien eras: solo al pulsar algo que hablaba con el servidor salia
@@ -114,6 +117,8 @@ async def entrar_antes_del_compositor(request: Request, call_next):
 # cogian porque no la ponen; lo cogio levantar la aplicacion de verdad.
 with SessionLocal() as _db:
     asegura_bootstrap(_db)
+    # El catalogo de lineas (003) nace igual que el de serie, y solo con la base vacia.
+    siembra_catalogo(_db)
 
 # ---------------------------------------------------------------------------
 # Autenticación de administración

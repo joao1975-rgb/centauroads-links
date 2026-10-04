@@ -54,6 +54,11 @@
       cover: 'cover_rider.jpg', altCover: 'Portada: Rider Clon publicidad móvil' },
   ];
 
+  // Las lineas que traen GIF de carrusel generado (carrusel_gif.py). Una linea dada de alta
+  // desde el panel no lo tiene: usa su foto fija en lugar de un GIF que no existe.
+  const CON_CARRUSEL = {};
+  SERVICIOS.forEach(function (s) { CON_CARRUSEL[s.id] = true; });
+
   // ── Grupos de la plantilla D (taxonomía del flyer "Servicios de publicidad exterior") ──
   const GRUPOS = [
     { id: 'vallas', eyebrow: 'Gran formato', titulo: 'Vallas (OOH)', servicios: ['vallas'] },
@@ -236,6 +241,7 @@
   // El GIF del carrusel de un servicio. Estaba escrito a mano en tres sitios; ahora el
   // nombre se arma en uno solo, que es donde hay que tocar si cambia el esquema.
   function carruselSrc(st, s) {
+    if (!CON_CARRUSEL[s.id]) return svcImg(st, s);
     return imgFor(st, 'carousel_' + s.id + '_' + efectoDe(st, s) + '.gif');
   }
 
@@ -596,11 +602,16 @@
     return t ? String(texto).replace(/\{titulo\}/g, t) : String(texto).replace(/\s*«?\{titulo\}»?/g, '');
   }
   const webHref = (w) => /^https?:\/\//.test(w || '') ? w : 'https://' + (w || '');
-  const imgFor = (st, name) => (st.assetBase || 'img').replace(/\/$/, '') + '/' + name;
+  // Una foto subida desde el panel llega con su direccion completa (/media/lineas/...): se usa tal
+  // cual. Las de serie son nombres de archivo y se cuelgan de la base de imagenes, como siempre.
+  const imgFor = (st, name) => /^https?:\/\//.test(name || '') ? name
+    : (st.assetBase || 'img').replace(/\/$/, '') + '/' + name;
   // Juego de imágenes por servicio: fotos reales del inventario o portadas de los decks de Canva
   const IMG_SETS = { fotos: 'Fotos reales del inventario', portadas: 'Portadas de las presentaciones (Canva)' };
   const usaPortadas = st => st.imgSet === 'portadas';
   const svcImg = (st, s) => imgFor(st, usaPortadas(st) && s.cover ? s.cover : s.img);
+  // Sin foto (una linea recien dada de alta), la imagen no se pinta: mejor nada que un hueco roto.
+  const tieneFoto = (st, s) => !!String((usaPortadas(st) && s.cover ? s.cover : s.img) || '').trim();
   const svcAlt = (st, s) => (usaPortadas(st) && s.altCover ? s.altCover : s.alt);
   // La portada de una entrega puede venir de tres sitios: del servidor que la guarda
   // (/media/entregas/7/og.jpg), de una direccion completa, o del juego de imagenes local
@@ -940,6 +951,7 @@
   // La foto de un servicio, siempre con mi carrusel animado cuando existe: el cliente
   // pidio conservar las varias imagenes por servicio con sus transiciones.
   function fotoServicio(st, s, ancho, alto) {
+    if (!tieneFoto(st, s)) return '';
     const src = (st.cardAnim && !usaPortadas(st)) ? carruselSrc(st, s) : svcImg(st, s);
     const k = paleta(temaDe(st));
     return '<a href="' + esc(linkFor(st, s)) + '"><img src="' + esc(src) + '" width="' + ancho + '"' +
@@ -1180,7 +1192,7 @@
     'line-height:26px;font-weight:700;color:' + color + ';text-decoration:none;">' + esc(txt) + '&nbsp;&nbsp;&rarr;</a>' +
     '</td></tr></table>';
   const fotoDe = (st, s) => (st.cardAnim && !usaPortadas(st) ? carruselSrc(st, s) : svcImg(st, s));
-  const imagen = (st, s, ancho, fondoAlt) =>
+  const imagen = (st, s, ancho, fondoAlt) => !tieneFoto(st, s) ? '' :
     '<a href="' + esc(linkFor(st, s)) + '"><img src="' + esc(fotoDe(st, s)) + '" width="' + ancho + '" alt="' +
     esc(svcAlt(st, s)) + '" style="display:block;width:100%;max-width:100%;height:auto;border:0;' +
     'color:' + fondoAlt + ';font-family:' + FB + ';font-size:14px;line-height:20px;"></a>';
@@ -1323,7 +1335,7 @@
     if (bq) body += '<div style="padding:0 0 18px 0;">' + bq + '</div>';
     activos(st).forEach(s => {
       body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px 0;"><tr>' +
-        '<td width="112" valign="top"><a href="' + esc(linkFor(st, s)) + '"><img src="' + esc(svcImg(st, s)) + '" width="96" alt="' + esc(svcAlt(st, s)) + '" style="display:block;width:96px;height:auto;border:0;border-radius:3px;color:' + N.tinta + ';font-family:' + FB + ';font-size:12px;"></a></td>' +
+        '<td width="112" valign="top">' + (!tieneFoto(st, s) ? '' : '<a href="' + esc(linkFor(st, s)) + '"><img src="' + esc(svcImg(st, s)) + '" width="96" alt="' + esc(svcAlt(st, s)) + '" style="display:block;width:96px;height:auto;border:0;border-radius:3px;color:' + N.tinta + ';font-family:' + FB + ';font-size:12px;"></a>') + '</td>' +
         '<td valign="top" style="font-family:' + FB + ';font-size:15px;line-height:22px;color:' + N.tinta + ';">' +
         '<b>' + esc(s.nombre) + '</b><br><span style="color:' + N.gris + ';font-size:14px;">' + esc(s.cobertura) + '</span><br>' +
         '<a href="' + esc(linkFor(st, s)) + '" style="color:' + N.morado + ';font-size:14px;">Ver presentación</a></td></tr></table>';
@@ -1409,7 +1421,7 @@
 
   // ── Texto plano (fallback y para clientes sin HTML) ──
   function renderText(st0) {
-    const st = aplicaAsunto(aplicaPerfil(normaliza(st0)));
+    const st = soloSuyas(aplicaAsunto(aplicaPerfil(normaliza(st0))), pick(st0));
     const L = [];
     // La Entrega no es el catalogo: lo que se lee en texto plano es la propuesta, no la
     // lista de espacios. Se separa aqui y no en una funcion aparte para que quien copie
@@ -1457,7 +1469,7 @@
   // PRIMER enlace del mensaje, y solo si va donde lo encuentre pronto. Por eso el enlace
   // abre el mensaje y por eso no se anaden mas: cada enlace de mas es una tarjeta menos.
   function renderWhatsApp(st0) {
-    const st = aplicaAsunto(aplicaPerfil(normaliza(st0)));
+    const st = soloSuyas(aplicaAsunto(aplicaPerfil(normaliza(st0))), pick(st0));
     const e = B(st, 'entrega');
     const L = [];
     if (e.enlace || e.url) L.push(e.enlace || e.url, '');
@@ -1927,9 +1939,23 @@
     const t = st.temaEntrega || st.tema;
     return TEMAS.indexOf(t) >= 0 ? t : 'claro';
   };
+  // Una linea del catalogo puede limitarse a algunas plantillas (003, FR-309). Las que no incluyen
+  // la de este correo salen apagadas, en una COPIA: lo que la persona tiene encendido no se toca.
+  function soloSuyas(st, k) {
+    const fuera = {};
+    let alguna = false;
+    SERVICIOS.forEach(function (x) {
+      if (typeof x.plantillas === 'string' && x.plantillas.indexOf(k) < 0) { fuera[x.id] = true; alguna = true; }
+    });
+    if (!alguna || !Array.isArray(st.servicios)) return st;
+    return Object.assign({}, st, { servicios: st.servicios.map(function (x) {
+      return fuera[x.id] ? Object.assign({}, x, { on: false }) : x;
+    }) });
+  }
+
   const render = (st, key) => {
     const k = key || pick(st);
-    const listo = aplicaAsunto(aplicaPerfil(normaliza(st)));
+    const listo = soloSuyas(aplicaAsunto(aplicaPerfil(normaliza(st))), k);
     // Solo la Personalizada mira su propio aspecto, y sobre una COPIA: `tema` sigue siendo
     // el del catalogo y no se toca, que es lo que evita que el morado reaparezca alli.
     return TEMPLATES[k].fn(k === 'H'
@@ -1991,5 +2017,59 @@
     return avisos;
   }
 
-  return { C, SERVICIOS, GRUPOS, TEMPLATES, IMG_SETS, PERFILES, ASUNTOS, asuntosDe, EFECTOS, efectoDe, pesoDe, rangoPeso, ROLES, CORREOS, cargoDe, correosDe, BANCO, bancoDe, fotosDe, comandoCarrusel, FICHA, CONTENT_VERSION, defaultState, render, renderText, renderWhatsApp, linkFor, cambiaElCorreo, fechasPasadas, pick, aplicaPerfil, aplicaAsunto, normaliza };
+  // ── Catalogo de lineas de negocio (especificacion 003) ──
+  // El catalogo de serie son las constantes de arriba. `catalogoActual()` lo entrega en la forma que
+  // usa el servidor: build.js lo exporta a catalogo-serie.json y el servidor se siembra de ahi, asi
+  // que hay UNA sola fuente. `ponCatalogo()` hace lo contrario: recibe el catalogo del servidor y
+  // reemplaza EN SITIO las constantes, que son las mismas referencias que usa todo el motor.
+  // Sin llamarla, el motor se queda exactamente como estaba.
+  const CAMPOS_LINEA = ['id', 'nombre', 'eyebrow', 'cta', 'cobertura', 'nota', 'slug', 'canva',
+    'img', 'alt', 'cover', 'altCover'];
+  function catalogoActual() {
+    const familiaDe = {};
+    GRUPOS.forEach(function (g) { g.servicios.forEach(function (id) { familiaDe[id] = g.id; }); });
+    return {
+      lineas: SERVICIOS.map(function (x) {
+        const l = {};
+        CAMPOS_LINEA.forEach(function (k) { l[k] = x[k] == null ? '' : x[k]; });
+        l.ficha = FICHA[x.id] ? Object.assign({}, FICHA[x.id]) : null;
+        l.familia = familiaDe[x.id] || '';
+        l.plantillas = typeof x.plantillas === 'string' ? x.plantillas : 'ABCDEFGH';
+        return l;
+      }),
+      familias: GRUPOS.map(function (g) { return { id: g.id, eyebrow: g.eyebrow, titulo: g.titulo }; }),
+    };
+  }
+  function ponCatalogo(cat) {
+    if (!cat || !Array.isArray(cat.lineas) || !cat.lineas.length) return false;
+    const lineas = cat.lineas.filter(function (l) { return l && l.id && l.nombre; });
+    if (!lineas.length) return false;
+    SERVICIOS.splice.apply(SERVICIOS, [0, SERVICIOS.length].concat(lineas.map(function (l) {
+      const x = {};
+      CAMPOS_LINEA.forEach(function (k) { x[k] = l[k] == null ? '' : String(l[k]); });
+      x.plantillas = typeof l.plantillas === 'string' ? l.plantillas : 'ABCDEFGH';
+      return x;
+    })));
+    Object.keys(FICHA).forEach(function (k) { delete FICHA[k]; });
+    lineas.forEach(function (l) {
+      const f = l.ficha || {};
+      if (!(f.ubic || f.medida || f.trafico || f.desde)) return;
+      FICHA[l.id] = { ubic: f.ubic || '', medida: f.medida || '', trafico: f.trafico || '', desde: f.desde || '' };
+    });
+    // Familias de la D: las del catalogo, con sus lineas en el orden del catalogo. Una linea sin
+    // familia (o con una que no existe) va a «Otros servicios» en vez de desaparecer.
+    const familias = Array.isArray(cat.familias) ? cat.familias : [];
+    const conocidas = {};
+    familias.forEach(function (f) { conocidas[f.id] = true; });
+    const grupos = familias.map(function (f) {
+      return { id: f.id, eyebrow: f.eyebrow || '', titulo: f.titulo || '',
+        servicios: lineas.filter(function (l) { return l.familia === f.id; }).map(function (l) { return l.id; }) };
+    });
+    const sueltas = lineas.filter(function (l) { return !conocidas[l.familia]; }).map(function (l) { return l.id; });
+    if (sueltas.length) grupos.push({ id: 'otros', eyebrow: 'Más servicios', titulo: 'Otros servicios', servicios: sueltas });
+    GRUPOS.splice.apply(GRUPOS, [0, GRUPOS.length].concat(grupos));
+    return true;
+  }
+
+  return { C, SERVICIOS, GRUPOS, TEMPLATES, IMG_SETS, PERFILES, ASUNTOS, asuntosDe, EFECTOS, efectoDe, pesoDe, rangoPeso, ROLES, CORREOS, cargoDe, correosDe, BANCO, bancoDe, fotosDe, comandoCarrusel, FICHA, CONTENT_VERSION, defaultState, catalogoActual, ponCatalogo, render, renderText, renderWhatsApp, linkFor, cambiaElCorreo, fechasPasadas, pick, aplicaPerfil, aplicaAsunto, normaliza };
 });
