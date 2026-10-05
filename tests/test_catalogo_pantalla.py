@@ -82,6 +82,15 @@ def test_la_ficha_tecnica_se_da_de_alta_y_se_edita(comercial):
     assert "tabla de agencias" in html and "cambios.ficha" in html
 
 
+def test_los_grupos_de_la_d_se_ven_y_se_administran(comercial):
+    """US5: la seccion de grupos; crear y renombrar, solo para administradores."""
+    html = comercial.get(PANTALLA).text
+    assert '<section id="grupos"' in html
+    assert '<form id="f-grupo" autocomplete="off" hidden>' in html
+    assert "api('POST', '/api/panel/familias'" in html
+    assert "api('PATCH', '/api/panel/familias/'" in html
+
+
 @pytest.mark.parametrize("compositor", ["prototipos/mail/compositor.html",
                                         "app/static/email/compositor.html"])
 def test_el_compositor_enlaza_la_pantalla_y_pide_el_catalogo(compositor):

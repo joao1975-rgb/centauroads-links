@@ -135,7 +135,7 @@ def test_cualquier_sesion_lee_el_catalogo(comercial):
     r = comercial.get("/api/catalogo")
     assert r.status_code == 200
     d = r.json()
-    assert d["familias"] == SERIE["familias"]
+    assert d["familias"][:3] == SERIE["familias"]  # la base es compartida: otras añaden
     assert d["lineas"][:5] == SERIE["lineas"]
 
 

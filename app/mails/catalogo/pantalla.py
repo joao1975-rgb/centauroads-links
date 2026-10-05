@@ -85,6 +85,9 @@ _PAGINA = """<!DOCTYPE html>
   .editor { grid-column:1 / -1; padding:14px 14px 0; background:#1A1622; border:1px solid #2E2838; border-radius:10px; }
   .editor .botones { display:flex; gap:8px; margin:0 0 14px; }
   .retiradas .miniatura { opacity:.55; }
+  /* Un grupo no lleva miniatura: dos columnas, quien y acciones. */
+  .fila.grupo { grid-template-columns:minmax(0,1fr) auto; }
+  #f-grupo { margin-top:18px; }
   @media (max-width:560px) { .fila { grid-template-columns:72px minmax(0,1fr); }
     .miniatura { width:72px; height:48px; } .acciones { grid-column:1 / -1; justify-content:flex-start; } }
   label { display:block; font-size:12px; color:#A9A2B5; margin:0 0 4px; }
@@ -135,6 +138,20 @@ _PAGINA = """<!DOCTYPE html>
     <h2 id="t-retiradas">Retiradas</h2>
     <p class="nota">No salen en los correos nuevos; los ya enviados no cambian. Se pueden devolver tal como estaban.</p>
     <ul class="lista" id="filas-retiradas"></ul>
+  </section>
+
+  <section id="grupos" aria-labelledby="t-grupos">
+    <h2 id="t-grupos">Grupos de la plantilla D</h2>
+    <p class="nota">La plantilla D presenta las líneas agrupadas, en este orden. Un grupo con una sola línea sale
+      con el nombre de esa línea; las líneas sin grupo van al final, en «Otros servicios».</p>
+    <ul class="lista" id="filas-grupos"></ul>
+    <form id="f-grupo" autocomplete="off" hidden>
+      <div class="rejilla">
+        <div><label for="g-titulo">Título del grupo nuevo (lo lee el cliente)</label>
+          <input id="g-titulo" type="text" maxlength="120" required></div>
+      </div>
+      <button type="submit">Añadir grupo</button>
+    </form>
   </section>
 
   <section id="alta" aria-labelledby="t-alta" hidden>
@@ -431,6 +448,7 @@ _PAGINA = """<!DOCTYPE html>
   function pinta(d) {
     todas = d.lineas;
     familias = d.familias;
+    pintaGrupos(d);
     var activas = d.lineas.filter(function (l) { return l.activa !== false; });
     var fuera = d.lineas.filter(function (l) { return l.activa === false; });
     var ul = document.getElementById('filas');
@@ -445,6 +463,52 @@ _PAGINA = """<!DOCTYPE html>
     d.familias.forEach(function (f) {
       var o = el('option', null, f.titulo); o.value = f.id; sel.appendChild(o);
     });
+  }
+
+  // Los grupos de la D, cada uno con las lineas activas que lleva. Renombrar no cambia el id: las
+  // lineas siguen en su grupo.
+  function pintaGrupos(d) {
+    var ul = document.getElementById('filas-grupos');
+    ul.textContent = '';
+    d.familias.forEach(function (f) {
+      var suyas = d.lineas.filter(function (l) { return l.activa !== false && l.familia === f.id; });
+      var li = el('li', 'fila grupo');
+      li.dataset.grupo = f.id;
+      var quien = el('div', 'quien');
+      quien.appendChild(el('b', null, f.titulo));
+      var lineas = suyas.length ? suyas.map(function (l) { return l.nombre; }).join(' · ') : 'Sin líneas: no sale en la plantilla D';
+      quien.appendChild(el('span', 'detalle', lineas));
+      li.appendChild(quien);
+      if (esAdmin) {
+        var acc = el('div', 'acciones');
+        acc.appendChild(boton('Editar', 'suave', function () { formGrupo(li, f); }, 'Editar el grupo ' + f.titulo));
+        li.appendChild(acc);
+      }
+      ul.appendChild(li);
+    });
+  }
+
+  function formGrupo(li, f) {
+    if (li.querySelector('.editor')) return;
+    var caja = el('div', 'editor');
+    var rejilla = el('div', 'rejilla');
+    var titulo = el('input'); titulo.type = 'text'; titulo.maxLength = 120; titulo.value = f.titulo;
+    // Solo el titulo: es lo unico del grupo que sale en el correo.
+    campo(rejilla, 'g-' + f.id + '-titulo', 'Título (lo lee el cliente)', titulo);
+    caja.appendChild(rejilla);
+    var botones = el('div', 'botones');
+    botones.appendChild(boton('Guardar cambios', '', function () {
+      var cambios = {};
+      if (titulo.value.trim() !== f.titulo) cambios.titulo = titulo.value.trim();
+      if (!Object.keys(cambios).length) { caja.remove(); return; }
+      api('PATCH', '/api/panel/familias/' + encodeURIComponent(f.id), cambios)
+        .then(function (g) { di('Grupo guardado: ' + g.titulo + '.', true); carga(); })
+        .catch(function (e) { di(e.message, false); });
+    }));
+    botones.appendChild(boton('Cancelar', 'suave', function () { caja.remove(); li.querySelector('.acciones button').focus(); }));
+    caja.appendChild(botones);
+    li.appendChild(caja);
+    titulo.focus();
   }
 
   function carga() {
@@ -480,9 +544,22 @@ _PAGINA = """<!DOCTYPE html>
       .then(function () { envio.disabled = false; });
   });
 
+  document.getElementById('f-grupo').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var envio = ev.submitter || ev.target.querySelector('button[type=submit]');
+    envio.disabled = true;
+    api('POST', '/api/panel/familias', { titulo: document.getElementById('g-titulo').value.trim() })
+      .then(function (g) {
+        di('Grupo añadido: ' + g.titulo + '. Asígnale líneas al darlas de alta o al editarlas.', true);
+        ev.target.reset();
+        carga();
+      }).catch(function (e) { di(e.message, false); })
+      .then(function () { envio.disabled = false; });
+  });
+
   api('GET', '/api/auth/yo').then(function (d) {
     esAdmin = d.rol === 'admin';
-    if (esAdmin) document.getElementById('alta').hidden = false;
+    if (esAdmin) { document.getElementById('alta').hidden = false; document.getElementById('f-grupo').hidden = false; }
     else document.getElementById('sub').textContent = 'Lo que el compositor ofrece como servicios. Solo un administrador añade o cambia líneas.';
     carga();
   }).catch(function (e) { di(e.message, false); });

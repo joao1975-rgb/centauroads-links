@@ -31,6 +31,8 @@ LETRAS = "ABCDEFGH"
 # Nombres que todo objeto de JavaScript ya tiene: como identificador de linea, el motor los
 # encontraria en BANCO o FICHA sin que nadie los hubiera puesto ahi.
 RESERVADOS = {"constructor", "prototype"}
+# `otros` es el grupo de la D que arma el motor con las lineas sin familia.
+RESERVADOS_FAMILIA = RESERVADOS | {"otros"}
 # Límites de data-model.md. El nombre aparte: es obligatorio.
 LIMITES = {"eyebrow": 60, "cta": 60, "cobertura": 200, "nota": 300, "canva": 500, "slug": 80,
            "alt": 200}
@@ -80,6 +82,16 @@ class Orden(BaseModel):
     ids: List[str]
 
 
+class FamiliaNueva(BaseModel):
+    titulo: str = ""
+    eyebrow: str = ""
+
+
+class FamiliaCambios(BaseModel):
+    titulo: Optional[str] = None
+    eyebrow: Optional[str] = None
+
+
 # --- Forma de salida -----------------------------------------------------------------------------
 
 def _ficha(l: models.LineaNegocio):
@@ -104,9 +116,12 @@ def _para_panel(l: models.LineaNegocio) -> dict:
     return d
 
 
+def _familia(f: models.FamiliaD) -> dict:
+    return {"id": f.id, "eyebrow": f.eyebrow, "titulo": f.titulo}
+
+
 def _familias(db: Session) -> list:
-    return [{"id": f.id, "eyebrow": f.eyebrow, "titulo": f.titulo}
-            for f in db.query(models.FamiliaD).order_by(models.FamiliaD.orden, models.FamiliaD.id)]
+    return [_familia(f) for f in db.query(models.FamiliaD).order_by(models.FamiliaD.orden, models.FamiliaD.id)]
 
 
 def _lineas(db: Session, solo_activas: bool):
@@ -123,14 +138,15 @@ def catalogo_activo(db: Session) -> dict:
 
 # --- Validación ----------------------------------------------------------------------------------
 
-def _id_desde(nombre: str, db: Session) -> str:
+def _id_desde(nombre: str, db: Session, modelo=models.LineaNegocio, reservados=RESERVADOS,
+              prefijo: str = "linea") -> str:
     """`Producción audiovisual` → `produccion-audiovisual`; si ya existe, `-2`, `-3`…"""
     plano = unicodedata.normalize("NFKD", nombre).encode("ascii", "ignore").decode("ascii")
-    base = re.sub(r"[^a-z0-9]+", "-", plano.lower()).strip("-")[:40].rstrip("-") or "linea"
-    if base in RESERVADOS:
-        base = "linea-" + base
+    base = re.sub(r"[^a-z0-9]+", "-", plano.lower()).strip("-")[:40].rstrip("-") or prefijo
+    if base in reservados:
+        base = prefijo + "-" + base
     candidato, n = base, 2
-    while db.get(models.LineaNegocio, candidato) is not None:
+    while db.get(modelo, candidato) is not None:
         candidato, n = "%s-%d" % (base, n), n + 1
     return candidato
 
@@ -273,6 +289,57 @@ def ordena(cuerpo: Orden, db: Session = Depends(get_db), _: models.PanelUser = D
         lineas[linea_id].orden = posicion
     db.commit()
     return {"ids": cuerpo.ids}
+
+
+def _familia_valida(cambios: dict, db: Session, propia: Optional[str] = None) -> dict:
+    datos = {}
+    if "titulo" in cambios:
+        titulo = (cambios["titulo"] or "").strip()
+        if not titulo:
+            raise HTTPException(status_code=400, detail="Falta el título del grupo.")
+        if len(titulo) > 120:
+            raise HTTPException(status_code=400, detail="El título admite 120 caracteres como mucho.")
+        if any(f.id != propia and f.titulo.strip().lower() == titulo.lower() for f in db.query(models.FamiliaD)):
+            raise HTTPException(status_code=409, detail="Ya existe un grupo con ese título.")
+        datos["titulo"] = titulo
+    if "eyebrow" in cambios:
+        eyebrow = (cambios["eyebrow"] or "").strip()
+        if len(eyebrow) > 60:
+            raise HTTPException(status_code=400, detail="La etiqueta admite 60 caracteres como mucho.")
+        datos["eyebrow"] = eyebrow
+    return datos
+
+
+@router.post("/api/panel/familias", status_code=201)
+def alta_familia(cuerpo: FamiliaNueva, db: Session = Depends(get_db),
+                 _: models.PanelUser = Depends(solo_admin)):
+    """Un grupo nuevo de la plantilla D. Va detras de los que ya estaban."""
+    datos = _familia_valida(cuerpo.model_dump(), db)
+    ultima = db.query(models.FamiliaD).order_by(models.FamiliaD.orden.desc()).first()
+    familia = models.FamiliaD(id=_id_desde(datos["titulo"], db, models.FamiliaD, RESERVADOS_FAMILIA, "familia"),
+                              orden=(ultima.orden + 1) if ultima else 0, **datos)
+    db.add(familia)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Ya existe un grupo con ese título.")
+    db.refresh(familia)
+    return _familia(familia)
+
+
+@router.patch("/api/panel/familias/{familia_id}")
+def edita_familia(familia_id: str, cuerpo: FamiliaCambios, db: Session = Depends(get_db),
+                  _: models.PanelUser = Depends(solo_admin)):
+    """Renombrar un grupo: el titulo es lo que lee el cliente en la D. El id no cambia."""
+    familia = db.get(models.FamiliaD, familia_id)
+    if familia is None:
+        raise HTTPException(status_code=404, detail="Ese grupo no existe.")
+    for campo, valor in _familia_valida(cuerpo.model_dump(exclude_unset=True), db, propia=familia.id).items():
+        setattr(familia, campo, valor)
+    db.commit()
+    db.refresh(familia)
+    return _familia(familia)
 
 
 @router.post("/api/panel/lineas/{linea_id}/foto")

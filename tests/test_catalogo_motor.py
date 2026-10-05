@@ -112,6 +112,21 @@ if (escenario === 'serie') {
   out.agenciasPrecio = con('A', 'agencia', true);
   out.e = con('E', 'general');
   out.ePrecio = con('E', 'general', true);
+} else if (escenario === 'familias') {
+  // Familias de la D (US5): una existente, una nueva y sin familia («Otros servicios»).
+  const cat = M.catalogoActual();
+  const linea = (id, nombre, familia) => Object.assign({}, NUEVA, { id: id, nombre: nombre, familia: familia });
+  cat.familias.push({ id: 'renta', eyebrow: 'Renta', titulo: 'FAMILIA-NUEVA-RENTA' });
+  cat.lineas.push(linea('en-dooh', 'LINEA-EN-DOOH', 'dooh'));
+  cat.lineas.push(linea('renta-1', 'LINEA-RENTA-1', 'renta'), linea('renta-2', 'LINEA-RENTA-2', 'renta'));
+  cat.lineas.push(linea('suelta-1', 'LINEA-SUELTA-1', ''), linea('suelta-2', 'LINEA-SUELTA-2', 'no-existe'));
+  M.ponCatalogo(cat);
+  out.d = M.render(base('D', 'general'), 'D');
+  // Una familia nueva con una sola linea: sale con el nombre de la linea, como las de serie.
+  const cat2 = M.catalogoActual();
+  cat2.lineas = cat2.lineas.filter(l => l.id !== 'renta-2');
+  M.ponCatalogo(cat2);
+  out.dUna = M.render(base('D', 'general'), 'D');
 }
 process.stdout.write(JSON.stringify(out));
 """
@@ -284,4 +299,35 @@ def test_el_precio_desde_solo_sale_con_el_modo_de_precios(ficha):
     assert "987" not in ficha["e"] and "987" not in ficha["agencias"]
     assert "987 $/mes" in ficha["ePrecio"]
     assert "987 $/mes" in ficha["agenciasPrecio"]
+
+
+# --- Familias de la plantilla D (US5, T331) ------------------------------------------------------
+
+@pytest.fixture(scope="module")
+def familias(tmp_path_factory):
+    return _corre(tmp_path_factory, "familias")
+
+
+def test_una_linea_en_una_familia_existente_sale_dentro_de_ella(familias):
+    d = familias["d"]
+    dooh = d.index("Pantallas LED y Tótem (DOOH)")
+    assert dooh < d.index("LINEA-EN-DOOH") < d.index("Publicidad móvil · Rider Clon")
+
+
+def test_una_familia_nueva_sale_con_su_titulo_y_sus_lineas(familias):
+    d = familias["d"]
+    titulo = d.index("FAMILIA-NUEVA-RENTA")
+    assert titulo < d.index("LINEA-RENTA-1") and titulo < d.index("LINEA-RENTA-2")
+
+
+def test_sin_familia_va_a_otros_servicios(familias):
+    d = familias["d"]
+    otros = d.index("Otros servicios")
+    assert otros < d.index("LINEA-SUELTA-1") and otros < d.index("LINEA-SUELTA-2")
+    assert otros > d.index("FAMILIA-NUEVA-RENTA"), "Otros servicios va al final"
+
+
+def test_una_familia_con_una_sola_linea_sale_con_el_nombre_de_la_linea(familias):
+    assert "LINEA-RENTA-1" in familias["dUna"]
+    assert "FAMILIA-NUEVA-RENTA" not in familias["dUna"]
 

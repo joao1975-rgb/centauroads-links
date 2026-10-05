@@ -125,13 +125,13 @@ empieza por sus pruebas, que deben fallar antes de implementar.
 
 ### Tests for User Story 5 ⚠️
 
-- [ ] T331 [P] [US5] Pruebas del motor: familia existente, familia nueva y sin familia («Otros servicios»); la D de serie no cambia
-- [ ] T332 [P] [US5] Pruebas de API: `POST /api/panel/familias` (administrador 201, comercial 403, título repetido 409)
+- [x] T331 [P] [US5] Pruebas del motor: familia existente, familia nueva y sin familia («Otros servicios»); la D de serie no cambia
+- [x] T332 [P] [US5] Pruebas de API: `POST /api/panel/familias` (administrador 201, comercial 403, título repetido 409)
 
 ### Implementation for User Story 5
 
-- [ ] T333 [US5] `GRUPOS` desde las familias del catálogo y grupo «Otros servicios» en `prototipos/mail/render.js`
-- [ ] T334 [US5] `POST /api/panel/familias` y selector de familia (existente o nueva) en la pantalla
+- [x] T333 [US5] `GRUPOS` desde las familias del catálogo y grupo «Otros servicios» en `prototipos/mail/render.js`
+- [x] T334 [US5] `POST /api/panel/familias` y selector de familia (existente o nueva) en la pantalla
 
 ---
 
