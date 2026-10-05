@@ -108,12 +108,12 @@ empieza por sus pruebas, que deben fallar antes de implementar.
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T328 [P] [US4] Pruebas del motor: fila en la tabla de agencias y en el inventario de la E solo con ficha; las cinco filas de serie de la E no cambian; el precio "desde" solo sale con el modo de precios encendido
+- [x] T328 [P] [US4] Pruebas del motor: fila en la tabla de agencias y en el inventario de la E solo con ficha; las cinco filas de serie de la E no cambian; el precio "desde" solo sale con el modo de precios encendido
 
 ### Implementation for User Story 4
 
-- [ ] T329 [US4] Inventario de la E en `prototipos/mail/render.js`: filas genéricas, detrás de las cinco de serie, para las líneas activas con ficha
-- [ ] T330 [US4] Campos de ficha (ubicación, medidas, tráfico, precio "desde") en la pantalla y en la API
+- [x] T329 [US4] Inventario de la E en `prototipos/mail/render.js`: filas genéricas, detrás de las cinco de serie, para las líneas activas con ficha
+- [x] T330 [US4] Campos de ficha (ubicación, medidas, tráfico, precio "desde") en la pantalla y en la API
 
 ---
 

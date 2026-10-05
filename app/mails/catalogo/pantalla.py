@@ -162,6 +162,21 @@ _PAGINA = """<!DOCTYPE html>
           <input id="a-alt" type="text" maxlength="200"></div>
       </div>
       <fieldset>
+        <legend>Ficha técnica (opcional)</legend>
+        <p class="nota">Con ubicación, medidas o tráfico, la línea entra en la tabla de agencias y en el
+          inventario de la plantilla E. Sin ficha, no aparece en esas tablas.</p>
+        <div class="rejilla">
+          <div><label for="a-ficha-ubic">Ubicación</label>
+            <input id="a-ficha-ubic" type="text" maxlength="120"></div>
+          <div><label for="a-ficha-medida">Medidas</label>
+            <input id="a-ficha-medida" type="text" maxlength="120"></div>
+          <div><label for="a-ficha-trafico">Tráfico o audiencia</label>
+            <input id="a-ficha-trafico" type="text" maxlength="120"></div>
+          <div><label for="a-ficha-desde">Precio desde, $/mes (solo el número; sale con los precios activados)</label>
+            <input id="a-ficha-desde" type="text" inputmode="decimal" maxlength="20"></div>
+        </div>
+      </fieldset>
+      <fieldset>
         <legend>Plantillas en que sale</legend>
         <div class="casillas">
 """ + _CASILLAS + """
@@ -297,6 +312,19 @@ _PAGINA = """<!DOCTYPE html>
     });
     campo(rejilla, 'e-' + l.id + '-familia', 'Grupo en la plantilla D', familia);
     caja.appendChild(rejilla);
+    var ficha = l.ficha || {}, entradasFicha = {};
+    var grupoFicha = el('fieldset');
+    grupoFicha.appendChild(el('legend', null, 'Ficha técnica (opcional)'));
+    grupoFicha.appendChild(el('p', 'nota', 'Con ubicación, medidas o tráfico, entra en la tabla de agencias y en el inventario de la E. Vacía, no.'));
+    var rejillaFicha = el('div', 'rejilla');
+    [['ubic', 'Ubicación'], ['medida', 'Medidas'], ['trafico', 'Tráfico o audiencia'],
+     ['desde', 'Precio desde, $/mes (solo el número)']].forEach(function (f) {
+      var i = el('input'); i.type = 'text'; i.maxLength = 120; i.value = ficha[f[0]] || '';
+      if (f[0] === 'desde') i.inputMode = 'decimal';
+      entradasFicha[f[0]] = campo(rejillaFicha, 'e-' + l.id + '-ficha-' + f[0], f[1], i);
+    });
+    grupoFicha.appendChild(rejillaFicha);
+    caja.appendChild(grupoFicha);
     var plantillas = casillasPlantillas(caja, l);
     var botones = el('div', 'botones');
     botones.appendChild(boton('Guardar cambios', '', function () {
@@ -305,6 +333,10 @@ _PAGINA = """<!DOCTYPE html>
         if (entradas[k].value.trim() !== (l[k] || '')) cambios[k] = entradas[k].value.trim();
       });
       if (familia.value !== (l.familia || '')) cambios.familia = familia.value;
+      Object.keys(entradasFicha).forEach(function (k) {
+        var v = entradasFicha[k].value.trim();
+        if (v !== (ficha[k] || '')) { cambios.ficha = cambios.ficha || {}; cambios.ficha[k] = v; }
+      });
       var letras = plantillas();
       if (letras !== l.plantillas) {
         if (!letras && !confirm('No has marcado ninguna plantilla: la línea no saldrá en ningún correo. ¿Seguir?')) return;
@@ -367,6 +399,7 @@ _PAGINA = """<!DOCTYPE html>
       quien.appendChild(nombre);
       var detalle = [l.eyebrow, l.cobertura].filter(Boolean).join(' · ');
       if (detalle) quien.appendChild(el('span', 'detalle', detalle));
+      if (l.ficha) quien.appendChild(el('span', 'detalle', 'Ficha: ' + [l.ficha.ubic, l.ficha.medida, l.ficha.trafico].filter(Boolean).join(' · ')));
       var letras = el('div', 'letras');
       letras.setAttribute('aria-label', l.plantillas ? 'Sale en las plantillas ' + l.plantillas.split('').join(', ') : 'No sale en ninguna plantilla');
       LETRAS.split('').forEach(function (k) {
@@ -426,7 +459,9 @@ _PAGINA = """<!DOCTYPE html>
       function (c) { return c.checked; }).map(function (c) { return c.value; }).join('');
     var cuerpo = { nombre: valor('a-nombre'), eyebrow: valor('a-eyebrow'), cobertura: valor('a-cobertura'),
                    nota: valor('a-nota'), canva: valor('a-canva'), cta: valor('a-cta'),
-                   familia: valor('a-familia'), alt: valor('a-alt'), plantillas: plantillas };
+                   familia: valor('a-familia'), alt: valor('a-alt'), plantillas: plantillas,
+                   ficha: { ubic: valor('a-ficha-ubic'), medida: valor('a-ficha-medida'),
+                            trafico: valor('a-ficha-trafico'), desde: valor('a-ficha-desde') } };
     if (!plantillas) {
       if (!confirm('No has marcado ninguna plantilla: la línea quedará guardada pero no saldrá en ningún correo. ¿Seguir?')) return;
       cuerpo.confirmarSinPlantillas = true;

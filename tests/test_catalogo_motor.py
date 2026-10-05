@@ -99,6 +99,19 @@ if (escenario === 'serie') {
   const st = M.defaultState(); st.perfil = 'agencia';
   out.orden = M.aplicaPerfil(M.normaliza(st)).servicios.map(s => s.id);
   out.ordenPerfil = M.PERFILES.agencia.orden;
+} else if (escenario === 'ficha') {
+  // Ficha tecnica opcional (US4): con ficha, fila en la tabla de agencias y en el inventario de E;
+  // sin ficha, en ninguna. El precio "desde" solo con el modo de precios.
+  const cat = M.catalogoActual();
+  cat.lineas.push(Object.assign({}, NUEVA, { ficha: { ubic: 'UBIC-CON-FICHA', medida: 'MEDIDA-CON-FICHA',
+    trafico: 'TRAFICO-CON-FICHA', desde: '987' } }));
+  cat.lineas.push(Object.assign({}, NUEVA, { id: 'sinficha', nombre: 'LINEA-SIN-FICHA', ficha: null }));
+  M.ponCatalogo(cat);
+  const con = (k, pf, precios) => { const st = base(k, pf); if (precios) st.precios = 'desde'; return M.render(st, k); };
+  out.agencias = con('A', 'agencia');
+  out.agenciasPrecio = con('A', 'agencia', true);
+  out.e = con('E', 'general');
+  out.ePrecio = con('E', 'general', true);
 }
 process.stdout.write(JSON.stringify(out));
 """
@@ -234,4 +247,41 @@ def test_un_perfil_con_orden_propio_deja_detras_las_lineas_que_no_nombra(tmp_pat
     r = _corre(tmp_path_factory, "perfil")
     assert r["orden"][:len(r["ordenPerfil"])] == r["ordenPerfil"]
     assert r["orden"][-1] == "alquiler"
+
+
+# --- Ficha tecnica opcional (US4, T328) ----------------------------------------------------------
+
+@pytest.fixture(scope="module")
+def ficha(tmp_path_factory):
+    return _corre(tmp_path_factory, "ficha")
+
+
+def test_con_ficha_entra_en_la_tabla_de_agencias(ficha):
+    assert "UBIC-CON-FICHA" in ficha["agencias"]
+    assert "MEDIDA-CON-FICHA" in ficha["agencias"] and "TRAFICO-CON-FICHA" in ficha["agencias"]
+
+
+def test_con_ficha_entra_en_el_inventario_de_la_e(ficha):
+    assert "Alquiler de pantallas" in ficha["e"]
+    assert "UBIC-CON-FICHA" in ficha["e"] and "TRAFICO-CON-FICHA" in ficha["e"]
+    assert ">06<" in ficha["e"], "numerada detras de las cinco de serie"
+
+
+def _tabla_agencias(html):
+    """La tabla de disponibilidad del perfil agencia: de su cabecera «Espacio» a su cierre."""
+    i = html.index(">Espacio</td>")
+    return html[i:html.index("</table>", i)]
+
+
+def test_sin_ficha_no_entra_en_ninguna_tabla(ficha):
+    # Fuera de las tablas si sale, como cualquier linea («Tambien disponible» de la E, tarjetas).
+    assert "LINEA-SIN-FICHA" not in _tabla_agencias(ficha["agencias"])
+    assert "Alquiler de pantallas" in _tabla_agencias(ficha["agencias"])
+    assert ">07<" not in ficha["e"], "la linea sin ficha no tiene fila en el inventario"
+
+
+def test_el_precio_desde_solo_sale_con_el_modo_de_precios(ficha):
+    assert "987" not in ficha["e"] and "987" not in ficha["agencias"]
+    assert "987 $/mes" in ficha["ePrecio"]
+    assert "987 $/mes" in ficha["agenciasPrecio"]
 

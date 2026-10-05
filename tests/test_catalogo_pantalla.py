@@ -74,6 +74,14 @@ def test_editar_ordenar_y_retirar_estan_en_la_pantalla(comercial):
     assert "if (!esAdmin) return li;" in html
 
 
+def test_la_ficha_tecnica_se_da_de_alta_y_se_edita(comercial):
+    """US4: la ficha es opcional y la pantalla dice para que sirve."""
+    html = comercial.get(PANTALLA).text
+    for campo in ("ubic", "medida", "trafico", "desde"):
+        assert 'id="a-ficha-%s"' % campo in html
+    assert "tabla de agencias" in html and "cambios.ficha" in html
+
+
 @pytest.mark.parametrize("compositor", ["prototipos/mail/compositor.html",
                                         "app/static/email/compositor.html"])
 def test_el_compositor_enlaza_la_pantalla_y_pide_el_catalogo(compositor):

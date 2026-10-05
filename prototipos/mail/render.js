@@ -1574,6 +1574,17 @@
       m: [[h(tb[id + '_dato1']), h(tb[id + '_valor1'])], [h(tb[id + '_dato2']), h(tb[id + '_valor2'])]] });
     const INVENTARIO = [fila('01', 'led', a.slotsLed), fila('02', 'mercedes', ''), fila('03', 'vallas', ''),
       fila('04', 'rider', h(tb.rider_distintivo)), fila('05', 'totem', '')];
+    // Las lineas del catalogo con ficha tecnica que no son de serie (003, US4) entran detras de las
+    // cinco, con los datos de su ficha. Sin ficha no hay fila: esta tabla es de metricas comparables.
+    // El precio "desde" solo con el modo de precios encendido, como en la tabla de agencias.
+    const deSerie = INVENTARIO.map(function (f) { return f.id; });
+    activos(st).filter(function (x) { return deSerie.indexOf(x.id) < 0 && FICHA[x.id]; }).forEach(function (x, j) {
+      const ficha = FICHA[x.id], metricas = [];
+      if (ficha.trafico) metricas.push(['Tráfico', ficha.trafico]);
+      if (desdeDe(st, x.id)) metricas.push(['Desde', ficha.desde + ' $/mes']);
+      INVENTARIO.push({ n: ('0' + (deSerie.length + j + 1)).slice(-2), id: x.id, badge: '', t: x.nombre,
+        d: [ficha.ubic, ficha.medida].filter(Boolean).join(' · '), m: metricas });
+    });
     const vivos = activos(st).map(function (x) { return x.id; });
     let tabla = '';
     INVENTARIO.filter(function (f) { return vivos.indexOf(f.id) >= 0; }).forEach(function (f, i) {

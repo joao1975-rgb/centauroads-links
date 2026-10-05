@@ -36,6 +36,14 @@ LIMITES = {"eyebrow": 60, "cta": 60, "cobertura": 200, "nota": 300, "canva": 500
            "alt": 200}
 
 
+class Ficha(BaseModel):
+    """Ficha tecnica opcional (US4). Hay ficha si ubicacion, medidas o trafico tienen valor."""
+    ubic: Optional[str] = None
+    medida: Optional[str] = None
+    trafico: Optional[str] = None
+    desde: Optional[str] = None
+
+
 class LineaNueva(BaseModel):
     nombre: str = ""
     eyebrow: str = ""
@@ -48,6 +56,7 @@ class LineaNueva(BaseModel):
     familia: Optional[str] = None
     plantillas: Optional[str] = None
     confirmarSinPlantillas: bool = False
+    ficha: Optional[Ficha] = None
 
 
 class LineaCambios(BaseModel):
@@ -64,6 +73,7 @@ class LineaCambios(BaseModel):
     plantillas: Optional[str] = None
     confirmarSinPlantillas: bool = False
     activa: Optional[bool] = None
+    ficha: Optional[Ficha] = None
 
 
 class Orden(BaseModel):
@@ -174,6 +184,27 @@ def _valida(cambios: dict, db: Session, propia: Optional[str] = None) -> dict:
         datos["familia_id"] = familia
     if "plantillas" in cambios:
         datos["plantillas"] = _plantillas(cambios["plantillas"], cambios.get("confirmarSinPlantillas", False))
+    datos.update(_ficha_valida(cambios.get("ficha") or {}))
+    return datos
+
+
+# El correo escribe "<desde> $/mes": aqui va solo el numero, o el importe saldria dos veces.
+_DESDE = re.compile(r"^[0-9][0-9.,]*$")
+
+
+def _ficha_valida(ficha: dict) -> dict:
+    """Los datos de ficha que llegan (solo esos), como columnas `ficha_*`."""
+    datos = {}
+    for campo, valor in ficha.items():
+        if valor is None:
+            continue
+        valor = valor.strip()
+        if len(valor) > 120:
+            raise HTTPException(status_code=400, detail="Cada dato de la ficha admite 120 caracteres como mucho.")
+        if campo == "desde" and valor and not _DESDE.fullmatch(valor):
+            raise HTTPException(status_code=400,
+                                detail="El precio «desde» es solo el número (por ejemplo 1.500): el correo le añade «$/mes».")
+        datos["ficha_" + campo] = valor
     return datos
 
 

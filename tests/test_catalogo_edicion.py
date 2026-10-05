@@ -171,3 +171,47 @@ def test_el_orden_tiene_que_ser_completo(admin, cambio):
 def test_un_comercial_no_ordena(comercial, admin):
     ids = [l["id"] for l in admin.get("/api/panel/lineas").json()["lineas"]]
     assert comercial.post("/api/panel/lineas/orden", json={"ids": ids}).status_code == 403
+
+
+# --- Ficha tecnica opcional (US4, T330) ----------------------------------------------------------
+
+FICHA = {"ubic": "Eventos · Caracas", "medida": "3 × 2 m", "trafico": "500 asistentes", "desde": "1.500"}
+
+
+def _ficha_de(cliente, linea_id):
+    return next(l for l in cliente.get("/api/catalogo").json()["lineas"] if l["id"] == linea_id)["ficha"]
+
+
+def test_una_linea_nace_con_su_ficha(admin):
+    r = admin.post("/api/panel/lineas", json={"nombre": "Con ficha técnica", "ficha": FICHA})
+    assert r.status_code == 201, r.text
+    assert _ficha_de(admin, r.json()["id"]) == FICHA
+
+
+def test_una_ficha_vacia_es_no_tener_ficha(admin):
+    vacia = {"ubic": " ", "medida": "", "trafico": "", "desde": ""}
+    r = admin.post("/api/panel/lineas", json={"nombre": "Ficha en blanco", "ficha": vacia})
+    assert r.status_code == 201 and _ficha_de(admin, r.json()["id"]) is None
+
+
+@pytest.mark.parametrize("desde", ["mil", "1.500 USD", "$1500", "-5"])
+def test_el_precio_desde_es_solo_el_numero(admin, desde):
+    """El correo le añade « $/mes»: un texto o una moneda escritos aqui saldrian dos veces."""
+    r = admin.post("/api/panel/lineas", json={"nombre": "Precio raro " + desde, "ficha": {"desde": desde}})
+    assert r.status_code == 400
+
+
+def test_un_dato_de_ficha_demasiado_largo_se_rechaza(admin):
+    r = admin.post("/api/panel/lineas", json={"nombre": "Ficha larga", "ficha": {"ubic": "x" * 121}})
+    assert r.status_code == 400
+
+
+def test_editar_la_ficha_cambia_solo_lo_enviado_y_se_puede_quitar(admin):
+    linea = admin.post("/api/panel/lineas", json={"nombre": "Ficha que se edita", "ficha": FICHA}).json()
+    ruta = "/api/panel/lineas/" + linea["id"]
+    assert admin.patch(ruta, json={"ficha": {"trafico": "800 asistentes"}}).status_code == 200
+    assert _ficha_de(admin, linea["id"]) == dict(FICHA, trafico="800 asistentes")
+    vacia = {"ubic": "", "medida": "", "trafico": "", "desde": ""}
+    assert admin.patch(ruta, json={"ficha": vacia}).status_code == 200
+    assert _ficha_de(admin, linea["id"]) is None
+
