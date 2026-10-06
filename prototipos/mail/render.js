@@ -556,6 +556,13 @@
           // La despedida, justo antes de la firma. Propia de la entrega: es lo ultimo que se
           // lee y cambia segun a quien va dirigida.
           cierre: '\u00a1Si necesitas un espacio que no aparezca aqu\u00ed, d\u00edmelo y lo busco!',
+          // Que espacios acompanan ESTA entrega (004). Antes era el `on` global de los servicios,
+          // y marcar uno en la H lo encendia tambien en A-G. Por defecto, todos: los encendidos.
+          incluidos: SERVICIOS.map(function (x) { return x.id; }),
+          // Lo propio de cada espacio en esta entrega, solo lo que difiere del catalogo:
+          // { <id>: { canva, nombre, cobertura, carrusel } }. El carrusel, con su direccion
+          // completa. Solo lo lee la H; A-G siguen con el catalogo.
+          espacios: {},
         },
         pie: { on: true, texto: 'Recibes este correo porque solicitaste información sobre espacios publicitarios de Centauro ADS.' },
       },
@@ -628,7 +635,8 @@
   const usaPortadas = st => st.imgSet === 'portadas';
   const svcImg = (st, s) => imgFor(st, usaPortadas(st) && s.cover ? s.cover : s.img);
   // Sin foto (una linea recien dada de alta), la imagen no se pinta: mejor nada que un hueco roto.
-  const tieneFoto = (st, s) => !!String((usaPortadas(st) && s.cover ? s.cover : s.img) || '').trim();
+  // Un espacio con carrusel propio (la H de una entrega, 004) tiene foto aunque la linea no la tenga.
+  const tieneFoto = (st, s) => !!s.carruselPropio || !!String((usaPortadas(st) && s.cover ? s.cover : s.img) || '').trim();
   const svcAlt = (st, s) => (usaPortadas(st) && s.altCover ? s.altCover : s.alt);
   // La portada de una entrega puede venir de tres sitios: del servidor que la guarda
   // (/media/entregas/7/og.jpg), de una direccion completa, o del juego de imagenes local
@@ -969,7 +977,7 @@
   // pidio conservar las varias imagenes por servicio con sus transiciones.
   function fotoServicio(st, s, ancho, alto) {
     if (!tieneFoto(st, s)) return '';
-    const src = (st.cardAnim && !usaPortadas(st)) ? carruselSrc(st, s) : svcImg(st, s);
+    const src = fotoDe(st, s);
     const k = paleta(temaDe(st));
     return '<a href="' + esc(linkFor(st, s)) + '"><img src="' + esc(src) + '" width="' + ancho + '"' +
       (alto ? ' height="' + alto + '"' : '') + ' alt="' + esc(svcAlt(st, s)) + '"' +
@@ -1139,6 +1147,12 @@
       if (st.bloques.firma.rol === undefined) st.bloques.firma.rol = base.bloques.firma.rol;
       if (st.bloques.firma.correo === undefined) st.bloques.firma.correo = base.bloques.firma.correo;
     }
+    // Una sesion de antes de la 004 no tiene `incluidos`: se toman los servicios encendidos, que
+    // es lo que su H ensenaba. Va ANTES del relleno general, que le pondria los del estado por
+    // defecto (todos) y la H de quien tenia alguno apagado cambiaria sin que tocara nada.
+    if (st.bloques && st.bloques.entrega && st.bloques.entrega.incluidos === undefined && Array.isArray(st.servicios)) {
+      st.bloques.entrega.incluidos = st.servicios.filter(function (x) { return x.on; }).map(function (x) { return x.id; });
+    }
     if (!st.bloques) st.bloques = base.bloques;
     Object.keys(base.bloques).forEach(function (k) {
       if (!st.bloques[k]) { st.bloques[k] = base.bloques[k]; return; }
@@ -1227,7 +1241,9 @@
     '<a href="' + esc(url) + '" style="display:block;padding:18px 22px;font-family:' + FS + ';font-size:22px;' +
     'line-height:26px;font-weight:700;color:' + color + ';text-decoration:none;">' + esc(txt) + '&nbsp;&nbsp;&rarr;</a>' +
     '</td></tr></table>';
-  const fotoDe = (st, s) => (st.cardAnim && !usaPortadas(st) ? carruselSrc(st, s) : svcImg(st, s));
+  // El carrusel propio de un espacio manda sobre el juego de imagenes: es lo que se le armo a ese
+  // cliente (004), y sin animacion o con portadas se perderia.
+  const fotoDe = (st, s) => s.carruselPropio || (st.cardAnim && !usaPortadas(st) ? carruselSrc(st, s) : svcImg(st, s));
   const imagen = (st, s, ancho, fondoAlt) => !tieneFoto(st, s) ? '' :
     '<a href="' + esc(linkFor(st, s)) + '"><img src="' + esc(fotoDe(st, s)) + '" width="' + ancho + '" alt="' +
     esc(svcAlt(st, s)) + '" style="display:block;width:100%;max-width:100%;height:auto;border:0;' +
@@ -1988,7 +2004,10 @@
   };
   // Una linea del catalogo puede limitarse a algunas plantillas (003, FR-309). Las que no incluyen
   // la de este correo salen apagadas, en una COPIA: lo que la persona tiene encendido no se toca.
+  //
+  // En la H, ademas, los espacios son los de ESTA entrega (004), tambien en una copia.
   function soloSuyas(st, k) {
+    if (k === 'H') st = espaciosDeLaEntrega(st);
     const fuera = {};
     let alguna = false;
     SERVICIOS.forEach(function (x) {
@@ -1997,6 +2016,24 @@
     if (!alguna || !Array.isArray(st.servicios)) return st;
     return Object.assign({}, st, { servicios: st.servicios.map(function (x) {
       return fuera[x.id] ? Object.assign({}, x, { on: false }) : x;
+    }) });
+  }
+
+  // La H lleva lo propio de la entrega: que espacios la acompanan (`incluidos`) y, de cada uno,
+  // lo que se le cambio (`espacios`). Sobre una COPIA, como soloSuyas y aplicaPerfil: el estado
+  // de la persona no se toca y A-G siguen con el catalogo y el `on` global. `carruselPropio`
+  // solo lo pone esta funcion, por eso los correos de A-G no pueden cambiar.
+  const PROPIOS = { canva: 'canva', nombre: 'nombre', cobertura: 'cobertura', carrusel: 'carruselPropio' };
+  function espaciosDeLaEntrega(st) {
+    const e = st.bloques && st.bloques.entrega;
+    if (!e || !Array.isArray(st.servicios)) return st;
+    const incluidos = e.incluidos || [], espacios = e.espacios || {};
+    return Object.assign({}, st, { servicios: st.servicios.map(function (x) {
+      const s = Object.assign({}, x, { on: incluidos.indexOf(x.id) >= 0 });
+      const p = espacios[x.id] || {};
+      // Un campo vacio es "el del catalogo": no pisa nada.
+      Object.keys(PROPIOS).forEach(function (c) { if (p[c]) s[PROPIOS[c]] = p[c]; });
+      return s;
     }) });
   }
 

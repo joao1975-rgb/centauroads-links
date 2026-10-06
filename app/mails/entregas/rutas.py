@@ -22,6 +22,7 @@ manual el copiar y pegar en el mail"*. Marcar una entrega como entregada es un g
 persona que ya la pegó y la envió, no un envío.
 """
 
+import json
 import logging
 import secrets
 from urllib.parse import urlparse
@@ -35,14 +36,13 @@ from sqlalchemy.orm import Session
 from ...database import get_db
 from ... import models
 from ...auth.dependencias import usuario_actual, exigir_cuenta
-from . import almacen, carrusel, paginas as mod_paginas
+from . import almacen, galeria
+from .galeria import Seleccion
 from .publicas import _existe, _url_media
 
 log = logging.getLogger("centaurads.entregas")
 router = APIRouter()
 
-MIN_PAGINAS = 2
-MAX_PAGINAS = 4
 _ALFABETO = "abcdefghijkmnopqrstuvwxyz23456789"   # sin l/1/0/o: estos enlaces se leen en voz alta
 
 
@@ -58,6 +58,30 @@ class ContactoRapido(BaseModel):
     origen: str = Field(default="", max_length=50)
 
 
+def valida_enlace(v: str) -> str:
+    """
+    Un enlace absoluto, con http o https. Lanza `ValueError` con el mensaje para la persona.
+
+    Canva enseña sus enlaces cortos SIN esquema —«canva.link/xyz»— y así es como se copian.
+    Guardado tal cual, la redirección de `/p/{slug}` lo resuelve **relativo**: el cliente
+    acaba en `/p/canva.link/xyz` y un 404, con la propuesta ya enviada. El acortador exige
+    `HttpUrl` desde siempre; esto lo pone al mismo nivel.
+
+    Es una función suelta y no solo el validador de `EntregaEntrada` porque el enlace de cada
+    espacio se valida igual (004, FR-404): una sola regla, un solo mensaje.
+    """
+    v = (v or "").strip()
+    partes = urlparse(v)
+    if partes.scheme not in ("http", "https") or not partes.netloc:
+        # El caso corriente es pegarlo sin esquema; ahí se dice exactamente qué escribir en
+        # vez de un "no válido" que obliga a adivinar.
+        if not partes.scheme:
+            raise ValueError("Falta el https:// al principio — prueba con https://%s"
+                             % v.lstrip("/"))
+        raise ValueError("El enlace tiene que empezar por https://")
+    return v
+
+
 class EntregaEntrada(BaseModel):
     titulo: str = Field(min_length=1, max_length=200)
     canva_url: str = Field(min_length=1, max_length=500)
@@ -65,24 +89,7 @@ class EntregaEntrada(BaseModel):
     @field_validator("canva_url")
     @classmethod
     def _con_esquema(cls, v: str) -> str:
-        """
-        Un enlace absoluto, con http o https.
-
-        Canva enseña sus enlaces cortos SIN esquema —«canva.link/xyz»— y así es como se copian.
-        Guardado tal cual, la redirección de `/p/{slug}` lo resuelve **relativo**: el cliente
-        acaba en `/p/canva.link/xyz` y un 404, con la propuesta ya enviada. El acortador exige
-        `HttpUrl` desde siempre; esto lo pone al mismo nivel.
-        """
-        v = (v or "").strip()
-        partes = urlparse(v)
-        if partes.scheme not in ("http", "https") or not partes.netloc:
-            # El caso corriente es pegarlo sin esquema; ahí se dice exactamente qué escribir en
-            # vez de un "no válido" que obliga a adivinar.
-            if not partes.scheme:
-                raise ValueError("Falta el https:// al principio — prueba con https://%s"
-                                 % v.lstrip("/"))
-            raise ValueError("El enlace tiene que empezar por https://")
-        return v
+        return valida_enlace(v)
     texto: str = ""
     servicios: str = ""
     contact_id: Optional[int] = None
@@ -106,6 +113,8 @@ class EntregaSalida(BaseModel):
     carrusel: Optional[str] = None
     portada: Optional[str] = None
     paginas: List[dict] = []
+    # Los espacios personalizados en esta entrega (004). Uno estándar no sale: se lee del catálogo.
+    espacios: List[dict] = []
 
 
 # ---------------------------------------------------------------------------
@@ -172,7 +181,30 @@ def _busca(db: Session, entrega_id: int) -> models.Entrega:
     return entrega
 
 
+def _espacio_a_salida(entrega_id: int, fila: models.EntregaEspacio) -> dict:
+    """
+    Un espacio personalizado tal como lo lee el compositor. Campos nulos = los del catálogo.
+
+    El carrusel sale solo si la fila lo armó (`efecto`): tras «volver al estándar» los ficheros
+    siguen en disco para los correos ya enviados, pero ya no son de este espacio.
+    """
+    linea = fila.linea_id
+    elegidas = json.loads(fila.paginas or "[]")
+    return {
+        "linea": linea,
+        "canva_url": fila.canva_url, "nombre": fila.nombre, "cobertura": fila.cobertura,
+        "efecto": fila.efecto,
+        "carrusel": _existe(entrega_id, "carrusel.gif", linea) if fila.efecto else None,
+        "paginas": [{
+            "orden": p["orden"], "url": _url_media(entrega_id, p["ruta"].rsplit("/", 1)[-1], linea),
+            "ancho": p["ancho"], "alto": p["alto"], "aviso_precio": p["aviso_precio"],
+        } for p in elegidas],
+    }
+
+
 def _a_salida(db: Session, entrega: models.Entrega) -> EntregaSalida:
+    espacios = db.query(models.EntregaEspacio).filter(
+        models.EntregaEspacio.entrega_id == entrega.id).order_by(models.EntregaEspacio.id).all()
     return EntregaSalida(
         id=entrega.id,
         slug=entrega.link.slug,
@@ -192,6 +224,7 @@ def _a_salida(db: Session, entrega: models.Entrega) -> EntregaSalida:
             "ancho": p.ancho, "alto": p.alto, "rotulo": p.rotulo or "",
             "aviso_precio": p.aviso_precio, "origen": p.origen,
         } for p in entrega.paginas],
+        espacios=[_espacio_a_salida(entrega.id, e) for e in espacios],
     )
 
 
@@ -357,54 +390,10 @@ async def subir(entrega_id: int, fichero: List[UploadFile] = File(...),
     una. Lo descubrió intentar usarlo, no leerlo.
     """
     entrega = _busca(db, entrega_id)
-    encontradas = []
-    for subido in fichero:
-        datos = await subido.read()
-        try:
-            encontradas.extend(mod_paginas.lee(datos))
-        except mod_paginas.FicheroNoValido as e:
-            raise HTTPException(status_code=400, detail=str(e))
-    if len(encontradas) > mod_paginas.LIMITE_PAGINAS:
-        raise HTTPException(
-            status_code=400,
-            detail="Entre todo suman %d páginas y el límite son %d."
-                   % (len(encontradas), mod_paginas.LIMITE_PAGINAS))
-
-    almacen.borra_entrega(entrega.id)
+    salida = await galeria.sube(entrega.id, fichero)
     entrega.paginas.clear()
-    db.flush()
-
-    salida = []
-    for i, pagina in enumerate(encontradas):
-        nombre = "p%d.jpg" % i
-        almacen.guarda(entrega.id, nombre, carrusel.a_jpeg(pagina.imagen))
-        salida.append({
-            "indice": i,
-            "url": _url_media(entrega.id, nombre),
-            "ancho": pagina.ancho, "alto": pagina.alto,
-            "rotulo": pagina.rotulo or ("Página %d" % (i + 1)),
-            "aviso_precio": pagina.aviso_precio,
-            "origen": pagina.origen,
-            "pagina_pdf": pagina.numero,
-        })
     db.commit()
-    return {
-        "paginas": salida,
-        "minimo": MIN_PAGINAS, "maximo": MAX_PAGINAS,
-        # Esto no es un adorno: el aviso de precios lee texto y no ve un precio dibujado dentro
-        # de una imagen. Quien entrega tiene que saberlo (constitución, principio IV).
-        "aviso": ("El aviso de precio solo detecta precios escritos como texto. "
-                  "Si en la presentación el precio es parte de una imagen, no se detecta: "
-                  "míralas antes de entregar."),
-    }
-
-
-class Seleccion(BaseModel):
-    indices: List[int] = Field(min_length=MIN_PAGINAS, max_length=MAX_PAGINAS)
-    # El mismo banco de efectos que las plantillas A-G. Si llega uno que no existe, `arma` cae en
-    # barrido en vez de fallar: una transicion distinta de la pedida es un mal menor frente a
-    # quedarse sin carrusel.
-    efecto: str = "barrido"
+    return galeria.respuesta(salida)
 
 
 @router.put("/api/entregas/{entrega_id}/paginas", response_model=EntregaSalida)
@@ -412,39 +401,12 @@ def elegir(entrega_id: int, seleccion: Seleccion,
            db: Session = Depends(get_db),
            usuario: models.PanelUser = Depends(usuario_actual)):
     """Fija qué páginas van al carrusel y en qué orden, y lo arma."""
-    from PIL import Image
-
     entrega = _busca(db, entrega_id)
-    if len(set(seleccion.indices)) != len(seleccion.indices):
-        raise HTTPException(status_code=400, detail="Hay una página repetida en la selección")
-
-    imagenes, elegidas = [], []
-    for i in seleccion.indices:
-        destino = almacen.resuelve(entrega.id, "p%d.jpg" % i)
-        if not destino:
-            raise HTTPException(
-                status_code=400,
-                detail="La página %d ya no está; vuelve a subir el PDF" % i)
-        # Con `Image.open` a secas, PIL deja el fichero **abierto** hasta que se recoge el
-        # objeto. En Windows eso impide borrarlo después —lo descubrió una prueba, con un
-        # «Acceso denegado» al rearmar el carrusel— y en Linux no falla pero va acumulando
-        # descriptores en un servidor que no se reinicia. `convert` ya devuelve una copia
-        # independiente, así que el original se puede cerrar en cuanto se sale del `with`.
-        with Image.open(destino) as bruta:
-            imagenes.append(bruta.convert("RGB"))
-        elegidas.append(i)
-
-    tira = carrusel.arma(imagenes, efecto=seleccion.efecto)
-    almacen.guarda(entrega.id, "carrusel.gif", tira.datos)
-    almacen.guarda(entrega.id, "og.jpg", carrusel.portada(imagenes[0]))
-    if not tira.dentro_de_presupuesto:
-        log.warning("entrega %d: carrusel de %d KB, por encima del presupuesto",
-                    entrega.id, round(tira.bytes / 1024))
+    elegidas = galeria.arma(entrega.id, seleccion, con_portada=True)
 
     entrega.paginas.clear()
     db.flush()
-    for orden, i in enumerate(elegidas):
-        im = imagenes[orden]
+    for orden, (i, im) in enumerate(elegidas):
         db.add(models.EntregaPagina(
             entrega_id=entrega.id, orden=orden,
             ruta=almacen.ruta_relativa(entrega.id, "p%d.jpg" % i),

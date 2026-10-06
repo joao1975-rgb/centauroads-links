@@ -39,23 +39,45 @@ SUBCARPETA = "entregas"
 # escribe entero, en vez de intentar enumerar lo prohibido.
 _NOMBRE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,48}\.(jpg|png|gif)$")
 
+# Los espacios que acompañan a una entrega (004) viven en `entregas/<id>/espacios/<linea>/`, con los
+# mismos nombres de fichero que la principal. Subcarpeta y no prefijos: `borra_entrega()` de la
+# principal solo borra FICHEROS de nombre válido, así que rehacer la principal no la toca (R1).
+# `<linea>` también llega desde fuera, por la ruta pública: misma regla de lista blanca, y son los
+# ids de `lineas_negocio`.
+ESPACIOS = "espacios"
+_LINEA = re.compile(r"^[a-z0-9][a-z0-9-]{0,59}$")
+
 
 def raiz() -> str:
     """La carpeta que contiene todas las entregas."""
     return os.path.join(DIRECTORIO_DATOS, SUBCARPETA)
 
 
-def carpeta(entrega_id: int, crear: bool = True) -> str:
-    """La carpeta de una entrega. La crea si hace falta."""
-    ruta = os.path.join(raiz(), str(int(entrega_id)))
+def linea_valida(linea: str) -> bool:
+    return bool(_LINEA.match(linea or ""))
+
+
+def _partes(entrega_id: int, linea: Optional[str]) -> list:
+    """Los trozos de la carpeta: la de la entrega, o la de uno de sus espacios."""
+    partes = [str(int(entrega_id))]
+    if linea is not None:
+        if not linea_valida(linea):
+            raise ValueError("línea no permitida: %r" % (linea,))
+        partes += [ESPACIOS, linea]
+    return partes
+
+
+def carpeta(entrega_id: int, crear: bool = True, linea: Optional[str] = None) -> str:
+    """La carpeta de una entrega —o la de uno de sus espacios—. La crea si hace falta."""
+    ruta = os.path.join(raiz(), *_partes(entrega_id, linea))
     if crear:
         os.makedirs(ruta, exist_ok=True)
     return ruta
 
 
-def ruta_relativa(entrega_id: int, nombre: str) -> str:
+def ruta_relativa(entrega_id: int, nombre: str, linea: Optional[str] = None) -> str:
     """Lo que se guarda en `entrega_paginas.ruta`. Con `/`, también en Windows."""
-    return "%s/%d/%s" % (SUBCARPETA, int(entrega_id), nombre)
+    return "/".join([SUBCARPETA] + _partes(entrega_id, linea) + [nombre])
 
 
 def ruta_absoluta(relativa: str) -> str:
@@ -67,20 +89,28 @@ def nombre_valido(nombre: str) -> bool:
     return bool(_NOMBRE.match(nombre or ""))
 
 
-def resuelve(entrega_id: int, nombre: str) -> Optional[str]:
+def resuelve(entrega_id: int, nombre: str, linea: Optional[str] = None) -> Optional[str]:
     """
     La ruta en disco de un fichero pedido desde fuera, o `None` si no se debe servir.
 
     Devuelve `None` —y no una excepción— porque quien llama es una ruta HTTP y lo único que puede
     hacer con esto es un 404. Distinguir "nombre inválido" de "no existe" solo le diría a quien
     prueba qué está probando.
+
+    Con `linea`, la base es la subcarpeta de ese espacio: un fichero de un espacio no puede
+    alcanzar los de la principal ni los de otro espacio.
     """
     if not nombre_valido(nombre):
         return None
     try:
-        base = os.path.realpath(carpeta(entrega_id, crear=False))
+        base = os.path.realpath(carpeta(entrega_id, crear=False, linea=linea))
         destino = os.path.realpath(os.path.join(base, nombre))
+        espacios = os.path.realpath(os.path.join(carpeta(entrega_id, crear=False), ESPACIOS))
     except (ValueError, OSError):
+        return None
+    # La misma guardia por destino para la carpeta del espacio: un `..` como línea apuntaría a la
+    # carpeta de la entrega —o a la de otra— y la comprobación de abajo lo daría por bueno.
+    if linea is not None and not base.startswith(espacios + os.sep):
         return None
     # Segunda comprobación, por destino y no por forma: aunque el nombre pasara el filtro, el
     # fichero resultante tiene que quedar dentro de la carpeta de esta entrega.
@@ -91,24 +121,25 @@ def resuelve(entrega_id: int, nombre: str) -> Optional[str]:
     return destino
 
 
-def guarda(entrega_id: int, nombre: str, datos: bytes) -> str:
-    """Escribe un fichero de la entrega y devuelve su ruta relativa."""
+def guarda(entrega_id: int, nombre: str, datos: bytes, linea: Optional[str] = None) -> str:
+    """Escribe un fichero de la entrega (o de uno de sus espacios) y devuelve su ruta relativa."""
     if not nombre_valido(nombre):
         raise ValueError("nombre de fichero no permitido: %r" % (nombre,))
-    destino = os.path.join(carpeta(entrega_id), nombre)
+    destino = os.path.join(carpeta(entrega_id, linea=linea), nombre)
     with open(destino, "wb") as f:
         f.write(datos)
-    return ruta_relativa(entrega_id, nombre)
+    return ruta_relativa(entrega_id, nombre, linea)
 
 
-def borra_entrega(entrega_id: int) -> int:
+def borra_entrega(entrega_id: int, linea: Optional[str] = None) -> int:
     """
-    Borra los ficheros de una entrega. Devuelve cuántos borró.
+    Borra los ficheros de una entrega —o, con `linea`, solo los de ese espacio—. Devuelve cuántos.
 
     Solo borra ficheros con nombre válido y la carpeta si queda vacía: si alguien dejó algo ahí a
-    mano, se queda, y el borrado no se lleva por delante lo que no reconoce.
+    mano, se queda, y el borrado no se lleva por delante lo que no reconoce. Por eso mismo la
+    subcarpeta `espacios/` sobrevive al borrado de la principal: no es un fichero.
     """
-    base = os.path.join(raiz(), str(int(entrega_id)))
+    base = carpeta(entrega_id, crear=False, linea=linea)
     if not os.path.isdir(base):
         return 0
     borrados = 0

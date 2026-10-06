@@ -15,6 +15,7 @@ import html
 import logging
 import os
 from datetime import datetime, timezone
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
@@ -44,7 +45,7 @@ def _rellena(texto: str, contacto) -> str:
     return (texto or "").replace("{empresa}", empresa).replace("{destinatario}", nombre)
 
 
-def _url_media(entrega_id: int, nombre: str) -> str:
+def _url_media(entrega_id: int, nombre: str, linea: Optional[str] = None) -> str:
     """
     La dirección pública de un fichero de la entrega, **con una marca de su versión**.
 
@@ -57,17 +58,24 @@ def _url_media(entrega_id: int, nombre: str) -> str:
     La marca sale del propio fichero (cuándo se escribió y cuánto ocupa), así que cambia sola
     cuando cambia el contenido y **no** cuando no cambia: la caché larga sigue valiendo, que es lo
     que quiere una imagen que viaja dentro de un correo.
+
+    Con `linea`, la de un fichero de ese espacio (004), con la misma marca.
     """
-    base = "/media/entregas/%d/%s" % (entrega_id, nombre)
-    destino = almacen.resuelve(entrega_id, nombre)
+    espacio = "espacios/%s/" % linea if linea is not None else ""
+    base = "/media/entregas/%d/%s%s" % (entrega_id, espacio, nombre)
+    destino = almacen.resuelve(entrega_id, nombre, linea)
     if not destino:
         return base
     marca = os.stat(destino)
     return "%s?v=%x" % (base, (marca.st_mtime_ns & 0xFFFFFFFFFF) ^ marca.st_size)
 
 
-def _existe(entrega_id: int, nombre: str):
-    return _url_media(entrega_id, nombre) if almacen.resuelve(entrega_id, nombre) else None
+def _existe(entrega_id: int, nombre: str, linea: Optional[str] = None):
+    return (_url_media(entrega_id, nombre, linea)
+            if almacen.resuelve(entrega_id, nombre, linea) else None)
+
+
+_INMUTABLE = {"Cache-Control": "public, max-age=31536000, immutable"}
 
 
 @router.get("/media/entregas/{entrega_id}/{fichero}")
@@ -84,7 +92,19 @@ def media(entrega_id: int, fichero: str):
     # Cacheable a largo plazo porque la dirección lleva marca de versión (`_url_media`): cuando
     # el fichero cambia, cambia la dirección. Sin esa marca esto guardaba para siempre un carrusel
     # que luego se rehacía, y el correo se quedaba con el viejo.
-    return FileResponse(destino, headers={"Cache-Control": "public, max-age=31536000, immutable"})
+    return FileResponse(destino, headers=_INMUTABLE)
+
+
+@router.get("/media/entregas/{entrega_id}/espacios/{linea}/{fichero}")
+def media_espacio(entrega_id: int, linea: str, fichero: str):
+    """
+    Las imágenes de un espacio que acompaña a la entrega (004). Aquí entran DOS trozos de ruta
+    desde fuera; `almacen.resuelve` valida los dos por forma y el destino final por ruta real.
+    """
+    destino = almacen.resuelve(entrega_id, fichero, linea)
+    if not destino:
+        raise HTTPException(status_code=404, detail="No encontrado")
+    return FileResponse(destino, headers=_INMUTABLE)
 
 
 _PAGINA = """<!DOCTYPE html>

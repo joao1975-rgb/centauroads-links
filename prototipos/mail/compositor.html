@@ -152,6 +152,8 @@
 
   .svc { border-left:2px solid var(--line); margin:8px 0 8px 4px; padding-left:10px; }
   .svc-h { display:flex; align-items:center; gap:8px; }
+  .marca-espacio { font-size:11px; color:var(--faint); white-space:nowrap; }
+  .marca-espacio.propia { color:var(--purple-l); font-weight:700; }
   .svc-t { flex:1; text-align:left; font-size:13px; padding:4px 0; color:var(--text); }
   .svc-b { display:none; padding-top:6px; }
   .svc.open .svc-b { display:block; }
@@ -416,6 +418,114 @@
     c.addEventListener('change', () => { set(st, path, c.checked); onChange(c.checked); touch(); });
     l.appendChild(c); l.appendChild(el('i', 'sw-k')); return l;
   }
+  // ── Un espacio que acompana la entrega (004) ──
+  // Todo lo que se cambia aqui va a bloques.entrega -incluidos y espacios- y al servidor, con la
+  // entrega. st.servicios, que es de las plantillas A-G, no se toca: un enlace o un carrusel pensado
+  // para un cliente no puede colarse en un correo de catalogo ni en la entrega de otro cliente.
+  // `sv` es la linea del catalogo: sus valores son el estandar y salen de placeholder.
+  function espacioEl(sv) {
+    const E = st.bloques.entrega;
+    if (!Array.isArray(E.incluidos)) E.incluidos = [];
+    if (!E.espacios) E.espacios = {};
+    const propio = () => E.espacios[sv.id] || {};
+    const incluido = () => E.incluidos.indexOf(sv.id) >= 0;
+    const w = el('div', 'svc'); w.dataset.servicio = sv.id; w.classList.toggle('off', !incluido());
+
+    const h = el('div', 'svc-h');
+    const sw = el('label', 'sw'); const c = document.createElement('input'); c.type = 'checkbox';
+    c.checked = incluido(); c.setAttribute('aria-label', 'Incluir ' + sv.nombre + ' en esta entrega');
+    c.addEventListener('change', () => {
+      E.incluidos = c.checked ? E.incluidos.concat(sv.id) : E.incluidos.filter(x => x !== sv.id);
+      w.classList.toggle('off', !c.checked); save(); touch();
+    });
+    sw.appendChild(c); sw.appendChild(el('i', 'sw-k')); h.appendChild(sw);
+    const t = el('button', 'svc-t', propio().nombre || sv.nombre); t.type = 'button'; plegable(t, w);
+    h.appendChild(t);
+    // Estandar o personalizado, y que tiene de propio: sin esto, con varios espacios nadie sabe
+    // cual lleva que antes de copiar el correo al cliente.
+    const marca = el('span', 'marca-espacio');
+    const pintaMarca = () => {
+      const pr = propio(), lista = [];
+      if (pr.canva) lista.push('enlace');
+      if (pr.carrusel) lista.push('imágenes');
+      if (pr.nombre || pr.cobertura) lista.push('textos');
+      marca.textContent = lista.length ? 'Personalizado: ' + lista.join(', ') : 'Estándar';
+      marca.classList.toggle('propia', lista.length > 0);
+    };
+    pintaMarca(); h.appendChild(marca); w.appendChild(h);
+
+    const b = el('div', 'svc-b');
+    const est = estadoEl('');
+    const esperas = {};
+    // Lo que el servidor guarda de este espacio. Vacio o igual al catalogo = estandar (lo decide
+    // el servidor contra el catalogo; aqui se hace lo mismo para que el correo cambie en el acto).
+    const guarda = (k, v) => {
+      if (!st.entregaId) {
+        est.className = 'estado';
+        est.textContent = 'Se guardará con la entrega: guárdala en el paso 2.';
+        return;
+      }
+      const cuerpo = {}; cuerpo[k === 'canva' ? 'canva_url' : k] = v;
+      api('/api/entregas/' + st.entregaId + '/espacios/' + encodeURIComponent(sv.id), {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo),
+      }).then(() => { est.className = 'estado bien'; est.textContent = 'Guardado en esta entrega.'; })
+        .catch(e => falla(est, e));
+    };
+    const pon = (k, v) => {
+      const pr = Object.assign({}, propio());
+      if (!v || v === (sv[k] || '')) delete pr[k]; else pr[k] = v;
+      if (Object.keys(pr).length) E.espacios[sv.id] = pr; else delete E.espacios[sv.id];
+      save(); touch(); pintaMarca();
+      clearTimeout(esperas[k]); esperas[k] = setTimeout(() => guarda(k, v), 700);
+    };
+    const campo = (k, etiqueta) => {
+      const wrap = el('label', 'fld'); wrap.appendChild(el('span', 'fld-l', etiqueta));
+      const i = el('input'); i.type = 'text'; i.value = propio()[k] || ''; i.placeholder = sv[k] || '';
+      i.addEventListener('input', () => {
+        pon(k, i.value.trim());
+        if (k === 'nombre') t.textContent = i.value.trim() || sv.nombre;
+      });
+      wrap.appendChild(i); return wrap;
+    };
+    b.appendChild(campo('canva', 'Enlace de su presentación (vacío = el del catálogo)'));
+    b.appendChild(campo('nombre', 'Nombre (vacío = el del catálogo)'));
+    b.appendChild(campo('cobertura', 'Cobertura / ubicación (vacío = la del catálogo)'));
+
+    // Sus imagenes: la misma galeria que la presentacion principal, con sus propias rutas.
+    const ponCarrusel = url => {
+      E.espacios[sv.id] = Object.assign({}, propio(), { carrusel: url });
+      save(); touch(); pintaMarca();
+    };
+    b.appendChild(el('p', 'fld-l', 'Imágenes de su presentación'));
+    galeria({
+      g: galeriaDe('espacio:' + sv.id),
+      ruta: () => st.entregaId
+        ? '/api/entregas/' + st.entregaId + '/espacios/' + encodeURIComponent(sv.id) + '/paginas' : null,
+      efecto: () => galeriaDe('espacio:' + sv.id).efecto || st.efectoEntrega || 'barrido',
+      ponEfecto: v => { galeriaDe('espacio:' + sv.id).efecto = v; },
+      hayCarrusel: () => !!propio().carrusel,
+      alSubir: d => { if (d.paginas.length) ponCarrusel(location.origin + d.paginas[0].url); },
+      alArmar: d => {
+        const x = (d.espacios || []).filter(z => z.linea === sv.id)[0];
+        if (x && x.carrusel) ponCarrusel(location.origin + x.carrusel);
+      },
+      claude: () => pideAClaude(propio().canva || sv.canva),
+      invita: 'Suelta aquí el <b>PDF de la presentación de este espacio</b>, o varias imágenes',
+    }).forEach(n => b.appendChild(n));
+
+    const fila = el('div', 'fila-bt');
+    fila.appendChild(botonEl('Volver al estándar', null, () => {
+      delete E.espacios[sv.id]; save(); touch();
+      if (st.entregaId) {
+        api('/api/entregas/' + st.entregaId + '/espacios/' + encodeURIComponent(sv.id), { method: 'DELETE' })
+          .catch(e => falla(est, e));
+      }
+      buildPanel();
+    }));
+    b.appendChild(fila); b.appendChild(est);
+    w.appendChild(b); return w;
+  }
+
   function servicioEl(s, i) {
     const w = el('div', 'svc'); w.classList.toggle('off', !s.on); w.dataset.servicio = s.id;
     const h = el('div', 'svc-h'); h.appendChild(switchEl('servicios.' + i + '.on', on => w.classList.toggle('off', !on), s.nombre));
@@ -705,8 +815,11 @@
   const HAY_SERVIDOR = /^https?:$/.test(location.protocol);
   // Equipo y salida apuntan al servidor: en la copia autonoma no llevarian a ninguna parte.
   if (HAY_SERVIDOR && document.getElementById('menu')) document.getElementById('menu').hidden = false;
-  let paginasSubidas = [];   // lo que devolvio la subida: {indice, url, rotulo, aviso_precio}
-  let elegidas = [];         // indices elegidos, EN ORDEN
+  // Lo subido y lo elegido de cada galeria de paginas: la de la presentacion principal y la de cada
+  // espacio que la acompana (004). Vive FUERA de buildPanel: el panel se repinta entero y no puede
+  // perder lo que la persona ya eligio. paginas: {indice, url, rotulo, aviso_precio}; elegidas, EN ORDEN.
+  const galerias = {};
+  const galeriaDe = clave => galerias[clave] || (galerias[clave] = { paginas: [], elegidas: [], efecto: '' });
   // Si se esta dando de alta un contacto a mano, y lo escrito hasta ahora. Vive FUERA de
   // buildPanel a proposito: el panel se repinta entero al cambiar el desplegable, y al nacer
   // de cero volvia a 'elige un contacto'. Los contactos que ya existen sobreviven a ese
@@ -911,64 +1024,23 @@
     frag.appendChild(p2);
 
     // 03 - Las paginas
-    const p3 = pasoEl('03', 'Las páginas', elegidas.length >= 2);
+    const p3 = pasoEl('03', 'Las páginas', galeriaDe('principal').elegidas.length >= 2);
     if (HAY_SERVIDOR) {
-      const suelta = el('button', 'suelta'); suelta.type = 'button';
-      suelta.innerHTML = 'Suelta aquí el <b>PDF que descarga Canva</b>, o varias imágenes';
-      const fichero = el('input'); fichero.type = 'file';
-      fichero.accept = '.pdf,image/*'; fichero.multiple = true; fichero.hidden = true;
-      suelta.addEventListener('click', () => fichero.click());
-      ['dragover', 'dragenter'].forEach(ev => suelta.addEventListener(ev, e => {
-        e.preventDefault(); suelta.classList.add('encima');
-      }));
-      ['dragleave', 'drop'].forEach(ev => suelta.addEventListener(ev, () => suelta.classList.remove('encima')));
-      suelta.addEventListener('drop', e => {
-        e.preventDefault();
-        if (e.dataTransfer.files && e.dataTransfer.files.length) sube(e.dataTransfer.files);
-      });
-      fichero.addEventListener('change', () => { if (fichero.files.length) sube(fichero.files); });
-      p3.appendChild(suelta); p3.appendChild(fichero);
-
-      const filaC = el('div', 'fila-bt');
-      filaC.appendChild(botonEl('¿Sin el PDF? Pedírselo a Claude', null, pideAClaude));
-      p3.appendChild(filaC);
-
-      const est3 = estadoEl(''); est3.id = 'est-paginas'; p3.appendChild(est3);
-      const rejilla = el('div', 'minis'); rejilla.id = 'minis'; p3.appendChild(rejilla);
-      if (paginasSubidas.length) pintaMinis(rejilla, est3);
-
-      // El efecto, aqui mismo. El banco de A-G vive en un panel que este modo no pinta, asi que
-      // no habia forma de elegirlo: el servidor recibia el que quedara de otra plantilla. Al
-      // cambiarlo se rehace el carrusel en el acto, que es lo unico que demuestra que se aplico.
-      const efe = el('label', 'fld');
-      efe.appendChild(el('span', 'fld-l', 'Efecto del carrusel'));
-      const selEfe = el('select');
-      M.EFECTOS.forEach(x => {
-        const o = el('option', null, x.etiqueta); o.value = x.clave;
-        o.title = x.idea;
-        if ((st.efectoEntrega || 'barrido') === x.clave) o.selected = true;
-        selEfe.appendChild(o);
-      });
-      selEfe.addEventListener('change', () => {
-        st.efectoEntrega = selEfe.value; save();
-        if (elegidas.length >= 2) { armaCarrusel(est3); return; }
-        // Tras recargar la pagina no queda nada en memoria, pero el carrusel YA armado sigue en
-        // el correo con el efecto de antes. Decir "guardado" ahi seria la misma mentira que este
-        // paso vino a quitar: se enviaria creyendo que se aplico.
-        if (st.entregaId && st.bloques.entrega.img) {
-          est3.className = 'estado mal';
-          est3.textContent = 'El carrusel que lleva el correo sigue con el efecto anterior. ' +
-            'Vuelve a subir el PDF y elige las páginas para rehacerlo.';
-        } else {
-          est3.className = 'estado';
-          est3.textContent = 'Efecto guardado. Elige de 2 a 4 páginas y se arma solo.';
-        }
-      });
-      efe.appendChild(selEfe); p3.appendChild(efe);
-
-      p3.appendChild(el('p', 'aviso-precio',
-        'El aviso de precio solo detecta precios escritos como texto. Si en la presentación el ' +
-        'precio es parte de una imagen, no se detecta: míralas antes de entregar.'));
+      galeria({
+        g: galeriaDe('principal'),
+        ruta: () => st.entregaId ? '/api/entregas/' + st.entregaId + '/paginas' : null,
+        efecto: () => st.efectoEntrega || 'barrido',
+        ponEfecto: v => { st.efectoEntrega = v; save(); },
+        hayCarrusel: () => !!(st.entregaId && st.bloques.entrega.img),
+        // En cuanto hay paginas, el correo ensena la primera. Antes se quedaba con el marcador de
+        // posicion hasta elegir dos, y mientras tanto mostraba una foto del catalogo como si fuera
+        // la propuesta del cliente.
+        alSubir: d => { if (d.paginas.length) { st.bloques.entrega.img = location.origin + d.paginas[0].url; save(); touch(); } },
+        // La imagen del correo pasa a ser la del servidor, en direccion absoluta: es lo que
+        // descargara el proxy de Gmail.
+        alArmar: d => { st.bloques.entrega.img = location.origin + (d.carrusel || d.portada || ''); save(); touch(); },
+        claude: () => pideAClaude(st.bloques.entrega.url),
+      }).forEach(n => p3.appendChild(n));
     } else {
       p3.appendChild(inputEl('bloques.entrega.img', 'Dirección de la imagen de portada', 'text'));
     }
@@ -1049,7 +1121,8 @@
     }
     const cuerpo = {
       titulo: E.titulo, canva_url: E.url, texto: E.texto || '',
-      servicios: st.servicios.filter(x => x.on).map(x => x.id).join(','),
+      // Los espacios de ESTA entrega (004), no el `on` de las plantillas A-G.
+      servicios: (E.incluidos || []).join(','),
     };
     if (sel.value === 'nuevo') {
       // Nombre y empresa son obligatorios: el correo los dice en el saludo y en el texto, y una
@@ -1095,91 +1168,150 @@
       .catch(e => falla(est, e));
   }
 
-  function sube(ficheros) {
-    const est = $('#est-paginas');
-    if (!st.entregaId) {
-      est.className = 'estado mal';
-      est.textContent = 'Guarda la entrega en el paso 2 antes de subir las páginas.';
-      return;
-    }
-    const lista = Array.prototype.slice.call(ficheros);
-    est.className = 'estado';
-    est.textContent = 'Leyendo ' + (lista.length === 1 ? lista[0].name : lista.length + ' ficheros') + '…';
-    const datos = new FormData();
-    lista.forEach(f => datos.append('fichero', f));
-    api('/api/entregas/' + st.entregaId + '/paginas', { method: 'POST', body: datos })
-      .then(d => {
-        paginasSubidas = d.paginas; elegidas = [];
-        // En cuanto hay paginas, el correo ensena la primera. Antes se quedaba con el marcador
-        // de posicion hasta elegir dos, y mientras tanto mostraba una foto del catalogo como si
-        // fuera la propuesta del cliente.
-        if (d.paginas.length) {
-          st.bloques.entrega.img = location.origin + d.paginas[0].url;
-          save(); touch();
-        }
-        est.className = 'estado';
-        est.textContent = d.paginas.length + ' páginas. Elige de 2 a 4, en el orden que quieras.';
-        pintaMinis($('#minis'), est);
-      })
-      .catch(e => falla(est, e));
-  }
-
-  function pintaMinis(rejilla, est) {
-    rejilla.innerHTML = '';
-    paginasSubidas.forEach(pg => {
-      const b = el('button', 'mini'); b.type = 'button';
-      const pos = elegidas.indexOf(pg.indice);
-      b.setAttribute('aria-pressed', String(pos >= 0));
-      const img = el('img'); img.src = pg.url; img.alt = pg.rotulo; b.appendChild(img);
-      b.appendChild(el('span', 'rot', pg.rotulo));
-      if (pos >= 0) b.appendChild(el('span', 'ord', String(pos + 1)));
-      if (pg.aviso_precio) {
-        const t = el('span', 'precio', 'precio');
-        t.title = 'Esta página parece llevar un precio escrito';
-        b.appendChild(t);
-      }
-      b.addEventListener('click', () => {
-        const i = elegidas.indexOf(pg.indice);
-        if (i >= 0) elegidas.splice(i, 1);
-        else if (elegidas.length < 4) elegidas.push(pg.indice);
-        else { est.className = 'estado mal'; est.textContent = 'Como mucho 4 páginas.'; return; }
-        pintaMinis(rejilla, est);
-        // Con una sola elegida no hay carrusel: el correo sigue ensenando la portada quieta. Si
-        // no se dice, parece acabado -y se entrega una imagen fija creyendo que anima.
-        if (elegidas.length >= 2) armaCarrusel(est);
-        else {
-          est.className = 'estado mal';
-          est.textContent = elegidas.length
-            ? 'Una sola página es una portada quieta. Elige al menos otra para que anime.'
-            : 'Sin páginas elegidas el correo lleva la portada quieta. Elige de 2 a 4.';
-        }
-      });
-      rejilla.appendChild(b);
+  // ── Galeria de paginas ──
+  // Subir el PDF (o imagenes), elegir de 2 a 4 en orden y armar el carrusel. La usan la presentacion
+  // principal y cada espacio que la acompana (004): el MISMO flujo, cada uno con su estado, sus
+  // rutas y lo que hace con el resultado. Devuelve los nodos para colgarlos donde toque.
+  //   op.g            estado de esta galeria (galeriaDe(clave))
+  //   op.ruta()       '/api/…/paginas', o null si la entrega aun no esta guardada
+  //   op.efecto()     efecto actual; op.ponEfecto(v) lo guarda
+  //   op.hayCarrusel() si el correo ya lleva un carrusel armado de esta galeria
+  //   op.alSubir(d) / op.alArmar(d)  que hacer con la respuesta del servidor
+  //   op.claude       accion de «¿Sin el PDF?», si aplica
+  function galeria(op) {
+    const g = op.g;
+    const est = estadoEl('');
+    const rejilla = el('div', 'minis');
+    const suelta = el('button', 'suelta'); suelta.type = 'button';
+    suelta.innerHTML = op.invita || 'Suelta aquí el <b>PDF que descarga Canva</b>, o varias imágenes';
+    const fichero = el('input'); fichero.type = 'file';
+    fichero.accept = '.pdf,image/*'; fichero.multiple = true; fichero.hidden = true;
+    suelta.addEventListener('click', () => fichero.click());
+    ['dragover', 'dragenter'].forEach(ev => suelta.addEventListener(ev, e => {
+      e.preventDefault(); suelta.classList.add('encima');
+    }));
+    ['dragleave', 'drop'].forEach(ev => suelta.addEventListener(ev, () => suelta.classList.remove('encima')));
+    suelta.addEventListener('drop', e => {
+      e.preventDefault();
+      if (e.dataTransfer.files && e.dataTransfer.files.length) sube(e.dataTransfer.files);
     });
+    fichero.addEventListener('change', () => { if (fichero.files.length) sube(fichero.files); });
+
+    function sube(ficheros) {
+      const ruta = op.ruta();
+      if (!ruta) {
+        est.className = 'estado mal';
+        est.textContent = 'Guarda la entrega en el paso 2 antes de subir las páginas.';
+        return;
+      }
+      const lista = Array.prototype.slice.call(ficheros);
+      est.className = 'estado';
+      est.textContent = 'Leyendo ' + (lista.length === 1 ? lista[0].name : lista.length + ' ficheros') + '…';
+      const datos = new FormData();
+      lista.forEach(f => datos.append('fichero', f));
+      api(ruta, { method: 'POST', body: datos })
+        .then(d => {
+          g.paginas = d.paginas; g.elegidas = [];
+          op.alSubir(d);
+          est.className = 'estado';
+          est.textContent = d.paginas.length + ' páginas. Elige de 2 a 4, en el orden que quieras.';
+          pinta();
+        })
+        .catch(e => falla(est, e));
+    }
+
+    function pinta() {
+      rejilla.innerHTML = '';
+      g.paginas.forEach(pg => {
+        const b = el('button', 'mini'); b.type = 'button';
+        const pos = g.elegidas.indexOf(pg.indice);
+        b.setAttribute('aria-pressed', String(pos >= 0));
+        const img = el('img'); img.src = pg.url; img.alt = pg.rotulo; b.appendChild(img);
+        b.appendChild(el('span', 'rot', pg.rotulo));
+        if (pos >= 0) b.appendChild(el('span', 'ord', String(pos + 1)));
+        if (pg.aviso_precio) {
+          const t = el('span', 'precio', 'precio');
+          t.title = 'Esta página parece llevar un precio escrito';
+          b.appendChild(t);
+        }
+        b.addEventListener('click', () => {
+          const i = g.elegidas.indexOf(pg.indice);
+          if (i >= 0) g.elegidas.splice(i, 1);
+          else if (g.elegidas.length < 4) g.elegidas.push(pg.indice);
+          else { est.className = 'estado mal'; est.textContent = 'Como mucho 4 páginas.'; return; }
+          pinta();
+          // Con una sola elegida no hay carrusel: el correo sigue ensenando la portada quieta. Si
+          // no se dice, parece acabado -y se entrega una imagen fija creyendo que anima.
+          if (g.elegidas.length >= 2) arma();
+          else {
+            est.className = 'estado mal';
+            est.textContent = g.elegidas.length
+              ? 'Una sola página es una portada quieta. Elige al menos otra para que anime.'
+              : 'Sin páginas elegidas el correo lleva la portada quieta. Elige de 2 a 4.';
+          }
+        });
+        rejilla.appendChild(b);
+      });
+    }
+
+    function arma() {
+      est.className = 'estado'; est.textContent = 'Armando el carrusel…';
+      api(op.ruta(), {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        // El efecto propio de esta galeria. No es el de A-G: alli cada efecto es un GIF ya subido;
+        // aqui lo arma el servidor con las paginas del cliente.
+        body: JSON.stringify({ indices: g.elegidas, efecto: op.efecto() }),
+      }).then(d => {
+        op.alArmar(d);
+        est.className = 'estado bien';
+        est.textContent = 'Carrusel listo con ' + g.elegidas.length + ' páginas.';
+      }).catch(e => falla(est, e));
+    }
+
+    // El efecto, aqui mismo. Al cambiarlo se rehace el carrusel en el acto, que es lo unico que
+    // demuestra que se aplico.
+    const efe = el('label', 'fld');
+    efe.appendChild(el('span', 'fld-l', 'Efecto del carrusel'));
+    const selEfe = el('select');
+    M.EFECTOS.forEach(x => {
+      const o = el('option', null, x.etiqueta); o.value = x.clave;
+      o.title = x.idea;
+      if (op.efecto() === x.clave) o.selected = true;
+      selEfe.appendChild(o);
+    });
+    selEfe.addEventListener('change', () => {
+      op.ponEfecto(selEfe.value);
+      if (g.elegidas.length >= 2) { arma(); return; }
+      // Tras recargar la pagina no queda nada en memoria, pero el carrusel YA armado sigue en el
+      // correo con el efecto de antes. Decir "guardado" ahi seria la misma mentira que este paso
+      // vino a quitar: se enviaria creyendo que se aplico.
+      if (op.hayCarrusel()) {
+        est.className = 'estado mal';
+        est.textContent = 'El carrusel que lleva el correo sigue con el efecto anterior. ' +
+          'Vuelve a subir el PDF y elige las páginas para rehacerlo.';
+      } else {
+        est.className = 'estado';
+        est.textContent = 'Efecto guardado. Elige de 2 a 4 páginas y se arma solo.';
+      }
+    });
+    efe.appendChild(selEfe);
+
+    const nodos = [suelta, fichero];
+    if (op.claude) {
+      const filaC = el('div', 'fila-bt');
+      filaC.appendChild(botonEl('¿Sin el PDF? Pedírselo a Claude', null, op.claude));
+      nodos.push(filaC);
+    }
+    nodos.push(est, rejilla, efe, el('p', 'aviso-precio',
+      'El aviso de precio solo detecta precios escritos como texto. Si en la presentación el ' +
+      'precio es parte de una imagen, no se detecta: míralas antes de entregar.'));
+    if (g.paginas.length) pinta();
+    return nodos;
   }
 
-  function armaCarrusel(est) {
-    est.className = 'estado'; est.textContent = 'Armando el carrusel…';
-    api('/api/entregas/' + st.entregaId + '/paginas', {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      // El efecto propio de la Personalizada, el del paso 03. No es el de A-G: alli cada
-      // efecto es un GIF ya subido; aqui lo arma el servidor con las paginas del cliente.
-      body: JSON.stringify({ indices: elegidas, efecto: st.efectoEntrega || 'barrido' }),
-    }).then(d => {
-      // La imagen del correo pasa a ser la del servidor, en direccion absoluta: es lo que
-      // descargara el proxy de Gmail.
-      st.bloques.entrega.img = location.origin + (d.carrusel || d.portada || '');
-      save();
-      est.className = 'estado bien';
-      est.textContent = 'Carrusel listo con ' + elegidas.length + ' páginas.';
-      touch();
-    }).catch(e => falla(est, e));
-  }
-
-  function pideAClaude() {
-    const E = st.bloques.entrega;
+  function pideAClaude(enlace) {
     const orden = 'Con el conector de Canva, exporta en JPG a 1200 px de ancho las páginas 1, 2 y 3 ' +
-      'de esta presentación y dame los enlaces de descarga: ' + (E.url || '<pega aquí el enlace>');
+      'de esta presentación y dame los enlaces de descarga: ' + (enlace || '<pega aquí el enlace>');
     navigator.clipboard.writeText(orden).then(
       () => {
         toast('Instrucción copiada. Pégala en Claude.');
@@ -1220,7 +1352,10 @@
     if (st.plantilla === 'H') {
       p.appendChild(buildEntrega());
       const g = el('div', 'grp'); g.appendChild(el('h2', null, 'Espacios que la acompañan'));
-      st.servicios.forEach((sv, i) => g.appendChild(servicioEl(sv, i)));
+      g.appendChild(el('p', 'hint', 'Lo que cambies aquí vale solo para esta entrega: las plantillas A–G ' +
+        'y las demás entregas siguen con el catálogo.'));
+      M.SERVICIOS.filter(sv => typeof sv.plantillas !== 'string' || sv.plantillas.indexOf('H') >= 0)
+        .forEach(sv => g.appendChild(espacioEl(sv)));
       p.appendChild(g);
       const gb = el('div', 'grp'); gb.appendChild(el('h2', null, 'Saludo y firma'));
       BLOQUES.filter(d => ['saludo', 'firma'].indexOf(d.k) >= 0)

@@ -249,6 +249,35 @@ class EntregaPagina(Base):
     entrega = relationship("Entrega", back_populates="paginas")
 
 
+class EntregaEspacio(Base):
+    """
+    Un espacio acompañante **personalizado** en una entrega (especificación 004). Un espacio
+    estándar no tiene fila: lo que falta se lee del catálogo (`lineas_negocio`).
+
+    Cada campo nulo = el del catálogo. Se guarda nulo también cuando coincide con el catálogo, para
+    que «personalizado» tenga un solo criterio (research R8).
+
+    `paginas` es JSON y no filas de `entrega_paginas`: esa tabla tiene `UNIQUE(entrega_id, orden)`
+    y SQLite no cambia una restricción sin rehacer la tabla (research R2).
+    """
+    __tablename__ = "entrega_espacios"
+    __table_args__ = (
+        UniqueConstraint("entrega_id", "linea_id", name="uq_espacio_entrega_linea"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    entrega_id = Column(Integer, ForeignKey("entregas.id"), nullable=False, index=True)
+    linea_id = Column(String(60), nullable=False)
+    canva_url = Column(String(500), nullable=True)
+    nombre = Column(String(120), nullable=True)
+    cobertura = Column(String(200), nullable=True)
+    # El efecto con el que se armó su carrusel. Nulo = el espacio no tiene carrusel propio.
+    efecto = Column(String(20), nullable=True)
+    paginas = Column(Text, nullable=True)   # [{"orden", "ruta", "ancho", "alto", "aviso_precio"}]
+    created_at = Column(DateTime, default=ahora)
+    updated_at = Column(DateTime, default=ahora, onupdate=ahora)
+
+
 # ---------------------------------------------------------------------------
 # Catalogo de lineas de negocio (especificacion 003). Lo que el compositor ofrece como servicios.
 # Se siembra con las cinco lineas de serie (catalogo-serie.json, que sale de render.js) y desde ahi

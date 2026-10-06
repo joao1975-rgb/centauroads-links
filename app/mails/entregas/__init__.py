@@ -11,7 +11,9 @@ from fastapi import APIRouter
 
 from .rutas import router as _panel
 from .publicas import router as _publicas
+from .espacios import router as _espacios
 
 router = APIRouter()
 router.include_router(_panel)
+router.include_router(_espacios)
 router.include_router(_publicas)
