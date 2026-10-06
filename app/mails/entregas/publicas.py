@@ -14,6 +14,7 @@ propuesta, sin pagar un clic de peaje para leer un resumen de lo que ya dice el 
 import html
 import logging
 import os
+import re
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -45,7 +46,7 @@ def _rellena(texto: str, contacto) -> str:
     return (texto or "").replace("{empresa}", empresa).replace("{destinatario}", nombre)
 
 
-def _url_media(entrega_id: int, nombre: str, linea: Optional[str] = None) -> str:
+def _url_media(entrega: models.Entrega, nombre: str, linea: Optional[str] = None) -> str:
     """
     La dirección pública de un fichero de la entrega, **con una marca de su versión**.
 
@@ -60,33 +61,40 @@ def _url_media(entrega_id: int, nombre: str, linea: Optional[str] = None) -> str
     que quiere una imagen que viaja dentro de un correo.
 
     Con `linea`, la de un fichero de ese espacio (004), con la misma marca.
+
+    Va por la clave de la entrega (`/media/e/<clave>/…`) y no por su número, que se podía
+    recorrer en bucle. Solo una entrega anterior, sin clave, sigue saliendo por número: es la
+    dirección que llevan sus correos ya enviados. Los ficheros no se mueven; cambia la dirección.
     """
     espacio = "espacios/%s/" % linea if linea is not None else ""
-    base = "/media/entregas/%d/%s%s" % (entrega_id, espacio, nombre)
-    destino = almacen.resuelve(entrega_id, nombre, linea)
+    if entrega.clave:
+        base = "/media/e/%s/%s%s" % (entrega.clave, espacio, nombre)
+    else:
+        base = "/media/entregas/%d/%s%s" % (entrega.id, espacio, nombre)
+    destino = almacen.resuelve(entrega.id, nombre, linea)
     if not destino:
         return base
     marca = os.stat(destino)
     return "%s?v=%x" % (base, (marca.st_mtime_ns & 0xFFFFFFFFFF) ^ marca.st_size)
 
 
-def _existe(entrega_id: int, nombre: str, linea: Optional[str] = None):
-    return (_url_media(entrega_id, nombre, linea)
-            if almacen.resuelve(entrega_id, nombre, linea) else None)
+def _existe(entrega: models.Entrega, nombre: str, linea: Optional[str] = None):
+    return (_url_media(entrega, nombre, linea)
+            if almacen.resuelve(entrega.id, nombre, linea) else None)
 
 
 _INMUTABLE = {"Cache-Control": "public, max-age=31536000, immutable"}
 
+# Lo que genera `secrets.token_hex(16)`. Se mira la forma antes de tocar la base de datos.
+_CLAVE = re.compile(r"[0-9a-f]{32}")
 
-@router.get("/media/entregas/{entrega_id}/{fichero}")
-def media(entrega_id: int, fichero: str):
-    """
-    Las imágenes de una entrega, servidas desde el volumen.
 
-    `almacen.resuelve` valida el nombre y comprueba que el fichero resultante no se sale de la
-    carpeta de esa entrega. Aquí solo queda decidir el 404.
+def _sirve(entrega: Optional[models.Entrega], fichero: str, linea: Optional[str] = None):
     """
-    destino = almacen.resuelve(entrega_id, fichero)
+    El fichero, o 404. `almacen.resuelve` valida nombre y línea por forma y el destino por ruta
+    real; aquí solo se decide si hay entrega de la que servirlo.
+    """
+    destino = almacen.resuelve(entrega.id, fichero, linea) if entrega else None
     if not destino:
         raise HTTPException(status_code=404, detail="No encontrado")
     # Cacheable a largo plazo porque la dirección lleva marca de versión (`_url_media`): cuando
@@ -95,16 +103,46 @@ def media(entrega_id: int, fichero: str):
     return FileResponse(destino, headers=_INMUTABLE)
 
 
+def _por_clave(db: Session, clave: str) -> Optional[models.Entrega]:
+    if not _CLAVE.fullmatch(clave or ""):
+        return None
+    return db.query(models.Entrega).filter(models.Entrega.clave == clave).first()
+
+
+def _anterior(db: Session, entrega_id: int) -> Optional[models.Entrega]:
+    """
+    La entrega por número, SOLO si es de antes de la clave. Una con clave por aquí daría 200 a
+    quien recorre números, que es justo lo que la clave vino a cerrar.
+    """
+    entrega = db.get(models.Entrega, entrega_id)
+    return entrega if entrega and entrega.clave is None else None
+
+
+@router.get("/media/e/{clave}/{fichero}")
+def media(clave: str, fichero: str, db: Session = Depends(get_db)):
+    """Las imágenes de una entrega, servidas desde el volumen, por su clave."""
+    return _sirve(_por_clave(db, clave), fichero)
+
+
+@router.get("/media/e/{clave}/espacios/{linea}/{fichero}")
+def media_espacio(clave: str, linea: str, fichero: str, db: Session = Depends(get_db)):
+    """
+    Las imágenes de un espacio que acompaña a la entrega (004). Aquí entran TRES trozos de ruta
+    desde fuera: la clave se mira aquí por forma; línea y fichero, en `almacen.resuelve`.
+    """
+    return _sirve(_por_clave(db, clave), fichero, linea)
+
+
+@router.get("/media/entregas/{entrega_id}/{fichero}")
+def media_anterior(entrega_id: int, fichero: str, db: Session = Depends(get_db)):
+    """Las de antes de la clave, por número: lo que llevan sus correos ya enviados."""
+    return _sirve(_anterior(db, entrega_id), fichero)
+
+
 @router.get("/media/entregas/{entrega_id}/espacios/{linea}/{fichero}")
-def media_espacio(entrega_id: int, linea: str, fichero: str):
-    """
-    Las imágenes de un espacio que acompaña a la entrega (004). Aquí entran DOS trozos de ruta
-    desde fuera; `almacen.resuelve` valida los dos por forma y el destino final por ruta real.
-    """
-    destino = almacen.resuelve(entrega_id, fichero, linea)
-    if not destino:
-        raise HTTPException(status_code=404, detail="No encontrado")
-    return FileResponse(destino, headers=_INMUTABLE)
+def media_espacio_anterior(entrega_id: int, linea: str, fichero: str,
+                           db: Session = Depends(get_db)):
+    return _sirve(_anterior(db, entrega_id), fichero, linea)
 
 
 _PAGINA = """<!DOCTYPE html>
@@ -203,7 +241,7 @@ def previa(slug: str, request: Request, db: Session = Depends(get_db)):
     e = html.escape
     bajada = " ".join(_rellena(entrega.texto, entrega.contacto).split())[:200] or \
         "La propuesta que preparamos para tu marca."
-    portada = _existe(entrega.id, "og.jpg")
+    portada = _existe(entrega, "og.jpg")
     # El esquema sale de lo que diga el proxy, no de lo que crea uvicorn: TLS lo termina
     # EasyPanel, así que `base_url` dice "http://" para una página que el cliente pidió por
     # https. La tarjeta anunciaba entonces su imagen en claro, y WhatsApp descarta el contenido

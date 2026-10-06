@@ -15,7 +15,7 @@ mover el volumen o cambiar `DATA_DIR` no puede invalidar las filas.
 El PDF original no se guarda. Se rasteriza y se descarta: conservar el material completo de un
 cliente sin que nadie lo haya pedido es una decisión, y no se ha tomado.
 
-**Lo que más importa de este módulo** es `resuelve()`. La ruta pública `/media/entregas/{id}/{f}`
+**Lo que más importa de este módulo** es `resuelve()`. La ruta pública `/media/e/{clave}/{f}`
 recibe un nombre de fichero desde fuera, y un nombre de fichero desde fuera es una entrada no
 confiable. Aquí se comprueba dos veces: por forma —una lista de caracteres permitidos que no
 incluye `/`, `\\` ni `.`— y por destino, resolviendo la ruta real y exigiendo que siga dentro de

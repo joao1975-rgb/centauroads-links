@@ -39,16 +39,28 @@ class Seleccion(BaseModel):
     efecto: str = "barrido"
 
 
-async def sube(entrega_id: int, ficheros: List[UploadFile],
+async def sube(entrega, ficheros: List[UploadFile],
                linea: Optional[str] = None) -> List[dict]:
     """
     Rasteriza lo subido, vacía la carpeta y guarda las páginas. Devuelve las miniaturas elegibles.
 
     Se lee todo **antes** de borrar nada: un fichero no válido no puede dejar la carpeta vacía.
+    `entrega` es la fila (`models.Entrega`): las direcciones de las miniaturas salen de su clave.
     """
+    entrega_id = entrega.id
+    # Cada fichero aporta al menos una página, así que más ficheros que el límite de páginas ya
+    # se sabe que no cabe. Se dice antes de leer ninguno: leerlos todos para contar después era
+    # dejar que una sola petición con cientos de ficheros ocupara memoria y CPU a placer.
+    if len(ficheros) > mod_paginas.LIMITE_PAGINAS:
+        raise HTTPException(
+            status_code=400,
+            detail="Son %d ficheros y el límite son %d páginas."
+                   % (len(ficheros), mod_paginas.LIMITE_PAGINAS))
     encontradas = []
     for subido in ficheros:
-        datos = await subido.read()
+        # Un byte más que el límite basta para que `valida` lo rechace: leer el fichero entero
+        # antes de mirar su tamaño era cargar en memoria lo que mandaran, fuera lo que fuera.
+        datos = await subido.read(mod_paginas.LIMITE_BYTES + 1)
         try:
             encontradas.extend(mod_paginas.lee(datos))
         except mod_paginas.FicheroNoValido as e:
@@ -66,7 +78,7 @@ async def sube(entrega_id: int, ficheros: List[UploadFile],
         almacen.guarda(entrega_id, nombre, carrusel.a_jpeg(pagina.imagen), linea)
         salida.append({
             "indice": i,
-            "url": _url_media(entrega_id, nombre, linea),
+            "url": _url_media(entrega, nombre, linea),
             "ancho": pagina.ancho, "alto": pagina.alto,
             "rotulo": pagina.rotulo or ("Página %d" % (i + 1)),
             "aviso_precio": pagina.aviso_precio,

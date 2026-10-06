@@ -197,6 +197,11 @@ class Entrega(Base):
     # donde se armo la entrega, y al abrirla en otra sesion no estaban. Nulo = el de por defecto.
     rotulo = Column(String(120), nullable=True)
     texto_corto = Column(Text, nullable=True)
+    # Lo que va en la dirección pública de sus imágenes, `/media/e/<clave>/…` (revisión de
+    # seguridad, 2026-10-06). Con el número, `/media/entregas/1/`, `/2/`… se recorrían todas en un
+    # bucle. Nula = entrega anterior: sus correos ya enviados apuntan a la ruta por número, y esa
+    # ruta solo las sirve a ellas. No se rellena nunca a posteriori, o esos correos se rompen.
+    clave = Column(String(40), nullable=True, index=True)
     # Identificadores del catálogo separados por comas ("led,mercedes"). Vacío es legítimo:
     # una entrega puede no llevar ningún servicio acompañante.
     servicios = Column(Text, nullable=False, default="")

@@ -88,9 +88,9 @@ async def subir(entrega_id: int, linea: str, fichero: List[UploadFile] = File(..
                 db: Session = Depends(get_db),
                 usuario: models.PanelUser = Depends(usuario_actual)):
     """Como el de la principal, en la subcarpeta del espacio. Solo vacía esa subcarpeta."""
-    entrega = _busca(db, entrega_id)
+    entrega = _busca(db, entrega_id, usuario)
     _catalogo(db, linea)
-    salida = await galeria.sube(entrega.id, fichero, linea)
+    salida = await galeria.sube(entrega, fichero, linea)
     with open(os.path.join(almacen.carpeta(entrega.id, linea=linea), _SUBIDA), "w",
               encoding="utf-8") as f:
         json.dump([p["aviso_precio"] for p in salida], f)
@@ -102,7 +102,7 @@ def elegir(entrega_id: int, linea: str, seleccion: Seleccion,
            db: Session = Depends(get_db),
            usuario: models.PanelUser = Depends(usuario_actual)):
     """Arma el carrusel del espacio y lo apunta en su fila, con el efecto con que salió."""
-    entrega = _busca(db, entrega_id)
+    entrega = _busca(db, entrega_id, usuario)
     _catalogo(db, linea)
     elegidas = galeria.arma(entrega.id, seleccion, linea)
     avisos = _avisos(entrega.id, linea)
@@ -140,7 +140,7 @@ def guardar(entrega_id: int, linea: str, datos: EspacioEntrada,
     Un valor igual al del catálogo se guarda nulo (R8): así «personalizado» tiene un solo criterio
     y, si el catálogo cambia después, ese campo sigue al catálogo como cualquier estándar.
     """
-    entrega = _busca(db, entrega_id)
+    entrega = _busca(db, entrega_id, usuario)
     serie = _catalogo(db, linea)
     de_serie = {"canva_url": serie.canva, "nombre": serie.nombre, "cobertura": serie.cobertura}
 
@@ -176,7 +176,7 @@ def volver_al_estandar(entrega_id: int, linea: str,
     Borra la fila. Las imágenes **se quedan** en disco: un correo ya enviado puede apuntar a ellas
     (FR-414), y se irán con la entrega.
     """
-    entrega = _busca(db, entrega_id)
+    entrega = _busca(db, entrega_id, usuario)
     _catalogo(db, linea)
     fila = _fila(db, entrega.id, linea)
     if fila:

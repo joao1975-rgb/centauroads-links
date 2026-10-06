@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 from typing import Optional
+from urllib.parse import urlparse
 import secrets
 import os
 import logging
@@ -62,6 +63,37 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "X-Admin-Key", "Authorization"],
 )
+
+# CSRF desde un subdominio hermano (revisión de seguridad, 2026-10-06). CORS no lo para: un
+# formulario o un `fetch` sin lectura de respuesta desde otro subdominio de centauroads.com es del
+# MISMO SITIO, así que el navegador le pone la cookie del panel y la petición llega con sesión.
+# Lo que sí delata al navegador es `Origin`, que lo manda en todo POST/PUT/PATCH/DELETE. Sin él
+# —curl, scripts con X-Admin-Key, de servidor a servidor— no hay cookie de un tercero que robar,
+# y pasan como siempre.
+_METODOS_QUE_ESCRIBEN = {"POST", "PUT", "PATCH", "DELETE"}
+_ORIGENES_PERMITIDOS = {o.lower() for o in origenes_cors(os.getenv("CORS_ORIGINS"))}
+
+
+def _origen_ajeno(request: Request) -> bool:
+    origen = request.headers.get("origin")
+    if origen is None:
+        # Un navegador que no mandó Origin pero sí dice que viene de otro sitio (o de un
+        # subdominio hermano, «same-site») tampoco pasa. Ninguno de los nuestros lo hace.
+        return request.headers.get("sec-fetch-site") in ("cross-site", "same-site")
+    origen = origen.strip().rstrip("/").lower()
+    propio = (request.headers.get("host") or "").lower()
+    return urlparse(origen).netloc != propio and origen not in _ORIGENES_PERMITIDOS
+
+
+@app.middleware("http")
+async def solo_desde_el_propio_origen(request: Request, call_next):
+    if (request.method in _METODOS_QUE_ESCRIBEN and request.url.path.startswith("/api/")
+            and _origen_ajeno(request)):
+        logging.getLogger("centaurads").warning(
+            "%s %s rechazada: origen %r", request.method, request.url.path,
+            request.headers.get("origin") or request.headers.get("sec-fetch-site"))
+        return JSONResponse({"detail": "Origen no permitido"}, status_code=403)
+    return await call_next(request)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))

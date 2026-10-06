@@ -45,6 +45,8 @@ COLUMNAS_NUEVAS = {
     "entregas": [
         ("rotulo", "VARCHAR(120)"),
         ("texto_corto", "TEXT"),
+        # Nula en las que ya existen, a propósito: ver `models.Entrega.clave`.
+        ("clave", "VARCHAR(40)"),
     ],
 }
 
@@ -52,6 +54,8 @@ COLUMNAS_NUEVAS = {
 INDICES = [
     ("ix_clicks_contact_token", "clicks", "contact_token"),
     ("ix_deliveries_contact_id", "deliveries", "contact_id"),
+    # Mismo nombre que el que pone create_all por `index=True`: una base nueva no lo duplica.
+    ("ix_entregas_clave", "entregas", "clave"),
 ]
 
 

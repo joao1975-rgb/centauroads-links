@@ -104,6 +104,11 @@ def _espacio(salida, linea):
     return next((e for e in salida["espacios"] if e["linea"] == linea), None)
 
 
+def _media(db, entrega_id):
+    """La raíz pública de sus ficheros: por su clave, no por su número (revisión de seguridad)."""
+    return "/media/e/%s" % db.get(models.Entrega, entrega_id).clave
+
+
 def _fichero(entrega_id, nombre, linea=None):
     return os.path.join(almacen.carpeta(entrega_id, crear=False, linea=linea), nombre)
 
@@ -123,7 +128,7 @@ def test_sin_espacios_la_salida_trae_una_lista_vacia(cliente, entrega):
 
 # --- US1: el carrusel de un espacio ----------------------------------------------------
 
-def test_subir_a_un_espacio_da_paginas_en_su_subcarpeta(cliente, entrega, linea):
+def test_subir_a_un_espacio_da_paginas_en_su_subcarpeta(cliente, entrega, linea, db):
     r = _sube(cliente, entrega["id"], linea)
     assert r.status_code == 200, r.text
     datos = r.json()
@@ -131,11 +136,11 @@ def test_subir_a_un_espacio_da_paginas_en_su_subcarpeta(cliente, entrega, linea)
     assert datos["minimo"] == 2 and datos["maximo"] == 4
     assert "imagen" in datos["aviso"]
     url = datos["paginas"][0]["url"]
-    assert url.startswith("/media/entregas/%d/espacios/%s/p0.jpg?v=" % (entrega["id"], linea))
+    assert url.startswith("%s/espacios/%s/p0.jpg?v=" % (_media(db, entrega["id"]), linea))
     assert cliente.get(url).status_code == 200
 
 
-def test_elegir_arma_el_carrusel_del_espacio(cliente, entrega, linea):
+def test_elegir_arma_el_carrusel_del_espacio(cliente, entrega, linea, db):
     _sube(cliente, entrega["id"], linea)
     r = _elige(cliente, entrega["id"], linea, indices=[2, 0], efecto="fundido")
     assert r.status_code == 200, r.text
@@ -143,7 +148,7 @@ def test_elegir_arma_el_carrusel_del_espacio(cliente, entrega, linea):
     esp = _espacio(salida, linea)
     assert esp["efecto"] == "fundido"
     assert esp["carrusel"].startswith(
-        "/media/entregas/%d/espacios/%s/carrusel.gif?v=" % (entrega["id"], linea))
+        "%s/espacios/%s/carrusel.gif?v=" % (_media(db, entrega["id"]), linea))
     assert [p["orden"] for p in esp["paginas"]] == [0, 1]
     assert esp["paginas"][0]["url"].split("?")[0].endswith("/espacios/%s/p2.jpg" % linea)
     assert esp["paginas"][0]["ancho"] > 0 and esp["paginas"][0]["alto"] > 0
@@ -344,10 +349,11 @@ def test_volver_al_estandar_sin_fila_tambien_responde(cliente, entrega, linea):
     ("{linea}", "carrusel.exe"),
     ("{linea}", "subida.json"),
 ])
-def test_media_del_espacio_rechaza_lo_que_no_es_suyo(cliente, entrega, linea, linea_mala, fichero):
+def test_media_del_espacio_rechaza_lo_que_no_es_suyo(cliente, entrega, linea, db, linea_mala,
+                                                    fichero):
     _sube(cliente, entrega["id"], linea)
-    r = cliente.get("/media/entregas/%d/espacios/%s/%s"
-                    % (entrega["id"], linea_mala.format(linea=linea), fichero))
+    r = cliente.get("%s/espacios/%s/%s"
+                    % (_media(db, entrega["id"]), linea_mala.format(linea=linea), fichero))
     assert r.status_code in (404, 405), "debería haber rechazado %r/%r" % (linea_mala, fichero)
 
 
@@ -384,9 +390,9 @@ def test_la_guardia_de_destino_del_espacio(cliente, entrega, linea, monkeypatch)
         os.remove(fuera)
 
 
-def test_media_del_espacio_sirve_una_pagina_de_verdad(cliente, entrega, linea):
+def test_media_del_espacio_sirve_una_pagina_de_verdad(cliente, entrega, linea, db):
     _sube(cliente, entrega["id"], linea)
-    r = cliente.get("/media/entregas/%d/espacios/%s/p0.jpg" % (entrega["id"], linea))
+    r = cliente.get("%s/espacios/%s/p0.jpg" % (_media(db, entrega["id"]), linea))
     assert r.status_code == 200
     assert r.headers["content-type"].startswith("image/")
     assert "immutable" in r.headers["cache-control"]

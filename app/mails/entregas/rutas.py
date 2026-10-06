@@ -179,14 +179,31 @@ def _resuelve_contacto(db: Session, datos: EntregaEntrada) -> models.Contact:
     )
 
 
-def _busca(db: Session, entrega_id: int) -> models.Entrega:
-    entrega = db.query(models.Entrega).filter(models.Entrega.id == entrega_id).first()
+def _de_quien(consulta, usuario: models.PanelUser):
+    """
+    Las entregas que puede tocar esta persona: las suyas, o todas si administra. Decisión del
+    propietario: «Quien la creó y los administradores» (revisión de seguridad, 2026-10-06).
+    Antes cualquiera con sesión leía y editaba la propuesta de otro.
+    """
+    if usuario.rol == "admin":
+        return consulta
+    return consulta.filter(models.Entrega.panel_user_id == usuario.id)
+
+
+def _busca(db: Session, entrega_id: int, usuario: models.PanelUser) -> models.Entrega:
+    """
+    La entrega, si esta persona puede tocarla. Toda ruta `/api/entregas/{id}…` pasa por aquí, y
+    por eso la regla vive aquí y en ningún otro sitio. La de otro da el mismo 404 que una que no
+    existe: un 403 le confirmaría que ese número es una propuesta.
+    """
+    entrega = _de_quien(db.query(models.Entrega), usuario).filter(
+        models.Entrega.id == entrega_id).first()
     if not entrega:
         raise HTTPException(status_code=404, detail="Entrega no encontrada")
     return entrega
 
 
-def _espacio_a_salida(entrega_id: int, fila: models.EntregaEspacio) -> dict:
+def _espacio_a_salida(entrega: models.Entrega, fila: models.EntregaEspacio) -> dict:
     """
     Un espacio personalizado tal como lo lee el compositor. Campos nulos = los del catálogo.
 
@@ -199,9 +216,9 @@ def _espacio_a_salida(entrega_id: int, fila: models.EntregaEspacio) -> dict:
         "linea": linea,
         "canva_url": fila.canva_url, "nombre": fila.nombre, "cobertura": fila.cobertura,
         "efecto": fila.efecto,
-        "carrusel": _existe(entrega_id, "carrusel.gif", linea) if fila.efecto else None,
+        "carrusel": _existe(entrega, "carrusel.gif", linea) if fila.efecto else None,
         "paginas": [{
-            "orden": p["orden"], "url": _url_media(entrega_id, p["ruta"].rsplit("/", 1)[-1], linea),
+            "orden": p["orden"], "url": _url_media(entrega, p["ruta"].rsplit("/", 1)[-1], linea),
             "ancho": p["ancho"], "alto": p["alto"], "aviso_precio": p["aviso_precio"],
         } for p in elegidas],
     }
@@ -224,14 +241,14 @@ def _a_salida(db: Session, entrega: models.Entrega) -> EntregaSalida:
         contacto_nombre=entrega.contacto.nombre if entrega.contacto else "",
         contacto_empresa=(entrega.contacto.empresa or "") if entrega.contacto else "",
         enlace="/p/%s" % entrega.link.slug,
-        carrusel=_existe(entrega.id, "carrusel.gif"),
-        portada=_existe(entrega.id, "og.jpg"),
+        carrusel=_existe(entrega, "carrusel.gif"),
+        portada=_existe(entrega, "og.jpg"),
         paginas=[{
-            "orden": p.orden, "url": _url_media(entrega.id, p.ruta.rsplit("/", 1)[-1]),
+            "orden": p.orden, "url": _url_media(entrega, p.ruta.rsplit("/", 1)[-1]),
             "ancho": p.ancho, "alto": p.alto, "rotulo": p.rotulo or "",
             "aviso_precio": p.aviso_precio, "origen": p.origen,
         } for p in entrega.paginas],
-        espacios=[_espacio_a_salida(entrega.id, e) for e in espacios],
+        espacios=[_espacio_a_salida(entrega, e) for e in espacios],
     )
 
 
@@ -337,6 +354,8 @@ def crear(datos: EntregaEntrada,
         firma_cargo=datos.firma_cargo,
         panel_user_id=usuario.id,
         estado="borrador",
+        # 128 bits al azar: la dirección de sus imágenes no se adivina recorriendo números.
+        clave=secrets.token_hex(16),
     )
     db.add(entrega)
     db.commit()
@@ -348,7 +367,8 @@ def crear(datos: EntregaEntrada,
 @router.get("/api/entregas", response_model=List[EntregaSalida])
 def listar(db: Session = Depends(get_db),
            usuario: models.PanelUser = Depends(usuario_actual)):
-    filas = db.query(models.Entrega).order_by(models.Entrega.created_at.desc()).limit(200).all()
+    filas = _de_quien(db.query(models.Entrega), usuario).order_by(
+        models.Entrega.created_at.desc()).limit(200).all()
     return [_a_salida(db, e) for e in filas]
 
 
@@ -356,14 +376,14 @@ def listar(db: Session = Depends(get_db),
 def leer(entrega_id: int,
          db: Session = Depends(get_db),
          usuario: models.PanelUser = Depends(usuario_actual)):
-    return _a_salida(db, _busca(db, entrega_id))
+    return _a_salida(db, _busca(db, entrega_id, usuario))
 
 
 @router.put("/api/entregas/{entrega_id}", response_model=EntregaSalida)
 def actualizar(entrega_id: int, datos: EntregaEntrada,
                db: Session = Depends(get_db),
                usuario: models.PanelUser = Depends(usuario_actual)):
-    entrega = _busca(db, entrega_id)
+    entrega = _busca(db, entrega_id, usuario)
     if datos.sender_account_id:
         exigir_cuenta(db, usuario, datos.sender_account_id)
         entrega.sender_account_id = datos.sender_account_id
@@ -402,8 +422,8 @@ async def subir(entrega_id: int, fichero: List[UploadFile] = File(...),
     dos páginas: la segunda imagen borraba a la primera. Un PDF aporta sus páginas; cada imagen,
     una. Lo descubrió intentar usarlo, no leerlo.
     """
-    entrega = _busca(db, entrega_id)
-    salida = await galeria.sube(entrega.id, fichero)
+    entrega = _busca(db, entrega_id, usuario)
+    salida = await galeria.sube(entrega, fichero)
     entrega.paginas.clear()
     db.commit()
     return galeria.respuesta(salida)
@@ -414,7 +434,7 @@ def elegir(entrega_id: int, seleccion: Seleccion,
            db: Session = Depends(get_db),
            usuario: models.PanelUser = Depends(usuario_actual)):
     """Fija qué páginas van al carrusel y en qué orden, y lo arma."""
-    entrega = _busca(db, entrega_id)
+    entrega = _busca(db, entrega_id, usuario)
     elegidas = galeria.arma(entrega.id, seleccion, con_portada=True)
 
     entrega.paginas.clear()
@@ -437,7 +457,7 @@ def marcar_entregada(entrega_id: int, canal: str = "email",
     """
     La persona ya la pegó y la envió. Esto **no envía nada**: deja constancia de que salió.
     """
-    entrega = _busca(db, entrega_id)
+    entrega = _busca(db, entrega_id, usuario)
     entrega.estado = "entregada"
     entrega.entregada_en = datetime.now(timezone.utc)
     db.add(models.Delivery(

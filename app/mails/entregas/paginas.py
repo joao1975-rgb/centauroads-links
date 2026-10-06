@@ -30,6 +30,13 @@ LIMITE_PAGINAS = 20
 # Ancho al que se rasteriza cada página. 1200 px da margen para el carrusel de 600 px en
 # pantallas densas y para la portada de WhatsApp, que es 1200 × 630.
 ANCHO_PAGINA = 1200
+# Lo que se acepta descomprimir (revisión de seguridad, 2026-10-06). Un PNG de pocos KB puede
+# declarar 48 megapíxeles y pedir cientos de MB al abrirlo: es una bomba, no una presentación.
+# 40 MP deja holgura a cualquier foto o exportación real (una de 8K son 33 MP).
+LIMITE_PIXELES = 40_000_000
+# Y el lado más largo de una página de PDF rasterizada. A 1200 px de ancho, una página estrecha y
+# muy alta salía de decenas de miles de píxeles de alto.
+LADO_MAXIMO = 4000
 
 _FIRMAS = (
     (b"%PDF-", "pdf"),
@@ -91,10 +98,11 @@ def valida(datos: bytes) -> str:
     if not datos:
         raise FicheroNoValido("El fichero llegó vacío.")
     if len(datos) > LIMITE_BYTES:
+        # Sin la cifra exacta: `galeria.sube` solo lee hasta un byte más del límite, que es
+        # cuanto hace falta para saber que se pasa.
         raise FicheroNoValido(
-            "El fichero pesa %.1f MB y el límite son %d MB. En Canva, al descargar el PDF, "
-            "elige «PDF estándar» en vez de «PDF para imprimir»."
-            % (len(datos) / MEGA, LIMITE_BYTES // MEGA))
+            "El fichero pesa más de %d MB, que es el límite. En Canva, al descargar el PDF, "
+            "elige «PDF estándar» en vez de «PDF para imprimir»." % (LIMITE_BYTES // MEGA))
     tipo = tipo_de(datos)
     if tipo is None:
         raise FicheroNoValido(
@@ -162,6 +170,11 @@ def paginas_de_pdf(datos: bytes, ancho: int = ANCHO_PAGINA) -> List[Pagina]:
             # por punto para llegar al ancho pedido.
             puntos = pagina.get_width() or 1
             escala = float(ancho) / float(puntos)
+            # Acotada por el lado largo y por la superficie: la página la define quien sube el
+            # PDF, y sin esto una muy alta —o un MediaBox absurdo— pedía cientos de MB de golpe.
+            alto = pagina.get_height() or 1
+            escala = min(escala, LADO_MAXIMO / max(puntos, alto),
+                         (LIMITE_PIXELES / (puntos * alto)) ** 0.5)
             mapa = pagina.render(scale=escala)
             imagen = mapa.to_pil().convert("RGB")
             salida.append(Pagina(numero=i + 1, imagen=imagen, texto=_texto_de(pagina),
@@ -183,7 +196,18 @@ def pagina_de_imagen(datos: bytes, ancho: int = ANCHO_PAGINA, origen: str = "ima
     # La cabecera dice imagen, pero el contenido puede no serlo (o estar danado): un 400 que se
     # entiende, no un 500.
     try:
-        imagen = Image.open(io.BytesIO(datos)).convert("RGB")
+        bruta = Image.open(io.BytesIO(datos))
+    except Exception:
+        raise FicheroNoValido("La imagen no se puede leer: puede estar dañada. Prueba a exportarla de nuevo.")
+    # `open` solo lee la cabecera; lo caro es `convert`, que descomprime. Por eso el tamaño
+    # declarado se mira aquí, entre los dos: después ya se habría pagado la bomba.
+    if bruta.width * bruta.height > LIMITE_PIXELES:
+        raise FicheroNoValido(
+            "La imagen mide %d × %d píxeles y el límite son %d megapíxeles. Expórtala más "
+            "pequeña: en el correo va a %d px de ancho."
+            % (bruta.width, bruta.height, LIMITE_PIXELES // 1_000_000, ancho))
+    try:
+        imagen = bruta.convert("RGB")
     except Exception:
         raise FicheroNoValido("La imagen no se puede leer: puede estar dañada. Prueba a exportarla de nuevo.")
     if imagen.width > ancho:

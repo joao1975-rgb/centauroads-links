@@ -350,8 +350,10 @@ def test_el_carrusel_entra_en_presupuesto(cliente, entrega):
     "CARRUSEL.GIF",
     "carrusel.exe",
 ])
-def test_media_rechaza_los_nombres_que_no_son_suyos(cliente, entrega, nombre):
-    r = cliente.get("/media/entregas/%d/%s" % (entrega["id"], nombre))
+def test_media_rechaza_los_nombres_que_no_son_suyos(cliente, entrega, db, nombre):
+    # Por su clave: una entrega nueva ya no se sirve por número (revisión de seguridad, 2026-10-06).
+    clave = db.get(models.Entrega, entrega["id"]).clave
+    r = cliente.get("/media/e/%s/%s" % (clave, nombre))
     assert r.status_code in (404, 405), "debería haber rechazado %r" % nombre
 
 
@@ -382,8 +384,8 @@ def test_la_guardia_de_destino_sirve_aunque_el_nombre_pase_el_filtro(entrega, mo
         os.remove(fuera)
 
 
-def test_media_sirve_una_pagina_de_verdad(cliente, entrega):
-    r = cliente.get("/media/entregas/%d/p0.jpg" % entrega["id"])
+def test_media_sirve_una_pagina_de_verdad(cliente, entrega, db):
+    r = cliente.get("/media/e/%s/p0.jpg" % db.get(models.Entrega, entrega["id"]).clave)
     assert r.status_code == 200
     assert r.headers["content-type"].startswith("image/")
 

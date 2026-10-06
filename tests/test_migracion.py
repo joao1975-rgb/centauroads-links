@@ -231,7 +231,11 @@ def test_las_entregas_de_produccion_reciben_rotulo_y_texto_corto(tmp_path):
     con.close()
     motor = _migrar(ruta)
     columnas = {c["name"]: c for c in inspect(motor).get_columns("entregas")}
-    for nueva in ("rotulo", "texto_corto"):
+    for nueva in ("rotulo", "texto_corto", "clave"):
         assert nueva in columnas and columnas[nueva]["nullable"], nueva
+    # La clave de /media (revision de seguridad, 2026-10-06) NO se rellena en las que ya existen:
+    # sus correos ya enviados apuntan a /media/entregas/<id>/, que solo sirve a las de clave nula.
+    assert "ix_entregas_clave" in {i["name"] for i in inspect(motor).get_indexes("entregas")}
     with motor.connect() as c:
-        assert c.execute(text("SELECT titulo, rotulo FROM entregas WHERE id = 1")).fetchone() == ("Propuesta guardada", None)
+        assert c.execute(text("SELECT titulo, rotulo, clave FROM entregas WHERE id = 1")).fetchone() == (
+            "Propuesta guardada", None, None)
