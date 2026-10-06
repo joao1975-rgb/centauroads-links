@@ -17,18 +17,18 @@ empieza por sus pruebas, que deben fallar antes de implementar.
 
 ## Phase 1: Setup
 
-- [ ] T401 Modelo `EntregaEspacio` en `app/models.py` según `data-model.md` (tabla nueva `entrega_espacios`, creada por `create_all`; `UNIQUE(entrega_id, linea_id)`); prueba en `tests/test_entregas_espacios.py` de que la tabla existe y `migrar()` no cambia
-- [ ] T402 [P] `app/mails/entregas/almacen.py`: carpeta y resolución de un espacio (`entregas/<id>/espacios/<linea>/`) con lista blanca para `<linea>` y comprobación de destino, como la principal
+- [x] T401 Modelo `EntregaEspacio` en `app/models.py` según `data-model.md` (tabla nueva `entrega_espacios`, creada por `create_all`; `UNIQUE(entrega_id, linea_id)`); prueba en `tests/test_entregas_espacios.py` de que la tabla existe y `migrar()` no cambia
+- [x] T402 [P] `app/mails/entregas/almacen.py`: carpeta y resolución de un espacio (`entregas/<id>/espacios/<linea>/`) con lista blanca para `<linea>` y comprobación de destino, como la principal
 
 ---
 
 ## Phase 2: Foundational (bloquea todas las historias)
 
-- [ ] T403 Punto de control: `tests/test_entregas_api.py` en verde **antes** de tocar nada (la principal es la referencia de comportamiento)
-- [ ] T404 Extraer a `app/mails/entregas/galeria.py` la subida de páginas y el armado del carrusel, parametrizados por carpeta; `rutas.py` los usa para la principal y `tests/test_entregas_api.py` sigue en verde sin cambiarlo
-- [ ] T405 [P] Ruta pública `GET /media/entregas/{id}/espacios/{linea}/{fichero}` en `publicas.py`, con pruebas de lista blanca (traversal en `linea` y en `fichero`, mayúsculas, extensiones) → 404
-- [ ] T406 `EntregaSalida` gana `espacios` (lista vacía si no hay); prueba en `tests/test_entregas_espacios.py`
-- [ ] T407 Motor (`prototipos/mail/render.js`): `bloques.entrega.espacios = {}` e `incluidos` en `defaultState`; `normaliza()` inicializa `incluidos` con los servicios encendidos si falta; prueba en `tests/test_espacios_motor.py` de que un estado viejo sobrevive y los 16 correos siguen idénticos
+- [x] T403 Punto de control: `tests/test_entregas_api.py` en verde **antes** de tocar nada (la principal es la referencia de comportamiento)
+- [x] T404 Extraer a `app/mails/entregas/galeria.py` la subida de páginas y el armado del carrusel, parametrizados por carpeta; `rutas.py` los usa para la principal y `tests/test_entregas_api.py` sigue en verde sin cambiarlo
+- [x] T405 [P] Ruta pública `GET /media/entregas/{id}/espacios/{linea}/{fichero}` en `publicas.py`, con pruebas de lista blanca (traversal en `linea` y en `fichero`, mayúsculas, extensiones) → 404
+- [x] T406 `EntregaSalida` gana `espacios` (lista vacía si no hay); prueba en `tests/test_entregas_espacios.py`
+- [x] T407 Motor (`prototipos/mail/render.js`): `bloques.entrega.espacios = {}` e `incluidos` en `defaultState`; `normaliza()` inicializa `incluidos` con los servicios encendidos si falta; prueba en `tests/test_espacios_motor.py` de que un estado viejo sobrevive y los 16 correos siguen idénticos
 
 **Checkpoint**: la principal se comporta igual con el código compartido; el motor acepta los campos nuevos sin cambiar nada de lo que ya sale.
 
@@ -42,15 +42,15 @@ empieza por sus pruebas, que deben fallar antes de implementar.
 
 ### Tests for User Story 1 ⚠️ (escribir primero, deben fallar)
 
-- [ ] T408 [P] [US1] API en `tests/test_entregas_espacios.py`: subir PDF/imágenes a un espacio y elegir 2–4 páginas con efecto → carrusel en su subcarpeta; aviso de precio; límites y mensajes de la principal; sin sesión 401; línea o entrega inexistente 404; **independencia**: rehacer la principal no toca el espacio, rehacer un espacio no toca la principal ni otro espacio
-- [ ] T409 [P] [US1] Motor en `tests/test_espacios_motor.py`: con `espacios[id].carrusel`, la H usa ese carrusel en ese espacio y el estándar en los demás; con el mismo estado, A–G salen estándar
+- [x] T408 [P] [US1] API en `tests/test_entregas_espacios.py`: subir PDF/imágenes a un espacio y elegir 2–4 páginas con efecto → carrusel en su subcarpeta; aviso de precio; límites y mensajes de la principal; sin sesión 401; línea o entrega inexistente 404; **independencia**: rehacer la principal no toca el espacio, rehacer un espacio no toca la principal ni otro espacio
+- [x] T409 [P] [US1] Motor en `tests/test_espacios_motor.py`: con `espacios[id].carrusel`, la H usa ese carrusel en ese espacio y el estándar en los demás; con el mismo estado, A–G salen estándar
 
 ### Implementation for User Story 1
 
-- [ ] T410 [US1] `app/mails/entregas/espacios.py`: `POST` y `PUT /api/entregas/{id}/espacios/{linea}/paginas` sobre `galeria.py`; la fila `EntregaEspacio` guarda `efecto` y `paginas` (JSON); montaje en `app/mails/entregas/__init__.py`
-- [ ] T411 [US1] Motor: `carruselPropio` en `carruselSrc`/`fotoServicio`; `plantillaH` arma una copia del estado con el carrusel propio de cada espacio
-- [ ] T412 [US1] Compositor (`prototipos/mail/compositor.html`): la subida, las miniaturas y el armado de la principal pasan a un componente `galeria({...})` con estado por instancia; la principal se comporta igual
-- [ ] T413 [US1] Compositor: en cada espacio de «Espacios que la acompañan», «Imágenes de su presentación» con `galeria()` contra las rutas del espacio; el carrusel queda en `bloques.entrega.espacios[id].carrusel`; sin entrega guardada, el aviso de la principal
+- [x] T410 [US1] `app/mails/entregas/espacios.py`: `POST` y `PUT /api/entregas/{id}/espacios/{linea}/paginas` sobre `galeria.py`; la fila `EntregaEspacio` guarda `efecto` y `paginas` (JSON); montaje en `app/mails/entregas/__init__.py`
+- [x] T411 [US1] Motor: `carruselPropio` en `carruselSrc`/`fotoServicio`; `plantillaH` arma una copia del estado con el carrusel propio de cada espacio
+- [x] T412 [US1] Compositor (`prototipos/mail/compositor.html`): la subida, las miniaturas y el armado de la principal pasan a un componente `galeria({...})` con estado por instancia; la principal se comporta igual
+- [x] T413 [US1] Compositor: en cada espacio de «Espacios que la acompañan», «Imágenes de su presentación» con `galeria()` contra las rutas del espacio; el carrusel queda en `bloques.entrega.espacios[id].carrusel`; sin entrega guardada, el aviso de la principal
 
 **Checkpoint**: un espacio arma su carrusel y la H lo muestra; la principal intacta.
 
@@ -64,14 +64,14 @@ empieza por sus pruebas, que deben fallar antes de implementar.
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T414 [P] [US2] API en `tests/test_entregas_espacios.py`: `PUT …/espacios/{linea}` guarda textos y enlace; un valor igual al del catálogo queda estándar; enlace sin `https://` 400 con el mensaje de la principal; `DELETE` vuelve al estándar y conserva las imágenes; 401/404
-- [ ] T415 [P] [US2] Motor en `tests/test_espacios_motor.py`: enlace/nombre/cobertura propios solo en la H; con `incluidos`, la H lleva exactamente esos espacios y A–G siguen con el `on` global; el estado de la persona no se modifica
+- [x] T414 [P] [US2] API en `tests/test_entregas_espacios.py`: `PUT …/espacios/{linea}` guarda textos y enlace; un valor igual al del catálogo queda estándar; enlace sin `https://` 400 con el mensaje de la principal; `DELETE` vuelve al estándar y conserva las imágenes; 401/404
+- [x] T415 [P] [US2] Motor en `tests/test_espacios_motor.py`: enlace/nombre/cobertura propios solo en la H; con `incluidos`, la H lleva exactamente esos espacios y A–G siguen con el `on` global; el estado de la persona no se modifica
 
 ### Implementation for User Story 2
 
-- [ ] T416 [US2] `PUT` y `DELETE /api/entregas/{id}/espacios/{linea}` en `espacios.py` (estándar = igual al catálogo de `lineas_negocio`; fila vacía se borra)
-- [ ] T417 [US2] Motor: la copia de la H aplica `canva`, `nombre`, `cobertura` de `espacios` y `on` según `incluidos`
-- [ ] T418 [US2] Compositor: en la H los espacios editan `bloques.entrega.espacios` e `incluidos` (no `st.servicios`); se sincronizan con el servidor; `guardaEntrega` manda `servicios` desde `incluidos`
+- [x] T416 [US2] `PUT` y `DELETE /api/entregas/{id}/espacios/{linea}` en `espacios.py` (estándar = igual al catálogo de `lineas_negocio`; fila vacía se borra)
+- [x] T417 [US2] Motor: la copia de la H aplica `canva`, `nombre`, `cobertura` de `espacios` y `on` según `incluidos`
+- [x] T418 [US2] Compositor: en la H los espacios editan `bloques.entrega.espacios` e `incluidos` (no `st.servicios`); se sincronizan con el servidor; `guardaEntrega` manda `servicios` desde `incluidos`
 
 **Checkpoint**: US1 + US2 = MVP entregable.
 
