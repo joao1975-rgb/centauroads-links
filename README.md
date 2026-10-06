@@ -9,6 +9,8 @@ Tres piezas en un mismo servicio:
 |---|---|---|
 | **Compositor de correos** | Arma los correos de servicios (plantillas A–H) para pegarlos en Gmail | `/panel` → entrar → compositor |
 | **Entregas a medida** | La plantilla H: sube el PDF de Canva, genera el carrusel y un enlace propio con tarjeta de WhatsApp | Dentro del compositor |
+| **Líneas de negocio** | El catálogo de servicios que ofrecen los correos: alta, edición, orden, plantillas, ficha y grupos | `/panel/lineas` |
+| **Equipo** | Quién entra al panel, su rol y su contraseña | `/panel/equipo` |
 | **Acortador** | Enlaces cortos con registro de clics | `/admin` y `/{slug}` |
 
 El enlace para el equipo es **`https://mails.centauroads.com`**: pide el correo y después abre el
@@ -150,13 +152,51 @@ las entregas. En producción esa carpeta es un volumen persistente; perderla es 
 
 ---
 
+## Líneas de negocio y entregas
+
+### Líneas de negocio (`/panel/lineas`)
+
+Lo que los correos ofrecen como servicios ya no está escrito en el código: vive en la base y lo
+administra el equipo (especificación 003). Los administradores añaden, editan, ordenan, retiran y
+devuelven líneas; los comerciales las ven sin poder cambiarlas.
+
+- **Plantillas**: cada línea dice en cuáles de la A a la H sale.
+- **Ficha técnica** (opcional): con ubicación, medidas o tráfico, la línea entra en la tabla de
+  agencias y en el inventario de la E. El precio «desde» solo sale con el modo de precios encendido.
+- **Grupos de la plantilla D**: se crean y se renombran aquí; cada línea elige el suyo.
+- **Fotos**: se reducen a 1072 px y se guardan en el volumen (`/app/data/lineas`), nunca se borran
+  (un correo enviado puede apuntar a ellas).
+- **Catálogo de serie**: `build.js` lo exporta de `render.js` a `app/static/email/catalogo-serie.json`
+  y el servidor se siembra de ahí **solo si las tablas están vacías**.
+- El compositor pide el catálogo al abrirse. Lo editado aquí llega a los compositores del equipo
+  sin pisar lo que cada persona escribió a mano.
+
+### Entregas (plantilla H)
+
+- **La entrega**, arriba del panel: cuál se está editando, **abrir una guardada** desde cualquier
+  computadora y **empezar una nueva** (sin ella, guardar la del siguiente cliente pisaba la anterior).
+- **Dueño**: una entrega la ven y la modifican quien la creó y los administradores; para los demás
+  no existe.
+- **Espacios que la acompañan** (especificación 004): cada espacio puede llevar, **solo en esa
+  entrega**, su enlace, nombre, cobertura y su propio carrusel, armado con el mismo flujo que la
+  presentación principal. «Volver al estándar» lo deja como el catálogo. Las plantillas A–G y las
+  demás entregas no lo ven.
+- El rótulo de la esquina y el texto corto de WhatsApp se guardan con la entrega.
+
+---
+
 ## Direcciones
 
 | Dirección | Qué es | Acceso |
 |---|---|---|
 | `/panel` | Pantalla de entrada (la que se comparte) | público |
 | `/static/email/compositor.html` | El compositor | **con sesión**; sin ella lleva a `/panel/entrar` y vuelve |
+| `/panel/lineas` | Líneas de negocio | con sesión; editar, solo administradores |
+| `/panel/equipo` | Equipo | con sesión; gestionar a otros, solo administradores |
 | `/static/email/*.png`, `*.gif`, `*.jpg` | Imágenes de los correos | público (las cargan los clientes) |
+| `/media/lineas/{archivo}` | Fotos de las líneas de negocio | público (las cargan los clientes) |
+| `/media/e/{clave}/…` | Imágenes de una entrega (y de sus espacios), con una clave que no se adivina | público |
+| `/media/entregas/{id}/…` | Imágenes de las entregas **anteriores** a la clave, para no romper correos enviados | público |
 | `/p/{slug}` | Enlace propio de una entrega: tarjeta para WhatsApp y robots, redirección a Canva para personas | público |
 | `/admin` | Panel del acortador | clave `X-Admin-Key` |
 | `/{slug}` | Enlace corto → destino | público |
@@ -178,8 +218,12 @@ Servicio **`centauro-links`** en EasyPanel (DigitalOcean), dominio `links.centau
 
 - **El repositorio es público.** Si se hace privado, EasyPanel falla con «Repository not found»
   hasta que se le da un token de GitHub de solo lectura en la configuración de la fuente del servicio.
-- **Para verificar un despliegue**, no basta con `/health`: compara el fichero servido con el del
-  commit (`git hash-object`), por ejemplo `/static/email/render.js?cb=<n>`.
+- **Para verificar un despliegue**, no basta con `/health`: comprueba algo que **ese** commit
+  cambia. Un fichero servido (`git hash-object` de `/static/email/render.js?cb=<n>`), una ruta nueva
+  (que pase de 404 a 401) o un campo nuevo en `/openapi.json`, que es público.
+- **El despliegue es automático** (webhook de GitHub → «Deployment Trigger» de EasyPanel, en
+  `application/json`). Si un push no despliega aunque GitHub diga 200, reenvía la última entrega
+  del webhook desde GitHub (Settings → Webhooks → Recent Deliveries → Redeliver).
 - Con Docker en local: `docker compose up --build` y abre `http://localhost:8005/panel`.
 
 ## Copias de seguridad
@@ -223,6 +267,13 @@ Por cada clic se registran IP, navegador, procedencia y fecha; se consultan en `
 
 - **Panel de correos:** entrada con contraseña (argon2) o con Google, limitada a una lista de
   autorizados. Sesión en cookie firmada, solo HTTPS, 8 horas. Una baja corta el acceso al momento.
+- **Límite de intentos**: 10 fallos de contraseña o 5 de superadmin por dirección bloquean 15 minutos.
+- **Entregas con dueño**: solo quien la creó y los administradores.
+- **Origen**: las escrituras en `/api/` con una cabecera `Origin` ajena (ni el propio dominio ni
+  `CORS_ORIGINS`) se rechazan con 403; las que no la mandan (guiones, `curl`) pasan.
+- **Marcos**: ninguna página se deja meter dentro de otro sitio (`X-Frame-Options`, `frame-ancestors`).
+- **Subidas**: en las entregas, PDF o imágenes de hasta 25 MB, 20 ficheros por vez y 40 megapíxeles
+  por imagen; las fotos de las líneas de negocio, hasta 8 MB.
 - **Acortador:** clave `X-Admin-Key`.
 - Ningún secreto en el código ni en el repositorio: todo por variables de entorno. `gitleaks`
   revisa cada commit (`.gitleaks.toml`). En un clon nuevo el gancho no se activa solo:

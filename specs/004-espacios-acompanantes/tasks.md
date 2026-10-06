@@ -97,8 +97,8 @@ empieza por sus pruebas, que deben fallar antes de implementar.
 - [x] T424 `node prototipos/mail/build.js`: guardia byte a byte (16 correos idénticos) y guardia de contenido; suite completa en verde
 - [x] T425 Verificación visual con Playwright de la H con dos espacios personalizados a 600 y 375 px, sin desborde y con cero errores de página (principio III)
 - [x] T426 [P] Revisión de seguridad (agente `security-reviewer`): subidas por espacio, ruta pública con `linea`, permisos
-- [ ] T427 Recorrido de `quickstart.md` en local con datos de prueba; `/health` y `/p/{slug}` intactos
-- [ ] T428 [P] Nota de Obsidian `Centauro-Mails-Servicios.md` y memoria del proyecto
+- [x] T427 Recorrido de `quickstart.md` en local con datos de prueba; `/health` y `/p/{slug}` intactos
+- [x] T428 [P] Nota de Obsidian `Centauro-Mails-Servicios.md` y memoria del proyecto
 
 ---
 

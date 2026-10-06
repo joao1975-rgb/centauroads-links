@@ -137,11 +137,11 @@ empieza por sus pruebas, que deben fallar antes de implementar.
 
 ## Phase 8: Polish & Cross-Cutting
 
-- [ ] T335 `node prototipos/mail/build.js`: guardia byte a byte (16 correos idénticos) y guardia de contenido; suite completa en verde
-- [ ] T336 Verificación visual con Playwright de A, D, E y H con una línea nueva, a 600 y 375 px, sin desborde (principio III)
+- [x] T335 `node prototipos/mail/build.js`: guardia byte a byte (16 correos idénticos) y guardia de contenido; suite completa en verde
+- [x] T336 Verificación visual con Playwright de A, D, E y H con una línea nueva, a 600 y 375 px, sin desborde (principio III)
 - [x] T337 [P] Revisión de seguridad (agente `security-reviewer`) de las rutas nuevas y la subida de fotos
-- [ ] T338 Recorrido de `quickstart.md` en local con datos de prueba; `/health` y un enlace corto del acortador intactos
-- [ ] T339 [P] README (sección «Líneas de negocio») y nota de Obsidian `Centauro-Mails-Servicios.md`
+- [x] T338 Recorrido de `quickstart.md` en local con datos de prueba; `/health` y un enlace corto del acortador intactos
+- [x] T339 [P] README (sección «Líneas de negocio») y nota de Obsidian `Centauro-Mails-Servicios.md`
 
 ---
 
