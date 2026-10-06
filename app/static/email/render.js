@@ -54,6 +54,27 @@
       cover: 'cover_rider.jpg', altCover: 'Portada: Rider Clon publicidad móvil' },
   ];
 
+  // Las lineas que traen GIF de carrusel generado (carrusel_gif.py). Una linea dada de alta
+  // desde el panel no lo tiene: usa su foto fija en lugar de un GIF que no existe.
+  const CON_CARRUSEL = {};
+  SERVICIOS.forEach(function (s) { CON_CARRUSEL[s.id] = true; });
+
+  // Los campos de una linea del catalogo (003), y lo que cada sesion recibio del catalogo la
+  // ultima vez (`st.catalogoVisto`). El estado guardado lleva una COPIA de cada linea: sin saber
+  // que valor le llego, una edicion del panel no se distingue de un texto escrito a mano.
+  const CAMPOS_LINEA = ['id', 'nombre', 'eyebrow', 'cta', 'cobertura', 'nota', 'slug', 'canva',
+    'img', 'alt', 'cover', 'altCover'];
+  function vistoDe() {
+    const v = {};
+    SERVICIOS.forEach(function (x) {
+      v[x.id] = {};
+      CAMPOS_LINEA.forEach(function (k) { if (k !== 'id') v[x.id][k] = x[k] == null ? '' : x[k]; });
+    });
+    return v;
+  }
+  // Una sesion de antes de la 003 no tiene `catalogoVisto`: lo que recibio fue el catalogo de serie.
+  const SERIE_INICIAL = vistoDe();
+
   // ── Grupos de la plantilla D (taxonomía del flyer "Servicios de publicidad exterior") ──
   const GRUPOS = [
     { id: 'vallas', eyebrow: 'Gran formato', titulo: 'Vallas (OOH)', servicios: ['vallas'] },
@@ -236,6 +257,7 @@
   // El GIF del carrusel de un servicio. Estaba escrito a mano en tres sitios; ahora el
   // nombre se arma en uno solo, que es donde hay que tocar si cambia el esquema.
   function carruselSrc(st, s) {
+    if (!CON_CARRUSEL[s.id]) return svcImg(st, s);
     return imgFor(st, 'carousel_' + s.id + '_' + efectoDe(st, s) + '.gif');
   }
 
@@ -353,7 +375,6 @@
       // al lado del propio fichero. En Node no hay window y se queda en 'img'.
       assetBase: (typeof window !== 'undefined' && window.ASSET_BASE) || 'img',
       assetBaseProd: 'https://links.centauroads.com/static/email',
-      linkBase: '',
       token: '',
       bloques: {
         hero: { on: true, img: 'svc_led_hero.jpg', imgPortada: 'cover_led.jpg', anim: 'hero.gif', alt: 'Pantalla LED de Chacao (Edificio Valmy) con piezas en rotación' },
@@ -366,7 +387,7 @@
           requisitos: ['Foto del sitio', 'Medidas', 'Especificaciones técnicas', 'Materiales'] },
         branding: { on: true, titulo: 'Branding y esculturas',
           texto: 'Corpóreos, letras 3D, cajas de luz, tótems tradicionales, impresión e instalación a medida para tu marca.',
-          cta: 'Ver catálogo especial', url: 'mailto:equintero@centauroads.com?subject=Cat%C3%A1logo%20de%20branding%20y%20esculturas' },
+          cta: 'Ver catálogo especial', url: 'mailto:mercadeo@centauroads.com?subject=Cat%C3%A1logo%20de%20branding%20y%20esculturas' },
         // Muro de clientes: prueba social para el perfil de cliente nuevo. APAGADO hasta que Elizabeth
         // confirme que podemos nombrar a estas marcas en un correo.
         // Datos operativos de los formatos del asesor. Van aparte porque CADUCAN: una
@@ -374,14 +395,109 @@
         // partida es el que entrego el asesor, sin tocar; aqui solo se puede actualizar.
         asesor: {
           on: true,
-          periodo: 'Octubre – Diciembre 2026',
-          etiquetaMeta: 'Q1 2026 · AGENCIAS',
-          dispoFecha: '19-sep',
-          dispoTexto: 'LED Chacao: 3 slots libres en octubre.',
-          cierreTexto: 'Cerramos programación de Q1 el 15 de noviembre.',
-          slotsLed: '3 SLOTS',
+          periodo: '',
+          // Sin trimestre ni fecha: son datos del negocio que caducan, y los da quien envia
+          // (peticion del usuario, 2026-10-03). Vacios, E no los muestra.
+          etiquetaMeta: 'AGENCIAS',
+          dispoFecha: '',
+          dispoTexto: '',
+          cierreTexto: '',
+          slotsLed: '',
           pieCta: 'Instalación llave en mano · reporte de campaña incluido',
+          // El texto del boton de E. Sin trimestre por defecto: si se quiere uno, se escribe.
+          botonTexto: 'Solicitar disponibilidad',
           respuesta: 'Respuesta en menos de 24 horas hábiles.',
+        },
+        // Textos de E, F y G. Eran literales en el codigo y no se podian tocar desde el panel.
+        // *asi* marca el realce que tenia el diseno (color de acento o negrita) y una linea nueva
+        // es un salto. Los huecos entre llaves los rellena el motor: {destinatario}, y en E
+        // {periodo}, {frentes} (en letras), {n} (en cifra) y, en la tabla, {medida}, que sale de
+        // la ficha oficial de cada espacio y no se copia aqui.
+        inventario: {
+          epigrafe: 'Inventario · {periodo}',
+          titulo: 'Tu próximo *Share of Voice*, en una sola tabla.',
+          entrada: 'Sin brief educativo. Sin rodeos. Los {frentes} frentes que operamos en Caracas, con métricas comparables, para que tu equipo de medios calcule el mix sin llamar a nadie.',
+          saludoEpigrafe: 'Para el equipo de {destinatario}',
+          saludo1: 'Sabemos cómo trabajan: brief, medios, tabla de disponibilidad, decisión. Vamos directo a la última parte.',
+          saludo2: 'Este es el inventario que operamos hoy en Caracas, listo para integrarse a tu mix del próximo trimestre, sin brief educativo de por medio.',
+          cifra1: '120K impactos / día', etiqueta1: 'LED',
+          cifra2: '250 motos LED', etiqueta2: 'Rider',
+          cifra3: '{n} frentes', etiqueta3: 'activos',
+          seccion: '01 · Inventario',
+          seccionTitulo: 'Espacios disponibles',
+          seccionSub: 'orden por rotación de audiencia',
+          pieFoto: 'LED Chacao, el frente con mayor rotación en Caracas Este.',
+          dispoEtiqueta: 'Disponibilidad al',
+        },
+        tablaInventario: {
+          led_titulo: 'Pantalla LED Chacao · DOOH',
+          led_detalle: 'Chacao, Av. Francisco de Miranda · {medida} · rotación por franjas horarias',
+          led_dato1: 'Impactos', led_valor1: '120.000/día', led_dato2: 'Formato', led_valor2: 'Video / MP4',
+          mercedes_titulo: 'Pantalla LED Las Mercedes · DOOH',
+          mercedes_detalle: 'Av. Paseo Enrique Erazo · {medida} · horizontal, 24 horas',
+          mercedes_dato1: 'Tráfico', mercedes_valor1: '95.000 vehículos/día', mercedes_dato2: 'Formato', mercedes_valor2: 'Video / MP4 · 30 s',
+          vallas_titulo: 'Vallas · OOH nacional',
+          vallas_detalle: 'Caracas y arterias viales · gran formato · brand recall de largo plazo',
+          vallas_dato1: 'Rotación', vallas_valor1: 'Alta vial', vallas_dato2: 'Cobertura', vallas_valor2: 'Nacional',
+          rider_titulo: 'Rider Clon · movilidad LED', rider_distintivo: 'TRACKING',
+          rider_detalle: 'Caracas · San Antonio · Valencia · caja LED {medida} · GPS en vivo',
+          rider_dato1: 'Flota', rider_valor1: '250 motos', rider_dato2: 'Turno', rider_valor2: '8 h / día',
+          totem_titulo: 'Tótem digital · indoor',
+          totem_detalle: 'C.C. San Ignacio · {medida} · audiencia cautiva premium',
+          totem_dato1: 'Salidas', totem_valor1: '240/día', totem_dato2: 'Ambiente', totem_valor2: 'Indoor A+',
+        },
+        guia: {
+          meta: 'Guía para empezar',
+          titulo: 'Que te conozcan. *Que te recuerden.* Que te compren.',
+          entrada: 'Esa es la secuencia. Tres fases, en ese orden, es cómo crecen las marcas que aparecen en las calles. Te la explicamos sin tecnicismos y sin comprometerte a nada.',
+          saludo: 'Hola {destinatario},',
+          parrafo: 'Gracias por interesarte en dar el paso a la *publicidad exterior*. Sabemos que es una decisión importante: hay muchos formatos, muchos precios y poca información clara sobre por dónde empezar. Este correo no es una cotización: es la guía que les contamos a puerta cerrada a las marcas que arrancan con nosotros. Léela en 2 minutos y hablamos.',
+          fase1: 'Fase de atracción', fase1Titulo: 'Que te conozcan',
+          fase1Texto: 'Empezamos con *formatos digitales de alto tráfico*. El brillo y el movimiento captan miradas nuevas, explican qué haces y qué ofreces. Es la manera más rápida de dejar de ser un desconocido.',
+          fase1Etiqueta: 'Recomendado para empezar', fase1Servicio: 'Tótem digital · San Ignacio',
+          fase1Detalle: '240 salidas/día en un centro comercial premium. Audiencia atenta, presupuesto de entrada.',
+          fase2: 'Fase de memoria', fase2Titulo: 'Que te recuerden',
+          fase2Texto: 'Cuando ya te conocen, tu marca se instala en *las calles que tu cliente recorre todos los días*. Vallas y pantallas LED trabajando juntas: y cuando piensen en lo que vendes, aparecerás tú.',
+          fase2Etiqueta: 'Combinamos con la fase 1', fase2Servicio: 'Pantalla LED · Chacao',
+          fase2Detalle: '120.000 impactos/día en la arteria de mayor rotación de Caracas Este.',
+          fase3: 'Fase de decisión', fase3Titulo: 'Que te compren',
+          fase3Texto: 'La calle empuja, el móvil cierra. En esta fase activamos promociones tácticas y motos con LED que aparecen justo donde y cuando decides. Es la parte donde la campaña se convierte en ventas.',
+          fase3Etiqueta: 'Táctico y medible', fase3Servicio: 'Rider Clon · movilidad LED',
+          fase3Detalle: '250 motos con GPS. Elegimos las zonas y horas donde vive tu cliente.',
+          cajaTitulo: 'Sin fricciones técnicas',
+          cajaTexto: 'Nosotros nos encargamos de todo lo técnico. Tú apruebas el diseño.',
+          ctaTexto: 'Cuéntame de tu marca y te preparo una propuesta *a la medida de tu presupuesto*. Sin compromiso.',
+          boton: 'Cuéntame de tu marca',
+        },
+        phygital: {
+          meta: 'PHYGITAL · Serie 2026',
+          epigrafe: 'Physical + Digital',
+          titulo: 'La pantalla capta.\n*El móvil cierra.*',
+          saludo: 'Hola {destinatario},',
+          parrafo: 'La gente ya no mira los anuncios. Los graba, los sube y los convierte en contenido, o los ignora. Sabemos que necesitan algo que rompa el molde. Antes de mostrarte precios o formatos, mira cómo se ve una campaña Phygital en *tres minutos reales*. Después conversamos.',
+          hora1: '09:00 AM · Chacao',
+          escena1: 'Escena 01',
+          escena1Texto: 'Una persona mira arriba. Ve un QR gigante en la pantalla LED. Curiosidad. Levanta el teléfono.',
+          puente: '3 SEGUNDOS',
+          hora2: '09:03 AM · Instagram',
+          cuenta: '@tu_marca_aqui', lugar: 'Caracas · Venezuela', filtro: 'Filtro AR activo',
+          publicacion: 'Encontré la valla ⚡ *#TuMarcaChacao*',
+          meGusta: '2.847 me gusta',
+          comentario: 'Vieron mi campaña. Se pararon. La grabaron. La subieron.',
+          remate: 'La calle también es feed.',
+          remateTexto: 'Eso es Phygital. Una pantalla que no termina cuando el semáforo cambia.',
+          comoEpigrafe: 'Cómo se arma',
+          comoTexto: 'Tres piezas. Una campaña que se comparte.',
+          pieza1: 'Pantalla LED · el gancho físico',
+          pieza1Texto: 'QR gigante en Chacao o Las Mercedes. Lleva a un filtro AR, un cupón o tu e-commerce directo.',
+          pieza2: 'Rider Clon · la campaña que se mueve',
+          pieza2Texto: '250 motos con caja LED se convierten en caza-recompensas: los usuarios las fotografían y suben, etiquetándote.',
+          pieza3: 'Capa digital · el cierre en el móvil',
+          pieza3Texto: 'Retargeting a quien escaneó, filtros AR de tu marca, hashtag propio. El impacto físico deja huella medible en redes.',
+          cajaTitulo: 'Lo que resolvemos',
+          cajaTexto: 'Ya no eliges entre branding masivo o conversión digital. La calle capta. El móvil cierra.',
+          boton: 'Diseñemos una campaña que se comparta',
+          pieBoton: 'Llamada creativa de 15 minutos, sin brief formal.',
         },
         clientes: { on: false, titulo: 'Marcas que ya están en la calle con nosotros',
           lista: 'Pepsi · Nestlé · Yango · Cashea · EPA · Arturo’s · Ridery · Cinepic · Tío Rico' },
@@ -389,7 +505,11 @@
           texto: 'Una vez seleccionados los espacios, envíanos la información y los documentos para preparar la cotización.' },
         presupuesto: { on: true, titulo: 'Para un presupuesto formal necesitamos',
           items: ['RIF digital de la empresa', 'Fecha de inicio y duración de la campaña', 'Formato o alcance (pantalla, tótem u otro)'] },
-        cta: { on: true, texto: 'Enviar información para cotizar', url: 'mailto:equintero@centauroads.com?subject=Solicitud%20de%20cotizaci%C3%B3n' },
+        // `responder`: el boton abre un mensaje a la cuenta desde la que se envia, con "Re:" y el
+        // asunto del correo (ver ctaHref). Apagado, manda `url`, escrita a mano.
+        cta: { on: true, texto: 'Enviar información para cotizar', url: 'mailto:mercadeo@centauroads.com?subject=Solicitud%20de%20cotizaci%C3%B3n',
+          responder: true, cuerpo: 'Hola,\n\nRevisé tu presentación «{titulo}» y quiero pedir una cotización. Me interesan estos espacios:\n\n',
+          alternativa: 'O, si lo prefieres, responde directamente a este correo.' },
         cierre: { on: true, texto: 'Quedo atenta a tu respuesta.' },
         firma: { on: true, nombre: 'Elizabeth Quintero',
           // Cargo elegible: 'alianzas' o 'directora'. El texto lo compone cargoDe().
@@ -440,6 +560,7 @@
         pie: { on: true, texto: 'Recibes este correo porque solicitaste información sobre espacios publicitarios de Centauro ADS.' },
       },
       servicios: SERVICIOS.map(s => Object.assign({ on: true }, s)),
+      catalogoVisto: vistoDe(),
     };
   }
 
@@ -455,17 +576,59 @@
     // y se ve en la vista previa antes de elegir contacto. Con el respaldo, la plantilla en
     // seco se lee igual que antes de que el campo existiera.
     .replace(/\{empresa\}/g, (st.bloques && st.bloques.entrega && st.bloques.entrega.empresa) || 'tu marca');
+  // El enlace de cada presentacion base es SUYO y editable en el panel: otro de Canva, o uno corto
+  // del acortador propio. Antes habia una base global que componia <base>/<slug> con slugs fijos
+  // que no existian en el acortador -los cinco daban 404, comprobado- y el enlace de cada
+  // servicio no se podia tocar.
+  //
+  // El token por destinatario (?c=) solo va en los del acortador: es el que registra quien pulso.
+  // A uno de Canva no le sirve, y ponerle parametros a un corto de canva.link es arriesgar que
+  // deje de resolver.
+  const ACORTADOR = /^https?:\/\/links\.centauroads\.com\//i;
   const linkFor = (st, s) => {
-    if (!st.linkBase) return s.canva;
-    const b = st.linkBase.replace(/\/$/, '');
-    return b + '/' + s.slug + (st.token ? '?c=' + encodeURIComponent(st.token) : '');
+    const url = String(s.canva || '').trim();
+    if (st.token && ACORTADOR.test(url)) {
+      return url + (url.indexOf('?') >= 0 ? '&' : '?') + 'c=' + encodeURIComponent(st.token);
+    }
+    return url;
   };
+  // El boton de cotizar, como una respuesta al correo.
+  //
+  // Un enlace no puede pulsar el "Responder" del programa del cliente: ninguno lo permite, y el hilo
+  // de una respuesta lo marcan cabeceras que un mailto: no puede fijar. Lo mas cercano: un mensaje a
+  // la cuenta DESDE LA QUE SE ENVIA (mercadeo@, siempre: decision del 2026-09-30), con el asunto
+  // "Re: <el del correo>". La peticion llega al mismo buzon y, con el mismo asunto, se lee como la
+  // respuesta que es. Antes abria un correo nuevo a otra direccion, con un asunto que no casaba con nada.
+  // Con `responder` apagado manda el enlace escrito a mano (un formulario, otra direccion).
+  const CUENTA_DE_ENVIO = 'mercadeo@centauroads.com';
+  // `titulo` es el de ESTE correo («Soluciones disponibles», o el titular de E, F y G): lo pone
+  // cada plantilla, y va en el hueco {titulo} del texto inicial para que mercadeo sepa que presentacion
+  // pide el cliente sin tener que buscarla.
+  function ctaHref(st, titulo) {
+    const c = B(st, 'cta');
+    if (c.responder === false) return c.url;
+    const asunto = String(st.asunto || '').trim();
+    const re = /^re:/i.test(asunto) ? asunto : 'Re: ' + asunto;
+    return 'mailto:' + ((B(st, 'firma') || {}).contacto || CUENTA_DE_ENVIO) +
+      '?subject=' + encodeURIComponent(re) + (c.cuerpo ? '&body=' + encodeURIComponent(conTitulo(c.cuerpo, titulo)) : '');
+  }
+  function conTitulo(texto, titulo) {
+    // Sin marcas de realce ni saltos: en un correo de texto plano se verian tal cual.
+    const t = String(titulo || '').replace(/\*/g, '').replace(/\s+/g, ' ').trim().replace(/[.:;,]+$/, '');
+    // Sin titulo, fuera tambien las comillas: «tu presentación «»» seria una frase rota.
+    return t ? String(texto).replace(/\{titulo\}/g, t) : String(texto).replace(/\s*«?\{titulo\}»?/g, '');
+  }
   const webHref = (w) => /^https?:\/\//.test(w || '') ? w : 'https://' + (w || '');
-  const imgFor = (st, name) => (st.assetBase || 'img').replace(/\/$/, '') + '/' + name;
+  // Una foto subida desde el panel llega con su direccion completa (/media/lineas/...): se usa tal
+  // cual. Las de serie son nombres de archivo y se cuelgan de la base de imagenes, como siempre.
+  const imgFor = (st, name) => /^https?:\/\//.test(name || '') ? name
+    : (st.assetBase || 'img').replace(/\/$/, '') + '/' + name;
   // Juego de imágenes por servicio: fotos reales del inventario o portadas de los decks de Canva
   const IMG_SETS = { fotos: 'Fotos reales del inventario', portadas: 'Portadas de las presentaciones (Canva)' };
   const usaPortadas = st => st.imgSet === 'portadas';
   const svcImg = (st, s) => imgFor(st, usaPortadas(st) && s.cover ? s.cover : s.img);
+  // Sin foto (una linea recien dada de alta), la imagen no se pinta: mejor nada que un hueco roto.
+  const tieneFoto = (st, s) => !!String((usaPortadas(st) && s.cover ? s.cover : s.img) || '').trim();
   const svcAlt = (st, s) => (usaPortadas(st) && s.altCover ? s.altCover : s.alt);
   // La portada de una entrega puede venir de tres sitios: del servidor que la guarda
   // (/media/entregas/7/og.jpg), de una direccion completa, o del juego de imagenes local
@@ -476,13 +639,16 @@
   const B = (st, k) => st.bloques[k];
   const lines = v => Array.isArray(v) ? v : String(v || '').split('\n').map(x => x.trim()).filter(Boolean);
 
-  function doc(st, bodyBg, inner) {
+  // Solo se pinta el marco de 600 px. Por fuera no va color: el correo se apoya en el fondo del
+  // cliente, como una carta sobre la mesa. Antes el fondo del tema llenaba toda la ventana de
+  // Gmail en el ordenador, y con el tema oscuro o el de la marca el correo dejaba de tener borde.
+  function doc(st, inner) {
     return '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">' +
       '<meta name="viewport" content="width=device-width,initial-scale=1">' +
       '<meta name="x-apple-disable-message-reformatting"><title>' + esc(st.asunto) + '</title></head>' +
-      '<body style="margin:0;padding:0;background:' + bodyBg + ';-webkit-text-size-adjust:100%;">' +
+      '<body style="margin:0;padding:0;-webkit-text-size-adjust:100%;">' +
       '<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">' + esc(st.preheader) + '</div>' +
-      '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:' + bodyBg + ';">' +
+      '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">' +
       '<tr><td align="center" style="padding:24px 12px;">' +
       '<!--[if mso]><table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" align="center"><tr><td><![endif]-->' +
       '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;">' +
@@ -745,7 +911,8 @@
     } : {
       fondo: C.sand, panel: C.paper, panel2: C.sand, linea: C.rule,
       texto: C.text, apagado: C.muted,
-      acento: C.purple, vivo: C.orangeInk, sobreVivo: '#FFFFFF',
+      // #B35E0A sobre la arena daba 4,2:1 en etiquetas pequenas; este llega a 5,9:1.
+      acento: C.purple, vivo: '#8F4A06', sobreVivo: '#FFFFFF',
       botonFondo: C.purple, botonTexto: '#FFFFFF',
     };
   }
@@ -767,15 +934,24 @@
       : '';
     return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
       '<td valign="middle">' + marca(st, temaDe(st), 150) + '</td>' +
-      '<td valign="middle" align="right" style="font-family:' + FH + ';font-size:10px;font-weight:800;' +
-        'letter-spacing:.24em;text-transform:uppercase;color:' + k.apagado + ';">' + esc(meta) + abajo + '</td>' +
+      '<td valign="middle" align="right" style="font-family:' + FH + ';font-size:11px;font-weight:800;' +
+        'letter-spacing:.1em;text-transform:uppercase;color:' + k.apagado + ';">' + esc(meta) + abajo + '</td>' +
       '</tr></table>';
   }
+
+  // Textos editables de E, F y G. *asi* es el realce del diseno -el color de acento en un titular,
+  // la negrita en un parrafo-: quien lo cambia decide que palabra se resalta. Una linea nueva es
+  // un salto. Se escapa ANTES de poner las etiquetas, asi que lo escrito nunca es HTML.
+  const realce = (s, abre, cierra) => esc(s).replace(/\*([^*\n]+)\*/g, abre + '$1' + cierra).replace(/\n/g, '<br>');
+  // Huecos entre llaves que rellena el motor. Uno que no conoce se queda tal cual, a la vista:
+  // mejor que desaparezca en silencio una palabra que alguien escribio.
+  const huecos = (s, mapa) => String(s == null ? '' : s)
+    .replace(/\{(\w+)\}/g, (m, k) => (mapa[k] != null ? String(mapa[k]) : m));
 
   // Epigrafe pequeno en mayusculas. Es el recurso tipografico que ordena sus tres disenos.
   function epigrafe(st, txt, color) {
     const k = paleta(temaDe(st));
-    return '<div style="font-family:' + FH + ';font-size:11px;font-weight:800;letter-spacing:.26em;' +
+    return '<div style="font-family:' + FH + ';font-size:12px;font-weight:800;letter-spacing:.26em;' +
       'text-transform:uppercase;color:' + (color || k.vivo) + ';padding:0 0 12px 0;">' + esc(txt) + '</div>';
   }
 
@@ -792,6 +968,7 @@
   // La foto de un servicio, siempre con mi carrusel animado cuando existe: el cliente
   // pidio conservar las varias imagenes por servicio con sus transiciones.
   function fotoServicio(st, s, ancho, alto) {
+    if (!tieneFoto(st, s)) return '';
     const src = (st.cardAnim && !usaPortadas(st)) ? carruselSrc(st, s) : svcImg(st, s);
     const k = paleta(temaDe(st));
     return '<a href="' + esc(linkFor(st, s)) + '"><img src="' + esc(src) + '" width="' + ancho + '"' +
@@ -812,7 +989,7 @@
   function textoComplemento(st, s, k) {
     return '<div style="font-family:' + FH + ';font-size:14px;font-weight:800;color:' + k.texto + ';padding:8px 0 2px 0;">' + esc(s.nombre) + '</div>' +
       '<div style="font-family:' + FB + ';font-size:12px;line-height:17px;color:' + k.apagado + ';">' + esc(s.cobertura) + '</div>' +
-      '<div style="padding:6px 0 0 0;"><a href="' + esc(linkFor(st, s)) + '" style="font-family:' + FH + ';font-size:11px;font-weight:800;color:' + k.acento + ';text-decoration:none;">Ver presentaci\u00f3n &rarr;</a></div>';
+      '<div style="padding:0;"><a href="' + esc(linkFor(st, s)) + '" style="display:inline-block;padding:12px 0;font-family:' + FH + ';font-size:14px;line-height:20px;font-weight:800;color:' + k.acento + ';text-decoration:none;">Ver presentaci\u00f3n &rarr;</a></div>';
   }
 
   // opts.titulo === false quita el "Tambien disponible" de encima (la Guia no lo lleva).
@@ -882,6 +1059,23 @@
   // hace desaparecer lo que el usuario llevara escrito a mano. Ya paso una vez y se
   // vivio como una perdida de trabajo. Completar en silencio lo que falta cuesta veinte
   // lineas y no le quita nada a nadie.
+  // Enlaces que apuntaban a la cuenta personal de la asesora. Todo pasa por mercadeo@ (decision
+  // del 2026-09-30). Mismo criterio que RENOMBRADOS: solo se cambian si siguen siendo exactamente los
+  // de antes; un enlace escrito a mano se respeta.
+  const ENLACES_ANTES = {
+    branding: ['mailto:equintero@centauroads.com?subject=Cat%C3%A1logo%20de%20branding%20y%20esculturas'],
+    cta: ['mailto:equintero@centauroads.com?subject=Solicitud%20de%20cotizaci%C3%B3n'],
+  };
+  // El texto inicial de la respuesta, antes de nombrar la presentacion. Mismo criterio.
+  const CUERPO_CTA_ANTES = ['Hola, quiero pedir una cotización. Me interesan estos espacios:\n\n'];
+  // Los datos de negocio que E traia por defecto y se quitaron (2026-10-03). Solo se limpian si
+  // la sesion guardada conserva exactamente el valor viejo: lo escrito a mano se respeta.
+  const ASESOR_ANTES = {
+    etiquetaMeta: 'Q1 2026 · AGENCIAS', dispoFecha: '19-sep', periodo: 'Octubre – Diciembre 2026',
+    dispoTexto: 'LED Chacao: 3 slots libres en octubre.', slotsLed: '3 SLOTS',
+    cierreTexto: 'Cerramos programación de Q1 el 15 de noviembre.', botonTexto: 'Solicitar disponibilidad Q1',
+  };
+
   function normaliza(st) {
     const base = defaultState();
     if (st.tema === undefined) st.tema = base.tema;
@@ -891,6 +1085,10 @@
     if (st.temaEntrega === undefined) st.temaEntrega = st.tema || base.temaEntrega;
     if (!st.efectosPorServicio) st.efectosPorServicio = {};
     if (!st.banco) st.banco = {};
+    // La base global de enlaces cortos se retiro: componia <base>/<slug> con slugs que no
+    // existian en el acortador. Quien la tuviera puesta mandaba cinco 404; al quitarla,
+    // sus correos vuelven a llevar el enlace de cada servicio.
+    delete st.linkBase;
     // Paradas salio del catalogo (2026-09-21). El estado guardado lleva una COPIA de los
     // servicios, asi que hay que quitarla tambien de ahi: si no, seguiria saliendo en los
     // correos de quien ya uso la herramienta. Vale para cualquier servicio que se retire.
@@ -912,6 +1110,25 @@
           if (r.antes.indexOf(x[r.campo]) >= 0) x[r.campo] = actual[r.campo];
         });
       });
+      // Lo que se edito en el panel (003): cada campo que sigue con el valor que esta sesion
+      // recibio del catalogo pasa al valor nuevo. Si la persona lo cambio, se queda lo suyo.
+      const visto = st.catalogoVisto || {};
+      st.servicios.forEach(function (x) {
+        const actual = SERVICIOS.filter(function (y) { return y.id === x.id; })[0];
+        const antes = visto[x.id] || SERIE_INICIAL[x.id];
+        if (!actual || !antes) return;
+        CAMPOS_LINEA.forEach(function (k) {
+          if (k === 'id' || antes[k] === undefined) return;
+          const recibido = x[k] == null ? '' : x[k];
+          const nuevo = actual[k] == null ? '' : actual[k];
+          if (recibido === antes[k] && nuevo !== antes[k]) x[k] = nuevo;
+        });
+      });
+      // El orden es el del catalogo: el compositor no tiene orden propio de lineas.
+      const posicion = {};
+      SERVICIOS.forEach(function (y, i) { posicion[y.id] = i; });
+      st.servicios.sort(function (a, b) { return posicion[a.id] - posicion[b.id]; });
+      st.catalogoVisto = vistoDe();
     }
     delete st.banco.paradas;
     if (st.efectosPorServicio) delete st.efectosPorServicio.paradas;
@@ -928,6 +1145,13 @@
       Object.keys(base.bloques[k]).forEach(function (campo) {
         if (st.bloques[k][campo] === undefined) st.bloques[k][campo] = base.bloques[k][campo];
       });
+    });
+    if (st.bloques.cta && CUERPO_CTA_ANTES.indexOf(st.bloques.cta.cuerpo) >= 0) st.bloques.cta.cuerpo = base.bloques.cta.cuerpo;
+    if (st.bloques.asesor) Object.keys(ASESOR_ANTES).forEach(function (k) {
+      if (st.bloques.asesor[k] === ASESOR_ANTES[k]) st.bloques.asesor[k] = base.bloques.asesor[k];
+    });
+    Object.keys(ENLACES_ANTES).forEach(function (k) {
+      if (st.bloques[k] && ENLACES_ANTES[k].indexOf(st.bloques[k].url) >= 0) st.bloques[k].url = base.bloques[k].url;
     });
     if (st.bloques.entrega) {
       Object.keys(ENTREGA_ANTES).forEach(function (campo) {
@@ -964,257 +1188,276 @@
     return p;
   }
 
-  // ── Plantilla A · "Cartelera" (oscura, como los decks) ──
+  // ══ A y B · «Señal nocturna» ═══════════════════════════════════════════════
+  //
+  // Lo que Centauro vende es ver tu marca en la calle, de noche, con las pantallas encendidas.
+  // El correo copia ese mundo: fondo de noche, la foto del espacio a sangre como si fuera la
+  // valla, titulares en letra de señalética (la familia DIN de los carteles de calle,
+  // condensada) y el naranja como la luz de las pantallas: se usa una sola vez, en la acción.
+  //
+  // Nada de web fonts (Gmail las quita al pegar): la pila tira de las condensadas que ya trae
+  // cada sistema. macOS/iOS: DIN Condensed. Windows 10+: Bahnschrift. Android: la condensada
+  // de Roboto. Si ninguna existe, cae en Arial Narrow y luego en Trebuchet.
+  const N = {
+    // La noche es la del panel de hoy (#16141D) y no otra: el logo va aplanado sobre ese
+    // color para Outlook, y con cualquier otro negro vuelve el recuadro alrededor del logo.
+    noche: '#16141D', noche2: '#1F1C2A', hilo: '#302A3C',
+    luz: '#F79131', texto: '#F4EFF7', apagado: '#B9AFC2', lila: '#CDA8DC',
+    papel: '#FFFFFF', arena: '#F5F1EC', tinta: '#15111A', gris: '#5E5767', regla: '#E6E0E9',
+    naranjaTinta: '#B35E0A', morado: '#85439A',
+  };
+  const FS = "'DIN Condensed','Bahnschrift SemiBold Condensed','Bahnschrift Condensed',Bahnschrift," +
+    "'AvenirNextCondensed-Bold','Roboto Condensed',sans-serif-condensed,'Arial Narrow','Trebuchet MS',Arial,sans-serif";
+
+  // Titular de señal: condensado, grande, interlineado apretado.
+  const rotulo = (html, size, color, extra) =>
+    '<div style="font-family:' + FS + ';font-size:' + size + 'px;line-height:' + Math.round(size * 1.04) + 'px;' +
+    'font-weight:700;color:' + color + ';' + (extra || '') + '">' + html + '</div>';
+  const cuerpo = (html, size, color, extra) =>
+    '<div style="font-family:' + FB + ';font-size:' + size + 'px;line-height:' + Math.round(size * 1.6) + 'px;' +
+    'color:' + color + ';' + (extra || '') + '">' + html + '</div>';
+  // Enlace secundario: texto con flecha, sin caja. Solo hay UNA acción con fondo por correo.
+  const flecha = (txt, url, color) =>
+    '<a href="' + esc(url) + '" style="font-family:' + FS + ';font-size:18px;line-height:22px;font-weight:700;' +
+    'color:' + color + ';text-decoration:none;">' + esc(txt) + '&nbsp;&rarr;</a>';
+  // La acción principal: una señal rectangular a todo el ancho, como un rótulo de calle.
+  const senal = (txt, url, fondo, color) =>
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
+    '<td bgcolor="' + fondo + '" style="background:' + fondo + ';border-radius:3px;">' +
+    '<a href="' + esc(url) + '" style="display:block;padding:18px 22px;font-family:' + FS + ';font-size:22px;' +
+    'line-height:26px;font-weight:700;color:' + color + ';text-decoration:none;">' + esc(txt) + '&nbsp;&nbsp;&rarr;</a>' +
+    '</td></tr></table>';
+  const fotoDe = (st, s) => (st.cardAnim && !usaPortadas(st) ? carruselSrc(st, s) : svcImg(st, s));
+  const imagen = (st, s, ancho, fondoAlt) => !tieneFoto(st, s) ? '' :
+    '<a href="' + esc(linkFor(st, s)) + '"><img src="' + esc(fotoDe(st, s)) + '" width="' + ancho + '" alt="' +
+    esc(svcAlt(st, s)) + '" style="display:block;width:100%;max-width:100%;height:auto;border:0;' +
+    'color:' + fondoAlt + ';font-family:' + FB + ';font-size:14px;line-height:20px;"></a>';
+  // Lista de requisitos: filas separadas por un hilo, sin viñetas ni números en círculo.
+  const lista = (items, color, hilo) =>
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">' +
+    items.map(t => '<tr><td style="border-top:1px solid ' + hilo + ';padding:11px 0;font-family:' + FB +
+      ';font-size:15px;line-height:22px;color:' + color + ';">' + esc(t) + '</td></tr>').join('') +
+    '<tr><td style="border-top:1px solid ' + hilo + ';font-size:0;line-height:0;">&nbsp;</td></tr></table>';
+
+  // El bloque de cotizar, común a A y B: qué pasa ahora, qué hace falta y la única acción.
+  function cotizar(st, k) {
+    let h = '';
+    if (on(st, 'pasos')) {
+      const b = B(st, 'pasos');
+      h += rotulo(esc(b.titulo), 30, k.texto) + cuerpo(nl2br(b.texto), 16, k.apagado, 'padding:10px 0 0 0;');
+    }
+    if (on(st, 'presupuesto')) {
+      const b = B(st, 'presupuesto');
+      h += cuerpo('<b style="color:' + k.texto + ';">' + esc(b.titulo) + '</b>', 15, k.texto, 'padding:22px 0 8px 0;') +
+        lista(lines(b.items), k.texto, k.hilo);
+    }
+    if (on(st, 'suministro')) {
+      const b = B(st, 'suministro');
+      h += cuerpo('<b style="color:' + k.texto + ';">' + esc(b.titulo) + '.</b> ' + esc(b.texto) + ' ' +
+        lines(b.requisitos).map(esc).join(' · ') + '.', 14, k.apagado, 'padding:18px 0 0 0;');
+    }
+    if (on(st, 'cta')) {
+      h += '<div style="padding:26px 0 0 0;">' + senal(B(st, 'cta').texto, ctaHref(st, B(st, 'titulo').texto), N.luz, N.tinta) + '</div>';
+      if (B(st, 'cta').alternativa) h += cuerpo(esc(B(st, 'cta').alternativa), 14, k.apagado, 'padding:12px 0 0 0;');
+    }
+    return h;
+  }
+
+  function despedida(st, tema, k, fondo) {
+    const P = [];
+    let foot = '';
+    if (on(st, 'cierre')) foot += cuerpo(nl2br(B(st, 'cierre').texto), 16, k.texto, 'padding:0 0 18px 0;');
+    if (on(st, 'firma')) foot += firma(st, tema);
+    if (foot) P.push(row(foot, 'padding:30px 28px 30px 28px;background:' + fondo + ';'));
+    if (on(st, 'pie')) P.push(row(cuerpo(nl2br(B(st, 'pie').texto), 12, k.apagado), 'padding:0 28px 26px 28px;background:' + fondo + ';'));
+    return P.join('');
+  }
+
+  // ── Plantilla A · "Cartelera" (Señal nocturna: cada espacio es una valla) ──
+  // Cada espacio es una valla: la foto a sangre, de borde a borde, y debajo su placa con el
+  // nombre en letra de señal. Se lee como una calle: una detrás de otra, con aire entre medias.
   function plantillaA(st) {
     const P = [];
-    const T = C.textDark, M = C.mutedDark;
-    P.push(row(
-      '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
-      '<td valign="top">' + marca(st, 'oscuro', 210) + '</td>' +
-      '</tr></table>', 'padding:22px 28px 18px 28px;background:' + C.ink + ';border-bottom:1px solid ' + C.line + ';'));
+    const k = { texto: N.texto, apagado: N.apagado, hilo: N.hilo };
+    const fondo = 'background:' + N.noche + ';';
+    P.push(row(marca(st, 'oscuro', 150), 'padding:26px 28px 0 28px;' + fondo));
     if (on(st, 'titulo')) {
       const b = B(st, 'titulo');
-      P.push(row(
-        '<div style="font-family:' + FH + ';font-size:11px;font-weight:700;letter-spacing:.16em;color:' + M + ';text-transform:uppercase;">' + esc(b.sub) + '</div>' +
-        '<div style="font-family:' + FH + ';font-size:32px;line-height:36px;font-weight:800;color:#FFFFFF;padding:8px 0 14px 0;">' + esc(b.texto) + '</div>' +
-        '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td width="56" height="4" bgcolor="' + C.orange + '" style="background:' + C.orange + ';font-size:0;line-height:0;">&nbsp;</td><td width="28" height="4" bgcolor="' + C.purple + '" style="background:' + C.purple + ';font-size:0;line-height:0;">&nbsp;</td></tr></table>',
-        'padding:30px 28px 10px 28px;background:' + C.ink + ';'));
-    }
-    let body = '';
-    if (on(st, 'saludo')) body += '<div style="font-family:' + FB + ';font-size:15px;line-height:22px;color:' + T + ';padding:0 0 10px 0;">' + nl2br(fill(B(st, 'saludo').texto, st)) + '</div>';
-    if (on(st, 'intro')) body += '<div style="font-family:' + FB + ';font-size:15px;line-height:23px;color:' + M + ';">' + nl2br(fill(B(st, 'intro').texto, st)) + '</div>';
-    if (body) P.push(row(body, 'padding:18px 28px 8px 28px;background:' + C.ink + ';'));
-    const bqA = bloquePerfil(st, true);
-    if (bqA) P.push(row(bqA, 'padding:6px 28px 16px 28px;background:' + C.ink + ';'));
-    activos(st).forEach(s => {
-      P.push(row(
-        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
-        '<td width="200" valign="top" style="padding:0 18px 0 0;"><a href="' + esc(linkFor(st, s)) + '"><img src="' + esc(st.cardAnim && !usaPortadas(st) ? carruselSrc(st, s) : svcImg(st, s)) + '" width="200" alt="' + esc(svcAlt(st, s)) + '" style="display:block;width:200px;height:auto;border-radius:6px;border:1px solid ' + C.line + ';color:#EEEDF2;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:18px;"></a></td>' +
-        '<td valign="top">' +
-        '<div style="font-family:' + FH + ';font-size:10px;font-weight:700;letter-spacing:.16em;color:' + C.orange + ';text-transform:uppercase;">' + esc(s.eyebrow) + '</div>' +
-        '<div style="font-family:' + FH + ';font-size:17px;line-height:22px;font-weight:800;color:#FFFFFF;padding:4px 0 4px 0;">' + esc(s.nombre) + '</div>' +
-        '<div style="font-family:' + FB + ';font-size:14px;line-height:20px;color:' + T + ';">' + esc(s.cobertura) + '</div>' +
-        (s.nota ? '<div style="font-family:' + FB + ';font-size:12px;line-height:18px;color:' + M + ';padding:4px 0 0 0;">' + esc(s.nota) + '</div>' : '') +
-        '<div style="padding:10px 0 0 0;"><a href="' + esc(linkFor(st, s)) + '" style="font-family:' + FH + ';font-size:13px;font-weight:700;color:' + C.purpleLight + ';text-decoration:none;">Ver presentación &rarr;</a></div>' +
-        '</td></tr></table>',
-        'padding:18px 28px;background:' + C.ink + ';border-top:1px solid ' + C.line + ';'));
-    });
-    if (on(st, 'suministro')) {
-      const b = B(st, 'suministro');
-      P.push(row(
-        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td width="4" bgcolor="' + C.orange + '" style="background:' + C.orange + ';font-size:0;">&nbsp;</td>' +
-        '<td style="padding:14px 18px;background:' + C.ink2 + ';">' +
-        '<div style="font-family:' + FH + ';font-size:15px;font-weight:800;color:#FFFFFF;padding:0 0 6px 0;">' + esc(b.titulo) + '</div>' +
-        '<div style="font-family:' + FB + ';font-size:14px;line-height:20px;color:' + M + ';padding:0 0 8px 0;">' + nl2br(b.texto) + '</div>' +
-        bullets(lines(b.requisitos), C.orange, T) + '</td></tr></table>',
-        'padding:18px 28px 6px 28px;background:' + C.ink + ';'));
-    }
-    let steps = '';
-    if (on(st, 'pasos')) {
-      const b = B(st, 'pasos');
-      steps += '<div style="font-family:' + FH + ';font-size:15px;font-weight:800;color:#FFFFFF;padding:0 0 6px 0;">' + esc(b.titulo) + '</div>' +
-        '<div style="font-family:' + FB + ';font-size:14px;line-height:20px;color:' + M + ';padding:0 0 12px 0;">' + nl2br(b.texto) + '</div>';
-    }
-    if (on(st, 'presupuesto')) {
-      const b = B(st, 'presupuesto');
-      steps += '<div style="font-family:' + FB + ';font-size:14px;font-weight:700;color:' + T + ';padding:0 0 8px 0;">' + esc(b.titulo) + '</div>' + numbered(lines(b.items), C.orange, C.black, T);
-    }
-    if (steps) P.push(row(steps, 'padding:18px 28px 6px 28px;background:' + C.ink + ';'));
-    if (on(st, 'cta')) P.push(row(button(B(st, 'cta').texto, B(st, 'cta').url, C.orange, C.black), 'padding:12px 28px 22px 28px;background:' + C.ink + ';'));
-    let foot = '';
-    if (on(st, 'cierre')) foot += '<div style="font-family:' + FB + ';font-size:15px;line-height:22px;color:' + T + ';padding:0 0 16px 0;">' + nl2br(B(st, 'cierre').texto) + '</div>';
-    if (on(st, 'firma')) foot += firma(st, 'oscuro');
-    if (foot) P.push(row(foot, 'padding:20px 28px 26px 28px;background:' + C.ink + ';border-top:1px solid ' + C.line + ';'));
-    if (on(st, 'pie')) P.push(row('<div style="font-family:' + FB + ';font-size:11px;line-height:16px;color:' + M + ';">' + nl2br(B(st, 'pie').texto) + '</div>', 'padding:14px 28px 0 28px;'));
-    return doc(st, C.black, P.join(''));
-  }
-
-  // ── Plantilla B · "Catálogo" (clara, tarjetas en dos columnas) ──
-  function plantillaB(st) {
-    const P = [];
-    P.push('<tr><td style="font-size:0;line-height:0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
-      '<td width="60%" height="6" bgcolor="' + C.purple + '" style="background:' + C.purple + ';">&nbsp;</td><td height="6" bgcolor="' + C.orange + '" style="background:' + C.orange + ';">&nbsp;</td></tr></table></td></tr>');
-    P.push(row(
-      '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
-      '<td valign="top">' + marca(st, 'claro', 210) + '</td>' +
-      '</tr></table>', 'padding:20px 28px;background:' + C.paper + ';border-bottom:1px solid ' + C.rule + ';'));
-    let body = '';
-    if (on(st, 'saludo')) body += '<div style="font-family:' + FB + ';font-size:15px;line-height:22px;color:' + C.text + ';padding:0 0 10px 0;">' + nl2br(fill(B(st, 'saludo').texto, st)) + '</div>';
-    if (on(st, 'intro')) body += '<div style="font-family:' + FB + ';font-size:15px;line-height:23px;color:' + C.muted + ';">' + nl2br(fill(B(st, 'intro').texto, st)) + '</div>';
-    if (body) P.push(row(body, 'padding:24px 28px 6px 28px;background:' + C.paper + ';'));
-    if (on(st, 'titulo')) {
-      const b = B(st, 'titulo');
-      P.push(row('<div style="font-family:' + FH + ';font-size:24px;line-height:28px;font-weight:800;color:' + C.text + ';">' + esc(b.texto) + '</div>' +
-        '<div style="font-family:' + FB + ';font-size:13px;color:' + C.muted + ';padding:4px 0 0 0;">' + esc(b.sub) + '</div>', 'padding:18px 28px 6px 28px;background:' + C.paper + ';'));
-    }
-    const bqB = bloquePerfil(st, false);
-    if (bqB) P.push(row(bqB, 'padding:6px 28px 16px 28px;background:' + C.paper + ';'));
-    const act = activos(st);
-    if (act.length) {
-      const card = (s, w) => '<table role="presentation" width="' + w + '" align="left" cellpadding="0" cellspacing="0" border="0" style="width:' + w + 'px;max-width:100%;margin:0 0 16px 0;"><tr><td style="border:1px solid ' + C.rule + ';border-radius:8px;overflow:hidden;background:' + C.paper + ';">' +
-        '<a href="' + esc(linkFor(st, s)) + '"><img src="' + esc(st.cardAnim && !usaPortadas(st) ? carruselSrc(st, s) : svcImg(st, s)) + '" width="' + w + '" alt="' + esc(svcAlt(st, s)) + '" style="display:block;width:100%;height:auto;border-radius:8px 8px 0 0;color:#1F1B24;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:18px;"></a>' +
-        '<div style="padding:12px 14px 14px 14px;">' +
-        '<div style="font-family:' + FH + ';font-size:10px;font-weight:700;letter-spacing:.14em;color:' + C.orangeDark + ';text-transform:uppercase;">' + esc(s.eyebrow) + '</div>' +
-        '<div style="font-family:' + FH + ';font-size:15px;line-height:20px;font-weight:800;color:' + C.text + ';padding:3px 0 3px 0;">' + esc(s.nombre) + '</div>' +
-        '<div style="font-family:' + FB + ';font-size:13px;line-height:19px;color:' + C.muted + ';">' + esc(s.cobertura) + (s.nota ? '<br>' + esc(s.nota) : '') + '</div>' +
-        '<div style="padding:8px 0 0 0;"><a href="' + esc(linkFor(st, s)) + '" style="font-family:' + FH + ';font-size:12px;font-weight:700;color:' + C.purple + ';text-decoration:none;">Ver presentación &rarr;</a></div>' +
-        '</div></td></tr></table>';
-      let grid = '';
-      act.forEach((s, i) => {
-        const last = i === act.length - 1 && act.length % 2 === 1;
-        grid += last ? card(s, 544) : card(s, 264) + (i % 2 === 0 ? '<table role="presentation" width="16" align="left" cellpadding="0" cellspacing="0" border="0"><tr><td style="font-size:0;line-height:0;">&nbsp;</td></tr></table>' : '');
-      });
-      P.push(row(grid, 'padding:12px 28px 0 28px;background:' + C.paper + ';'));
-    }
-    if (on(st, 'suministro')) {
-      const b = B(st, 'suministro');
-      P.push(row('<div style="font-family:' + FH + ';font-size:15px;font-weight:800;color:' + C.text + ';padding:0 0 6px 0;">' + esc(b.titulo) + '</div>' +
-        '<div style="font-family:' + FB + ';font-size:14px;line-height:20px;color:' + C.muted + ';padding:0 0 8px 0;">' + nl2br(b.texto) + '</div>' + bullets(lines(b.requisitos), C.orange, C.text),
-        'padding:16px 20px;background:' + C.sand + ';border-radius:8px;'));
-    }
-    let steps = '';
-    if (on(st, 'pasos')) {
-      const b = B(st, 'pasos');
-      steps += '<div style="font-family:' + FH + ';font-size:15px;font-weight:800;color:' + C.text + ';padding:0 0 6px 0;">' + esc(b.titulo) + '</div>' +
-        '<div style="font-family:' + FB + ';font-size:14px;line-height:20px;color:' + C.muted + ';padding:0 0 12px 0;">' + nl2br(b.texto) + '</div>';
-    }
-    if (on(st, 'presupuesto')) {
-      const b = B(st, 'presupuesto');
-      steps += '<div style="font-family:' + FB + ';font-size:14px;font-weight:700;color:' + C.text + ';padding:0 0 8px 0;">' + esc(b.titulo) + '</div>' + numbered(lines(b.items), C.purple, '#FFFFFF', C.text);
-    }
-    if (steps) P.push(row(steps, 'padding:20px 28px 4px 28px;background:' + C.paper + ';'));
-    if (on(st, 'cta')) P.push(row(button(B(st, 'cta').texto, B(st, 'cta').url, C.purple, '#FFFFFF'), 'padding:12px 28px 22px 28px;background:' + C.paper + ';'));
-    let foot = '';
-    if (on(st, 'cierre')) foot += '<div style="font-family:' + FB + ';font-size:15px;line-height:22px;color:' + C.text + ';padding:0 0 16px 0;">' + nl2br(B(st, 'cierre').texto) + '</div>';
-    if (on(st, 'firma')) foot += firma(st, 'claro');
-    if (foot) P.push(row(foot, 'padding:20px 28px 26px 28px;background:' + C.paper + ';border-top:1px solid ' + C.rule + ';'));
-    if (on(st, 'pie')) P.push(row('<div style="font-family:' + FB + ';font-size:11px;line-height:16px;color:' + C.muted + ';">' + nl2br(B(st, 'pie').texto) + '</div>', 'padding:14px 28px 0 28px;'));
-    return doc(st, C.sand, P.join(''));
-  }
-
-  // ── Plantilla C · "Nota" (compacta, parece un correo personal; para responder en hilo) ──
-  function plantillaC(st) {
-    const P = [];
-    let body = '';
-    if (on(st, 'saludo')) body += '<p style="margin:0 0 12px 0;font-family:' + FB + ';font-size:15px;line-height:23px;color:' + C.text + ';">' + nl2br(fill(B(st, 'saludo').texto, st)) + '</p>';
-    if (on(st, 'intro')) body += '<p style="margin:0 0 18px 0;font-family:' + FB + ';font-size:15px;line-height:23px;color:' + C.text + ';">' + nl2br(fill(B(st, 'intro').texto, st)) + '</p>';
-    if (on(st, 'titulo')) body += '<p style="margin:0 0 10px 0;font-family:' + FH + ';font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:' + C.purple + ';">' + esc(B(st, 'titulo').texto) + '</p>';
-    const bqC = bloquePerfil(st, false);
-    if (bqC) body += '<div style="padding:2px 0 14px 0;">' + bqC + '</div>';
-    activos(st).forEach(s => {
-      body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 10px 0;"><tr>' +
-        '<td width="84" valign="top"><a href="' + esc(linkFor(st, s)) + '"><img src="' + esc(svcImg(st, s)) + '" width="72" alt="' + esc(svcAlt(st, s)) + '" style="display:block;width:72px;height:auto;border-radius:4px;color:#1F1B24;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:18px;"></a></td>' +
-        '<td valign="top" style="font-family:' + FB + ';font-size:14px;line-height:20px;color:' + C.text + ';">' +
-        '<b>' + esc(s.nombre) + '</b> &mdash; ' + esc(s.cobertura) + ' &mdash; <a href="' + esc(linkFor(st, s)) + '" style="color:' + C.purple + ';">Ver presentación</a>' +
-        (s.nota ? '<br><span style="font-size:12px;color:' + C.muted + ';">' + esc(s.nota) + '</span>' : '') +
-        '</td></tr></table>';
-    });
-    if (on(st, 'suministro')) {
-      const b = B(st, 'suministro');
-      body += '<p style="margin:14px 0 4px 0;font-family:' + FB + ';font-size:14px;line-height:20px;color:' + C.text + ';"><b>' + esc(b.titulo) + '.</b> ' + esc(b.texto) + ' ' + lines(b.requisitos).map(esc).join(' · ') + '.</p>';
-    }
-    if (on(st, 'pasos')) {
-      const b = B(st, 'pasos');
-      body += '<p style="margin:14px 0 4px 0;font-family:' + FB + ';font-size:14px;line-height:20px;color:' + C.text + ';"><b>' + esc(b.titulo) + '.</b> ' + esc(b.texto) + '</p>';
-    }
-    if (on(st, 'presupuesto')) {
-      const b = B(st, 'presupuesto');
-      body += '<p style="margin:10px 0 4px 0;font-family:' + FB + ';font-size:14px;line-height:20px;color:' + C.text + ';">' + esc(b.titulo) + ':</p>' +
-        '<ol style="margin:0 0 14px 0;padding:0 0 0 22px;font-family:' + FB + ';font-size:14px;line-height:21px;color:' + C.text + ';">' + lines(b.items).map(t => '<li>' + esc(t) + '</li>').join('') + '</ol>';
-    }
-    if (on(st, 'cta')) body += '<div style="padding:4px 0 18px 0;">' + button(B(st, 'cta').texto, B(st, 'cta').url, C.orange, C.black) + '</div>';
-    if (on(st, 'cierre')) body += '<p style="margin:0 0 18px 0;font-family:' + FB + ';font-size:15px;line-height:23px;color:' + C.text + ';">' + nl2br(B(st, 'cierre').texto) + '</p>';
-    if (on(st, 'firma')) body += firma(st, 'claro');
-    if (on(st, 'pie')) body += '<p style="margin:18px 0 0 0;font-family:' + FB + ';font-size:11px;line-height:16px;color:' + C.muted + ';">' + nl2br(B(st, 'pie').texto) + '</p>';
-    P.push(row(body, 'padding:8px 4px;background:' + C.paper + ';'));
-    return doc(st, C.paper, P.join(''));
-  }
-
-  // ── Plantilla D · "Cartelera móvil" (una columna, foto arriba, tipografía grande, un solo botón principal) ──
-  function plantillaD(st) {
-    const P = [];
-    const T = C.textDark, M = C.mutedDark;
-    const txt = (s, size, color, extra) => '<div style="font-family:' + FB + ';font-size:' + size + 'px;line-height:' + Math.round(size * 1.5) + 'px;color:' + color + ';' + (extra || '') + '">' + s + '</div>';
-    const eyebrow = s => '<div style="font-family:' + FH + ';font-size:12px;font-weight:700;letter-spacing:.12em;color:' + C.orange + ';text-transform:uppercase;">' + esc(s) + '</div>';
-    const pill = (text, url, solid) => '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" bgcolor="' + (solid ? C.orange : C.ink2) + '" style="background:' + (solid ? C.orange : C.ink2) + ';border:2px solid ' + C.orange + ';border-radius:30px;">' +
-      '<a href="' + esc(url) + '" style="display:block;padding:15px 20px;font-family:' + FH + ';font-size:16px;font-weight:800;color:' + (solid ? C.black : C.orange) + ';text-decoration:none;">' + esc(text) + '</a></td></tr></table>';
-    const foto = (src, alt, url) => '<a href="' + esc(url) + '"><img src="' + esc(src) + '" width="544" alt="' + esc(alt) + '" style="display:block;width:100%;max-width:100%;height:auto;border-radius:10px 10px 0 0;color:#EEEDF2;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:18px;"></a>';
-    const dark = 'background:' + C.ink + ';';
-
-    // Cabecera de marca
-    P.push(row('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
-      '<td valign="top">' + marca(st, 'oscuro', 168) + '</td>' +
-      '<td align="right" valign="top" style="font-family:' + FH + ';font-size:11px;font-weight:700;letter-spacing:.14em;color:' + C.orange + ';padding:4px 0 0 0;">DISPONIBILIDAD</td>' +
-      '</tr></table>', 'padding:18px 24px;' + dark));
-    // Foto de cabecera + titular
-    if (on(st, 'hero')) {
-      const h = B(st, 'hero');
-      // Cabecera animada (GIF de HyperFrames) si heroAnim está activo; si no, la foto fija.
-      const src = imgFor(st, st.heroAnim && h.anim ? h.anim : (usaPortadas(st) && h.imgPortada ? h.imgPortada : h.img));
-      P.push(row('<img src="' + esc(src) + '" width="600" alt="' + esc(h.alt) + '" style="display:block;width:100%;max-width:100%;height:auto;color:#EEEDF2;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:18px;">', 'font-size:0;line-height:0;' + dark));
-    }
-    if (on(st, 'titulo')) {
-      const b = B(st, 'titulo');
-      P.push(row(eyebrow(b.sub) +
-        '<div style="font-family:' + FH + ';font-size:30px;line-height:36px;font-weight:800;color:#FFFFFF;padding:8px 0 0 0;">' + esc(b.texto) + '</div>',
-        'padding:24px 24px 8px 24px;' + dark));
+      P.push(row(rotulo(esc(b.texto), 54, N.texto, 'letter-spacing:-.01em;') +
+        cuerpo(esc(b.sub), 15, N.lila, 'padding:10px 0 0 0;'), 'padding:40px 28px 6px 28px;' + fondo));
     }
     let intro = '';
-    if (on(st, 'saludo')) intro += txt(nl2br(fill(B(st, 'saludo').texto, st)), 17, T, 'padding:0 0 10px 0;');
-    if (on(st, 'intro')) intro += txt(nl2br(fill(B(st, 'intro').texto, st)), 16, M);
-    if (intro) P.push(row(intro, 'padding:12px 24px 10px 24px;' + dark));
+    if (on(st, 'saludo')) intro += cuerpo(nl2br(fill(B(st, 'saludo').texto, st)), 17, N.texto, 'padding:0 0 10px 0;');
+    if (on(st, 'intro')) intro += cuerpo(nl2br(fill(B(st, 'intro').texto, st)), 16, N.apagado);
+    if (intro) P.push(row(intro, 'padding:22px 28px 34px 28px;' + fondo));
+    const bq = bloquePerfil(st, true);
+    if (bq) P.push(row(bq, 'padding:0 28px 30px 28px;' + fondo));
+    activos(st).forEach(s => {
+      P.push(row(imagen(st, s, 600, N.texto), 'font-size:0;line-height:0;' + fondo));
+      P.push(row(
+        rotulo(esc(s.nombre), 32, N.texto) +
+        cuerpo(esc(s.cobertura), 15, N.apagado, 'padding:6px 0 0 0;') +
+        (s.nota ? cuerpo(esc(s.nota), 13, N.apagado, 'padding:2px 0 0 0;opacity:.85;') : '') +
+        '<div style="padding:14px 0 0 0;">' + flecha('Ver presentación', linkFor(st, s), N.luz) + '</div>',
+        'padding:20px 28px 44px 28px;' + fondo));
+    });
+    const c = cotizar(st, k);
+    if (c) P.push(row(c, 'padding:36px 28px 36px 28px;background:' + N.noche2 + ';'));
+    P.push(despedida(st, 'oscuro', k, N.noche));
+    return doc(st, P.join(''));
+  }
 
-    // Bloques de servicio agrupados (foto arriba, texto debajo, un botón por grupo)
-    const bqD = bloquePerfil(st, true);
-    if (bqD) P.push(row(bqD, 'padding:6px 24px 14px 24px;' + dark));
+  // ── Plantilla B · "Catálogo" (Señal nocturna, versión de día) ──
+  // La versión clara: papel blanco y la tinta de un plano. Rompe la rejilla de tarjetas iguales:
+  // el primer espacio va destacado a todo el ancho y los demás de dos en dos, sin cajas ni
+  // bordes, la foto con la esquina viva como un cartel. En el móvil las parejas bajan solas.
+  function plantillaB(st) {
+    const P = [];
+    const k = { texto: N.tinta, apagado: N.gris, hilo: N.regla };
+    const fondo = 'background:' + N.papel + ';';
+    P.push(row(marca(st, 'claro', 150), 'padding:28px 28px 0 28px;' + fondo));
+    if (on(st, 'titulo')) {
+      const b = B(st, 'titulo');
+      P.push(row(rotulo(esc(b.texto), 48, N.tinta, 'letter-spacing:-.01em;') +
+        cuerpo(esc(b.sub), 15, N.morado, 'padding:8px 0 0 0;'), 'padding:38px 28px 4px 28px;' + fondo));
+    }
+    let intro = '';
+    if (on(st, 'saludo')) intro += cuerpo(nl2br(fill(B(st, 'saludo').texto, st)), 17, N.tinta, 'padding:0 0 10px 0;');
+    if (on(st, 'intro')) intro += cuerpo(nl2br(fill(B(st, 'intro').texto, st)), 16, N.gris);
+    if (intro) P.push(row(intro, 'padding:20px 28px 30px 28px;' + fondo));
+    const bq = bloquePerfil(st, false);
+    if (bq) P.push(row(bq, 'padding:0 28px 30px 28px;' + fondo));
+    const placa = (s, grande) =>
+      rotulo(esc(s.nombre), grande ? 30 : 23, N.tinta, 'padding:' + (grande ? 16 : 12) + 'px 0 0 0;') +
+      cuerpo(esc(s.cobertura), grande ? 15 : 14, N.gris, 'padding:5px 0 0 0;') +
+      '<div style="padding:10px 0 0 0;">' + flecha('Ver presentación', linkFor(st, s), N.naranjaTinta) + '</div>';
+    const act = activos(st);
+    if (act.length) {
+      // Destacado: el primero, a todo el ancho de la columna.
+      P.push(row(imagen(st, act[0], 544, N.tinta) + placa(act[0], true), 'padding:0 28px 34px 28px;' + fondo));
+      // El resto de dos en dos. Tablas que flotan: lado a lado en el ordenador, una debajo
+      // de otra en el móvil (la misma técnica con la que A y B dejaron de encogerse en el móvil).
+      const resto = act.slice(1);
+      for (let i = 0; i < resto.length; i += 2) {
+        const par = resto.slice(i, i + 2);
+        if (par.length === 1) {
+          P.push(row(imagen(st, par[0], 544, N.tinta) + placa(par[0], true), 'padding:0 28px 34px 28px;' + fondo));
+          continue;
+        }
+        const celda = (s, lado) =>
+          '<table role="presentation" width="264" align="' + lado + '" cellpadding="0" cellspacing="0" border="0" ' +
+          'style="width:264px;max-width:100%;margin:0 0 30px 0;"><tr><td valign="top">' +
+          imagen(st, s, 264, N.tinta) + placa(s, false) + '</td></tr></table>';
+        P.push(row(celda(par[0], 'left') +
+          '<table role="presentation" width="16" align="left" cellpadding="0" cellspacing="0" border="0"><tr><td style="font-size:0;line-height:0;">&nbsp;</td></tr></table>' +
+          celda(par[1], 'left'), 'padding:0 28px 4px 28px;' + fondo));
+      }
+    }
+    const c = cotizar(st, k);
+    if (c) P.push(row(c, 'padding:34px 28px 34px 28px;background:' + N.arena + ';'));
+    P.push(despedida(st, 'claro', k, N.papel));
+    return doc(st, P.join(''));
+  }
+
+  // ── Plantilla C · "Nota" (Señal nocturna: sigue pareciendo un correo escrito a mano) ──
+  // Sigue pareciendo un correo escrito a mano: sin rótulos en mayúsculas ni botón de campaña.
+  // La acción es un enlace en negrita, como lo pondría una persona.
+  function plantillaC(st) {
+    let body = '';
+    const p = (html, extra) => '<p style="margin:0 0 14px 0;font-family:' + FB + ';font-size:15px;line-height:24px;color:' + N.tinta + ';' + (extra || '') + '">' + html + '</p>';
+    if (on(st, 'saludo')) body += p(nl2br(fill(B(st, 'saludo').texto, st)));
+    if (on(st, 'intro')) body += p(nl2br(fill(B(st, 'intro').texto, st)), 'margin-bottom:22px;');
+    const bq = bloquePerfil(st, false);
+    if (bq) body += '<div style="padding:0 0 18px 0;">' + bq + '</div>';
+    activos(st).forEach(s => {
+      body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px 0;"><tr>' +
+        '<td width="112" valign="top">' + (!tieneFoto(st, s) ? '' : '<a href="' + esc(linkFor(st, s)) + '"><img src="' + esc(svcImg(st, s)) + '" width="96" alt="' + esc(svcAlt(st, s)) + '" style="display:block;width:96px;height:auto;border:0;border-radius:3px;color:' + N.tinta + ';font-family:' + FB + ';font-size:12px;"></a>') + '</td>' +
+        '<td valign="top" style="font-family:' + FB + ';font-size:15px;line-height:22px;color:' + N.tinta + ';">' +
+        '<b>' + esc(s.nombre) + '</b><br><span style="color:' + N.gris + ';font-size:14px;">' + esc(s.cobertura) + '</span><br>' +
+        '<a href="' + esc(linkFor(st, s)) + '" style="color:' + N.morado + ';font-size:14px;">Ver presentación</a></td></tr></table>';
+    });
+    if (on(st, 'pasos')) { const b = B(st, 'pasos'); body += p('<b>' + esc(b.titulo) + '.</b> ' + esc(b.texto), 'margin-top:10px;'); }
+    if (on(st, 'presupuesto')) {
+      const b = B(st, 'presupuesto');
+      body += p(esc(b.titulo) + ': ' + lines(b.items).map(esc).join(', ') + '.');
+    }
+    if (on(st, 'suministro')) { const b = B(st, 'suministro'); body += p('<b>' + esc(b.titulo) + '.</b> ' + esc(b.texto) + ' ' + lines(b.requisitos).map(esc).join(' · ') + '.', 'color:' + N.gris + ';font-size:14px;'); }
+    if (on(st, 'cta')) body += p('<a href="' + esc(ctaHref(st, B(st, 'titulo').texto)) + '" style="color:' + N.morado + ';font-weight:700;">' + esc(B(st, 'cta').texto) + ' &rarr;</a>' + (B(st, 'cta').alternativa ? '<br><span style="color:' + N.gris + ';font-size:14px;">' + esc(B(st, 'cta').alternativa) + '</span>' : ''), 'margin:4px 0 22px 0;');
+    if (on(st, 'cierre')) body += p(nl2br(B(st, 'cierre').texto), 'margin-bottom:22px;');
+    if (on(st, 'firma')) body += firma(st, 'claro');
+    if (on(st, 'pie')) body += '<p style="margin:22px 0 0 0;font-family:' + FB + ';font-size:11px;line-height:16px;color:' + N.gris + ';">' + nl2br(B(st, 'pie').texto) + '</p>';
+    return doc(st, row(body, 'padding:8px 4px;background:' + N.papel + ';'));
+  }
+
+  // ── Plantilla D · "Cartelera móvil" (Señal nocturna: una columna, fotos a sangre) ──
+  // La de las referencias (Digitel, Cashea) sin cajas dentro de cajas: la foto de cada grupo
+  // a sangre, el título en letra de señal y un único botón de píldora por grupo.
+  function plantillaD(st) {
+    const P = [];
+    const fondo = 'background:' + N.noche + ';';
+    const pildora = (text, url, lleno) => '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
+      '<td align="center" bgcolor="' + (lleno ? N.luz : N.noche) + '" style="background:' + (lleno ? N.luz : N.noche) + ';border:2px solid ' + N.luz + ';border-radius:40px;">' +
+      '<a href="' + esc(url) + '" style="display:block;padding:15px 20px;font-family:' + FS + ';font-size:20px;line-height:24px;font-weight:700;color:' + (lleno ? N.tinta : N.luz) + ';text-decoration:none;">' + esc(text) + '</a></td></tr></table>';
+    P.push(row(marca(st, 'oscuro', 150), 'padding:22px 24px 20px 24px;' + fondo));
+    if (on(st, 'hero')) {
+      const h = B(st, 'hero');
+      const src = imgFor(st, st.heroAnim && h.anim ? h.anim : (usaPortadas(st) && h.imgPortada ? h.imgPortada : h.img));
+      P.push(row('<img src="' + esc(src) + '" width="600" alt="' + esc(h.alt) + '" style="display:block;width:100%;max-width:100%;height:auto;border:0;color:' + N.texto + ';font-family:' + FB + ';font-size:14px;">', 'font-size:0;line-height:0;' + fondo));
+    }
+    if (on(st, 'titulo')) {
+      const b = B(st, 'titulo');
+      P.push(row(rotulo(esc(b.texto), 46, N.texto) + cuerpo(esc(b.sub), 15, N.lila, 'padding:8px 0 0 0;'), 'padding:30px 24px 4px 24px;' + fondo));
+    }
+    let intro = '';
+    if (on(st, 'saludo')) intro += cuerpo(nl2br(fill(B(st, 'saludo').texto, st)), 18, N.texto, 'padding:0 0 10px 0;');
+    if (on(st, 'intro')) intro += cuerpo(nl2br(fill(B(st, 'intro').texto, st)), 17, N.apagado);
+    if (intro) P.push(row(intro, 'padding:18px 24px 30px 24px;' + fondo));
+    const bq = bloquePerfil(st, true);
+    if (bq) P.push(row(bq, 'padding:0 24px 26px 24px;' + fondo));
     const act = activos(st);
     GRUPOS.forEach(g => {
       const items = g.servicios.map(id => act.find(s => s.id === id)).filter(Boolean);
       if (!items.length) return;
       const lead = items[0];
-      let card = foto(svcImg(st, lead), svcAlt(st, lead), linkFor(st, lead)) +
-        '<div style="padding:18px 20px 20px 20px;">' + eyebrow(g.eyebrow) +
-        '<div style="font-family:' + FH + ';font-size:22px;line-height:28px;font-weight:800;color:#FFFFFF;padding:6px 0 8px 0;">' + esc(items.length === 1 ? lead.nombre : g.titulo) + '</div>';
+      // La cabecera ya es la pantalla de Chacao: si el grupo abre con ella, se repetiria la misma
+      // foto dos veces seguidas. Con cabecera, el grupo abre con el siguiente espacio.
+      const foto = (on(st, 'hero') && lead.id === 'led' && items[1]) ? items[1] : lead;
+      P.push(row(imagen(st, foto, 600, N.texto), 'font-size:0;line-height:0;' + fondo));
+      let t = rotulo(esc(items.length === 1 ? lead.nombre : g.titulo), 32, N.texto);
       if (items.length === 1) {
-        card += txt(esc(lead.cobertura), 16, T) + (lead.nota ? txt(esc(lead.nota), 14, M, 'padding:4px 0 0 0;') : '');
+        t += cuerpo(esc(lead.cobertura), 17, N.apagado, 'padding:8px 0 0 0;');
       } else {
-        card += items.map(s => '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 8px 0;"><tr>' +
-          '<td valign="top" style="font-family:' + FB + ';font-size:16px;line-height:24px;color:' + T + ';"><b>' + esc(s.nombre) + '</b><br><span style="color:' + M + ';font-size:14px;">' + esc(s.cobertura) + '</span></td>' +
-          '<td width="70" align="right" valign="top" style="padding:2px 0 0 10px;"><a href="' + esc(linkFor(st, s)) + '" style="font-family:' + FH + ';font-size:13px;font-weight:700;color:' + C.orange + ';text-decoration:none;white-space:nowrap;">Ver &rarr;</a></td>' +
-          '</tr></table>').join('');
+        t += '<div style="padding:10px 0 0 0;">' + items.map(s =>
+          '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
+          '<td valign="top" style="border-top:1px solid ' + N.hilo + ';padding:12px 0;font-family:' + FB + ';font-size:17px;line-height:24px;color:' + N.texto + ';">' + esc(s.nombre) +
+          '<br><span style="color:' + N.apagado + ';font-size:15px;">' + esc(s.cobertura) + '</span></td>' +
+          '<td width="64" align="right" valign="top" style="border-top:1px solid ' + N.hilo + ';padding:14px 0 0 8px;"><a href="' + esc(linkFor(st, s)) + '" style="font-family:' + FS + ';font-size:18px;font-weight:700;color:' + N.luz + ';text-decoration:none;white-space:nowrap;">Ver &rarr;</a></td>' +
+          '</tr></table>').join('') + '</div>';
       }
-      card += '<div style="padding:14px 0 0 0;">' + pill(lead.cta || 'Ver presentación', linkFor(st, lead), false) + '</div></div>';
-      P.push(row('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="' + C.ink2 + '" style="background:' + C.ink2 + ';border-radius:10px;">' + card + '</td></tr></table>', 'padding:10px 28px;' + dark));
+      t += '<div style="padding:18px 0 0 0;">' + pildora(lead.cta || 'Ver presentación', linkFor(st, lead), false) + '</div>';
+      P.push(row(t, 'padding:20px 24px 40px 24px;' + fondo));
     });
     if (on(st, 'branding')) {
       const b = B(st, 'branding');
-      P.push(row('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="' + C.ink2 + '" style="background:' + C.ink2 + ';border-radius:10px;padding:18px 20px 20px 20px;">' +
-        eyebrow('Branding') + '<div style="font-family:' + FH + ';font-size:22px;line-height:28px;font-weight:800;color:#FFFFFF;padding:6px 0 8px 0;">' + esc(b.titulo) + '</div>' +
-        txt(nl2br(b.texto), 16, T) + '<div style="padding:14px 0 0 0;">' + pill(b.cta, b.url, false) + '</div></td></tr></table>', 'padding:10px 28px;' + dark));
+      P.push(row(rotulo(esc(b.titulo), 32, N.texto) + cuerpo(nl2br(b.texto), 17, N.apagado, 'padding:8px 0 0 0;') +
+        '<div style="padding:18px 0 0 0;">' + pildora(b.cta, b.url, false) + '</div>', 'padding:6px 24px 40px 24px;border-top:1px solid ' + N.hilo + ';' + fondo));
     }
-
-    // Bloque final: qué enviar para cotizar + botón principal
     let fin = '';
-    if (on(st, 'pasos')) { const b = B(st, 'pasos'); fin += '<div style="font-family:' + FH + ';font-size:22px;font-weight:800;color:#FFFFFF;padding:0 0 8px 0;">' + esc(b.titulo) + '</div>' + txt(nl2br(b.texto), 16, M, 'padding:0 0 14px 0;'); }
-    if (on(st, 'presupuesto')) { const b = B(st, 'presupuesto'); fin += txt('<b>' + esc(b.titulo) + '</b>', 16, T, 'padding:0 0 8px 0;') + numbered(lines(b.items), C.orange, C.black, T); }
-    if (on(st, 'suministro')) { const b = B(st, 'suministro'); fin += txt('Para proyectos de branding e instalación: ' + lines(b.requisitos).map(esc).join(' · ') + '.', 14, M, 'padding:6px 0 0 0;'); }
-    if (on(st, 'cta')) fin += '<div style="padding:20px 0 4px 0;">' + pill(B(st, 'cta').texto, B(st, 'cta').url, true) + '</div>';
-    if (fin) P.push(row(fin, 'padding:22px 28px 16px 28px;' + dark));
-
-    let foot = '';
-    if (on(st, 'cierre')) foot += txt(nl2br(B(st, 'cierre').texto), 16, T, 'padding:0 0 16px 0;');
-    if (on(st, 'firma')) {
-      const f = B(st, 'firma');
-      foot += firma(st, 'oscuro');
+    if (on(st, 'pasos')) { const b = B(st, 'pasos'); fin += rotulo(esc(b.titulo), 32, N.texto) + cuerpo(nl2br(b.texto), 17, N.apagado, 'padding:8px 0 0 0;'); }
+    if (on(st, 'presupuesto')) { const b = B(st, 'presupuesto'); fin += cuerpo('<b style="color:' + N.texto + ';">' + esc(b.titulo) + '</b>', 16, N.texto, 'padding:20px 0 8px 0;') + lista(lines(b.items), N.texto, N.hilo); }
+    if (on(st, 'suministro')) { const b = B(st, 'suministro'); fin += cuerpo('Para proyectos de branding e instalación: ' + lines(b.requisitos).map(esc).join(' · ') + '.', 15, N.apagado, 'padding:14px 0 0 0;'); }
+    if (on(st, 'cta')) {
+      fin += '<div style="padding:24px 0 0 0;">' + pildora(B(st, 'cta').texto, ctaHref(st, B(st, 'titulo').texto), true) + '</div>';
+      if (B(st, 'cta').alternativa) fin += cuerpo(esc(B(st, 'cta').alternativa), 15, N.apagado, 'padding:14px 0 0 0;text-align:center;');
     }
-    if (foot) P.push(row(foot, 'padding:20px 28px 26px 28px;border-top:1px solid ' + C.line + ';' + dark));
-    if (on(st, 'pie')) P.push(row(txt(nl2br(B(st, 'pie').texto), 12, M), 'padding:14px 28px 0 28px;'));
-    return doc(st, C.black, P.join(''));
+    if (fin) P.push(row(fin, 'padding:32px 24px 34px 24px;background:' + N.noche2 + ';'));
+    P.push(despedida(st, 'oscuro', { texto: N.texto, apagado: N.apagado, hilo: N.hilo }, N.noche));
+    return doc(st, P.join(''));
   }
 
   // ── Texto plano (fallback y para clientes sin HTML) ──
   function renderText(st0) {
-    const st = aplicaAsunto(aplicaPerfil(normaliza(st0)));
+    const st = soloSuyas(aplicaAsunto(aplicaPerfil(normaliza(st0))), pick(st0));
     const L = [];
     // La Entrega no es el catalogo: lo que se lee en texto plano es la propuesta, no la
     // lista de espacios. Se separa aqui y no en una funcion aparte para que quien copie
@@ -1262,7 +1505,7 @@
   // PRIMER enlace del mensaje, y solo si va donde lo encuentre pronto. Por eso el enlace
   // abre el mensaje y por eso no se anaden mas: cada enlace de mas es una tarjeta menos.
   function renderWhatsApp(st0) {
-    const st = aplicaAsunto(aplicaPerfil(normaliza(st0)));
+    const st = soloSuyas(aplicaAsunto(aplicaPerfil(normaliza(st0))), pick(st0));
     const e = B(st, 'entrega');
     const L = [];
     if (e.enlace || e.url) L.push(e.enlace || e.url, '');
@@ -1279,30 +1522,32 @@
   // una ficha de inventario con metricas comparables, sin parrafo introductorio de mas.
   function plantillaE(st) {
     const tema = temaDe(st), o = tema !== 'claro', k = paleta(tema), P = [];
-    const a = B(st, 'asesor');
+    const a = B(st, 'asesor'), x = B(st, 'inventario'), tb = B(st, 'tablaInventario');
     const pad = 'padding-left:32px;padding-right:32px;background:' + k.panel + ';';
+    const n = activos(st).length;
+    const h = t => huecos(t, { periodo: a.periodo, frentes: cuantos(n), n: n,
+      destinatario: st.destinatario || '[Nombre de la Agencia]' });
+    const acento = '<span style="color:' + k.acento + ';">';
 
     P.push(row(cabeceraAsesor(st, P, a.etiquetaMeta),
       'padding:26px 32px 22px 32px;background:' + k.panel + ';'));
 
     // Hero. El acento va en "Share of Voice" porque es el termino que la agencia busca.
     P.push(row(
-      epigrafe(st, 'Inventario \u00b7 ' + a.periodo) +
+      epigrafe(st, String(h(x.epigrafe)).replace(/\s*[·|–-]\s*$/, '')) +
       '<div style="font-family:' + FH + ';font-size:40px;line-height:1.02;font-weight:800;letter-spacing:-.035em;color:' + k.texto + ';">' +
-        'Tu pr\u00f3ximo <span style="color:' + k.acento + ';">Share of Voice</span>, en una sola tabla.</div>' +
+        realce(h(x.titulo), acento, '</span>') + '</div>' +
       '<div style="font-family:' + FB + ';font-size:15px;line-height:1.6;color:' + k.apagado + ';padding:16px 0 0 0;">' +
-        'Sin brief educativo. Sin rodeos. Los ' + cuantos(activos(st).length) + ' frentes que operamos en Caracas, con m\u00e9tricas comparables, ' +
-        'para que tu equipo de medios calcule el mix sin llamar a nadie.</div>',
+        realce(h(x.entrada), '<b>', '</b>') + '</div>',
       pad + 'padding-bottom:26px;'));
 
     if (on(st, 'saludo')) {
       P.push(row(
-        epigrafe(st, 'Para el equipo de ' + (st.destinatario || '[Nombre de la Agencia]'), k.acento) +
+        epigrafe(st, h(x.saludoEpigrafe), k.acento) +
         '<div style="font-family:' + FB + ';font-size:15px;line-height:1.65;color:' + k.texto + ';">' +
-          'Sabemos c\u00f3mo trabajan: brief, medios, tabla de disponibilidad, decisi\u00f3n. Vamos directo a la \u00faltima parte.</div>' +
+          realce(h(x.saludo1), '<b>', '</b>') + '</div>' +
         '<div style="font-family:' + FB + ';font-size:15px;line-height:1.65;color:' + k.apagado + ';padding:12px 0 0 0;">' +
-          'Este es el inventario que operamos hoy en Caracas, listo para integrarse a tu mix del pr\u00f3ximo trimestre, ' +
-          'sin brief educativo de por medio.</div>',
+          realce(h(x.saludo2), '<b>', '</b>') + '</div>',
         pad + 'padding-bottom:24px;'));
     }
 
@@ -1310,53 +1555,56 @@
     const cifra = function (n, l) {
       return '<td width="33%" valign="top" style="padding:14px 10px;border-top:1px solid ' + k.linea + ';border-bottom:1px solid ' + k.linea + ';">' +
         '<div style="font-family:' + FH + ';font-size:17px;font-weight:800;color:' + k.vivo + ';">' + esc(n) + '</div>' +
-        '<div style="font-family:' + FH + ';font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:' + k.apagado + ';padding:4px 0 0 0;">' + esc(l) + '</div></td>';
+        '<div style="font-family:' + FH + ';font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:' + k.apagado + ';padding:4px 0 0 0;">' + esc(l) + '</div></td>';
     };
     P.push(row('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
-      cifra('120K impactos / d\u00eda', 'LED') + cifra('250 motos LED', 'Rider') + cifra(activos(st).length + ' frentes', 'activos') +
+      cifra(h(x.cifra1), h(x.etiqueta1)) + cifra(h(x.cifra2), h(x.etiqueta2)) + cifra(h(x.cifra3), h(x.etiqueta3)) +
       '</tr></table>', pad + 'padding-bottom:26px;'));
 
     // La tabla de inventario: el corazon de su diseno.
-    P.push(row(epigrafe(st, '01 \u00b7 Inventario', k.acento) +
-      '<div style="font-family:' + FH + ';font-size:24px;font-weight:800;letter-spacing:-.02em;color:' + k.texto + ';">Espacios disponibles</div>' +
-      '<div style="font-family:' + FB + ';font-size:13px;color:' + k.apagado + ';padding:5px 0 0 0;">orden por rotaci\u00f3n de audiencia</div>',
+    P.push(row(epigrafe(st, h(x.seccion), k.acento) +
+      '<div style="font-family:' + FH + ';font-size:24px;font-weight:800;letter-spacing:-.02em;color:' + k.texto + ';">' + realce(h(x.seccionTitulo), acento, '</span>') + '</div>' +
+      '<div style="font-family:' + FB + ';font-size:13px;color:' + k.apagado + ';padding:5px 0 0 0;">' + realce(h(x.seccionSub), '<b>', '</b>') + '</div>',
       pad + 'padding-bottom:16px;'));
 
-    const INVENTARIO = [
-      { n: '01', id: 'led', t: 'Pantalla LED Chacao \u00b7 DOOH', badge: a.slotsLed,
-        d: 'Chacao, Av. Francisco de Miranda \u00b7 ' + FICHA.led.medida + ' \u00b7 rotaci\u00f3n por franjas horarias',
-        m: [['Impactos', '120.000/d\u00eda'], ['Formato', 'Video / MP4']] },
-      { n: '02', id: 'mercedes', t: 'Pantalla LED Las Mercedes \u00b7 DOOH', badge: '',
-        d: 'Av. Paseo Enrique Erazo \u00b7 ' + FICHA.mercedes.medida + ' \u00b7 horizontal, 24 horas',
-        m: [['Tr\u00e1fico', '95.000 veh\u00edculos/d\u00eda'], ['Formato', 'Video / MP4 \u00b7 30 s']] },
-      { n: '03', id: 'vallas', t: 'Vallas \u00b7 OOH nacional', badge: '',
-        d: 'Caracas y arterias viales \u00b7 gran formato \u00b7 brand recall de largo plazo',
-        m: [['Rotaci\u00f3n', 'Alta vial'], ['Cobertura', 'Nacional']] },
-      { n: '04', id: 'rider', t: 'Rider Clon \u00b7 movilidad LED', badge: 'TRACKING',
-        d: 'Caracas \u00b7 San Antonio \u00b7 Valencia \u00b7 caja LED ' + FICHA.rider.medida + ' \u00b7 GPS en vivo',
-        m: [['Flota', '250 motos'], ['Turno', '8 h / d\u00eda']] },
-      { n: '05', id: 'totem', t: 'T\u00f3tem digital \u00b7 indoor', badge: '',
-        d: 'C.C. San Ignacio \u00b7 ' + FICHA.totem.medida + ' \u00b7 audiencia cautiva premium',
-        m: [['Salidas', '240/d\u00eda'], ['Ambiente', 'Indoor A+']] },
-    ];
+    // La tabla sale de su bloque de datos. {medida} la pone la ficha oficial de cada espacio:
+    // la medida de una pantalla no se escribe a mano en ningun sitio.
+    const fila = (num, id, badge) => ({ n: num, id: id, badge: badge, t: h(tb[id + '_titulo']),
+      d: huecos(h(tb[id + '_detalle']), { medida: (FICHA[id] || {}).medida }),
+      m: [[h(tb[id + '_dato1']), h(tb[id + '_valor1'])], [h(tb[id + '_dato2']), h(tb[id + '_valor2'])]] });
+    const INVENTARIO = [fila('01', 'led', a.slotsLed), fila('02', 'mercedes', ''), fila('03', 'vallas', ''),
+      fila('04', 'rider', h(tb.rider_distintivo)), fila('05', 'totem', '')];
+    // Las lineas del catalogo con ficha tecnica que no son de serie (003, US4) entran detras de las
+    // cinco, con los datos de su ficha. Sin ficha no hay fila: esta tabla es de metricas comparables.
+    // El precio "desde" solo con el modo de precios encendido, como en la tabla de agencias.
+    const deSerie = INVENTARIO.map(function (f) { return f.id; });
+    activos(st).filter(function (x) { return deSerie.indexOf(x.id) < 0 && FICHA[x.id]; }).forEach(function (x, j) {
+      const ficha = FICHA[x.id], metricas = [];
+      if (ficha.trafico) metricas.push(['Tráfico', ficha.trafico]);
+      if (desdeDe(st, x.id)) metricas.push(['Desde', ficha.desde + ' $/mes']);
+      INVENTARIO.push({ n: ('0' + (deSerie.length + j + 1)).slice(-2), id: x.id, badge: '', t: x.nombre,
+        d: [ficha.ubic, ficha.medida].filter(Boolean).join(' · '), m: metricas });
+    });
     const vivos = activos(st).map(function (x) { return x.id; });
     let tabla = '';
     INVENTARIO.filter(function (f) { return vivos.indexOf(f.id) >= 0; }).forEach(function (f, i) {
       const cebra = i % 2 ? k.panel2 : k.panel;
       const svc = st.servicios.filter(function (x) { return x.id === f.id; })[0];
       tabla += '<tr><td bgcolor="' + cebra + '" style="background:' + cebra + ';padding:16px 14px;border-bottom:1px solid ' + k.linea + ';">' +
-        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
-        '<td width="26" valign="top" style="font-family:' + FH + ';font-size:11px;font-weight:800;color:' + k.apagado + ';padding-top:3px;">' + f.n + '</td>' +
-        '<td valign="top">' +
+        // Dos bloques flotantes: lado a lado en el ordenador, uno debajo de otro en el movil.
+        '<table role="presentation" width="250" align="left" cellpadding="0" cellspacing="0" border="0" style="width:250px;max-width:100%;"><tr>' +
+        '<td width="26" valign="top" style="font-family:' + FH + ';font-size:12px;font-weight:800;color:' + k.apagado + ';padding-top:3px;">' + f.n + '</td>' +
+        '<td valign="top" style="padding:0 14px 8px 0;">' +
           '<div style="font-family:' + FH + ';font-size:15px;font-weight:800;color:' + k.texto + ';">' + esc(f.t) +
-            (f.badge ? ' <span style="font-family:' + FH + ';font-size:9px;font-weight:800;letter-spacing:.14em;color:' + k.sobreVivo + ';background:' + k.vivo + ';padding:3px 7px;border-radius:100px;">' + esc(f.badge) + '</span>' : '') +
+            (f.badge ? ' <span style="font-family:' + FH + ';font-size:12px;font-weight:800;letter-spacing:.14em;color:' + k.sobreVivo + ';background:' + k.vivo + ';padding:3px 7px;border-radius:100px;">' + esc(f.badge) + '</span>' : '') +
           '</div>' +
           '<div style="font-family:' + FB + ';font-size:12px;line-height:17px;color:' + k.apagado + ';padding:5px 0 0 0;">' + esc(f.d) + '</div>' +
-          (svc ? '<div style="padding:7px 0 0 0;"><a href="' + esc(linkFor(st, svc)) + '" style="font-family:' + FH + ';font-size:11px;font-weight:800;color:' + k.acento + ';text-decoration:none;">Ver presentaci\u00f3n &rarr;</a></div>' : '') +
-        '</td>' +
-        '<td width="150" valign="top" align="right">' +
+          (svc ? '<div style="padding:0;"><a href="' + esc(linkFor(st, svc)) + '" style="display:inline-block;padding:12px 0;font-family:' + FH + ';font-size:14px;line-height:20px;font-weight:800;color:' + k.acento + ';text-decoration:none;">Ver presentaci\u00f3n &rarr;</a></div>' : '') +
+        '</td></tr></table>' +
+        '<table role="presentation" width="150" align="left" cellpadding="0" cellspacing="0" border="0" style="width:150px;max-width:100%;"><tr>' +
+        '<td valign="top" style="padding:0 0 0 26px;">' +
           f.m.map(function (par) {
-            return '<div style="font-family:' + FH + ';font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:' + k.apagado + ';">' + esc(par[0]) + '</div>' +
+            return '<div style="font-family:' + FH + ';font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:' + k.apagado + ';">' + esc(par[0]) + '</div>' +
               '<div style="font-family:' + FH + ';font-size:13px;font-weight:800;color:' + k.texto + ';padding:1px 0 7px 0;">' + esc(par[1]) + '</div>';
           }).join('') +
         '</td></tr></table></td></tr>';
@@ -1369,21 +1617,26 @@
     if (led) {
       P.push(row(fotoServicio(st, led, 536) +
         '<div style="font-family:' + FB + ';font-size:12px;color:' + k.apagado + ';padding:9px 0 0 0;">' +
-        '&uarr; LED Chacao, el frente con mayor rotaci\u00f3n en Caracas Este.</div>',
+        '&uarr; ' + realce(h(x.pieFoto), '<b>', '</b>') + '</div>',
         pad + 'padding-bottom:22px;'));
     }
 
-    // Disponibilidad: los datos que caducan salen del estado, no del codigo.
-    P.push(row('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
-      '<td bgcolor="' + k.panel2 + '" style="background:' + k.panel2 + ';border-left:3px solid ' + k.vivo + ';padding:14px 16px;">' +
-      '<div style="font-family:' + FH + ';font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:' + k.vivo + ';">' +
-        '\u25cf Disponibilidad al ' + esc(a.dispoFecha) + '</div>' +
-      '<div style="font-family:' + FB + ';font-size:14px;line-height:20px;color:' + k.texto + ';padding:6px 0 0 0;">' +
-        esc(a.dispoTexto) + ' ' + esc(a.cierreTexto) + '</div>' +
-      '</td></tr></table>', pad + 'padding-bottom:24px;'));
+    // Disponibilidad: los datos que caducan salen del estado, no del codigo. Sin fecha, el rotulo
+    // no termina en «al»; sin ningun dato, el recuadro no sale (mejor nada que una caja vacia).
+    const dispoCuerpo = [a.dispoTexto, a.cierreTexto].map(function (t) { return String(t || '').trim(); }).filter(Boolean).join(' ');
+    const dispoFecha = String(a.dispoFecha || '').trim();
+    if (dispoCuerpo || dispoFecha) {
+      const rotuloDispo = dispoFecha ? h(x.dispoEtiqueta) + ' ' + dispoFecha : String(h(x.dispoEtiqueta)).replace(/\s+al$/i, '');
+      P.push(row('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
+        '<td bgcolor="' + k.panel2 + '" style="background:' + k.panel2 + ';border-left:3px solid ' + k.vivo + ';padding:14px 16px;">' +
+        '<div style="font-family:' + FH + ';font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:' + k.vivo + ';">' +
+          '\u25cf ' + esc(rotuloDispo) + '</div>' +
+        (dispoCuerpo ? '<div style="font-family:' + FB + ';font-size:14px;line-height:20px;color:' + k.texto + ';padding:6px 0 0 0;">' + esc(dispoCuerpo) + '</div>' : '') +
+        '</td></tr></table>', pad + 'padding-bottom:24px;'));
+    }
 
     if (on(st, 'cta')) {
-      P.push(row(botonAsesor(st, 'Solicitar disponibilidad Q1', B(st, 'cta').url) +
+      P.push(row(botonAsesor(st, B(st, 'asesor').botonTexto || 'Solicitar disponibilidad', ctaHref(st, h(x.titulo))) +
         '<div style="font-family:' + FB + ';font-size:12px;color:' + k.apagado + ';padding:12px 0 0 0;">' + esc(a.pieCta) + '</div>',
         pad + 'padding-bottom:28px;'));
     }
@@ -1398,10 +1651,10 @@
         'padding:24px 32px 26px 32px;background:' + k.panel + ';border-top:1px solid ' + k.linea + ';'));
     }
     if (on(st, 'pie')) {
-      P.push(row('<div style="font-family:' + FB + ';font-size:11px;line-height:16px;color:' + k.apagado + ';">' +
-        nl2br(B(st, 'pie').texto) + '</div>', 'padding:14px 32px 0 32px;'));
+      P.push(row('<div style="font-family:' + FB + ';font-size:13px;line-height:19px;color:' + k.apagado + ';">' +
+        nl2br(B(st, 'pie').texto) + '</div>', 'padding:0 32px 24px 32px;background:' + k.panel + ';'));
     }
-    return doc(st, k.fondo, P.join(''));
+    return doc(st, P.join(''));
   }
 
   // -- Formato F - "Guia" (asesor, para cliente nuevo) --------------------------
@@ -1409,18 +1662,18 @@
   // quiten el miedo. Tres fases en orden, cada una con el servicio que le corresponde.
   function plantillaF(st) {
     const tema = temaDe(st), o = tema !== 'claro', k = paleta(tema), P = [];
-    const a = B(st, 'asesor');
+    const a = B(st, 'asesor'), g = B(st, 'guia');
     const pad = 'padding-left:32px;padding-right:32px;background:' + k.panel + ';';
+    const h = t => huecos(t, { destinatario: st.destinatario || '[Nombre]' });
 
-    P.push(row(cabeceraAsesor(st, P, 'Gu\u00eda para empezar'),
+    P.push(row(cabeceraAsesor(st, P, h(g.meta)),
       'padding:26px 32px 22px 32px;background:' + k.panel + ';'));
 
     P.push(row(
       '<div style="font-family:' + FH + ';font-size:36px;line-height:1.06;font-weight:800;letter-spacing:-.03em;color:' + k.texto + ';">' +
-        'Que te conozcan. <span style="color:' + k.acento + ';">Que te recuerden.</span> Que te compren.</div>' +
+        realce(h(g.titulo), '<span style="color:' + k.acento + ';">', '</span>') + '</div>' +
       '<div style="font-family:' + FB + ';font-size:15px;line-height:1.6;color:' + k.apagado + ';padding:16px 0 0 0;">' +
-        'Esa es la secuencia. Tres fases, en ese orden, es c\u00f3mo crecen las marcas que aparecen en las calles. ' +
-        'Te la explicamos sin tecnicismos y sin comprometerte a nada.</div>',
+        realce(h(g.entrada), '<b>', '</b>') + '</div>',
       // El aire de arriba lo daba el epigrafe que habia aqui. Al quitarlo, el titular de
       // 36 px se quedaba a 22 px de la cabecera; esto le devuelve el respiro.
       pad + 'padding-top:12px;padding-bottom:26px;'));
@@ -1428,53 +1681,41 @@
     if (on(st, 'saludo')) {
       P.push(row(
         '<div style="font-family:' + FB + ';font-size:15px;line-height:1.65;color:' + k.texto + ';">' +
-          'Hola ' + esc(st.destinatario || '[Nombre]') + ',</div>' +
+          realce(h(g.saludo), '<b>', '</b>') + '</div>' +
         '<div style="font-family:' + FB + ';font-size:15px;line-height:1.65;color:' + k.apagado + ';padding:10px 0 0 0;">' +
-          'Gracias por interesarte en dar el paso a la <b style="color:' + k.texto + ';">publicidad exterior</b>. ' +
-          'Sabemos que es una decisi\u00f3n importante: hay muchos formatos, muchos precios y poca informaci\u00f3n clara ' +
-          'sobre por d\u00f3nde empezar. Este correo no es una cotizaci\u00f3n: es la gu\u00eda que les contamos a puerta ' +
-          'cerrada a las marcas que arrancan con nosotros. L\u00e9ela en 2 minutos y hablamos.</div>',
+          realce(h(g.parrafo), '<b style="color:' + k.texto + ';">', '</b>') + '</div>',
         pad + 'padding-bottom:26px;'));
     }
 
     // Las tres fases. Cada una lleva su servicio con mi carrusel animado.
-    const FASES = [
-      { n: '01', fase: 'Fase de atracci\u00f3n', tit: 'Que te conozcan', id: 'totem',
-        txt: 'Empezamos con <b>formatos digitales de alto tr\u00e1fico</b>. El brillo y el movimiento captan miradas ' +
-             'nuevas, explican qu\u00e9 haces y qu\u00e9 ofreces. Es la manera m\u00e1s r\u00e1pida de dejar de ser un desconocido.',
-        tag: 'Recomendado para empezar', svcTit: 'T\u00f3tem digital \u00b7 San Ignacio',
-        svcTxt: '240 salidas/d\u00eda en un centro comercial premium. Audiencia atenta, presupuesto de entrada.' },
-      { n: '02', fase: 'Fase de memoria', tit: 'Que te recuerden', id: 'led',
-        txt: 'Cuando ya te conocen, tu marca se instala en <b>las calles que tu cliente recorre todos los d\u00edas</b>. ' +
-             'Vallas y pantallas LED trabajando juntas: y cuando piensen en lo que vendes, aparecer\u00e1s t\u00fa.',
-        tag: 'Combinamos con la fase 1', svcTit: 'Pantalla LED \u00b7 Chacao',
-        svcTxt: '120.000 impactos/d\u00eda en la arteria de mayor rotaci\u00f3n de Caracas Este.' },
-      { n: '03', fase: 'Fase de decisi\u00f3n', tit: 'Que te compren', id: 'rider',
-        txt: 'La calle empuja, el m\u00f3vil cierra. En esta fase activamos promociones t\u00e1cticas y motos con LED que ' +
-             'aparecen justo donde y cuando decides. Es la parte donde la campa\u00f1a se convierte en ventas.',
-        tag: 'T\u00e1ctico y medible', svcTit: 'Rider Clon \u00b7 movilidad LED',
-        svcTxt: '250 motos con GPS. Elegimos las zonas y horas donde vive tu cliente.' },
-    ];
+    const fase = (num, id) => ({ n: String(num).padStart(2, '0'), id: id,
+      fase: h(g['fase' + num]), tit: h(g['fase' + num + 'Titulo']),
+      txt: realce(h(g['fase' + num + 'Texto']), '<b>', '</b>'), tag: h(g['fase' + num + 'Etiqueta']),
+      svcTit: h(g['fase' + num + 'Servicio']), svcTxt: h(g['fase' + num + 'Detalle']) });
+    const FASES = [fase(1, 'totem'), fase(2, 'led'), fase(3, 'rider')];
     FASES.forEach(function (f) {
       const svc = st.servicios.filter(function (x) { return x.id === f.id && x.on; })[0];
       P.push(row(
         '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
         '<td width="54" valign="top" style="font-family:' + FH + ';font-size:34px;font-weight:800;color:' + k.acento + ';letter-spacing:-.03em;">' + f.n + '</td>' +
         '<td valign="top">' +
-          '<div style="font-family:' + FH + ';font-size:10px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:' + k.vivo + ';">' + esc(f.fase) + '</div>' +
+          '<div style="font-family:' + FH + ';font-size:12px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:' + k.vivo + ';">' + esc(f.fase) + '</div>' +
           '<div style="font-family:' + FH + ';font-size:21px;font-weight:800;letter-spacing:-.02em;color:' + k.texto + ';padding:4px 0 8px 0;">' + esc(f.tit) + '</div>' +
           '<div style="font-family:' + FB + ';font-size:14px;line-height:21px;color:' + k.apagado + ';">' + f.txt + '</div>' +
         '</td></tr></table>' +
         (svc ?
           '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:14px 0 0 0;"><tr>' +
           '<td bgcolor="' + k.panel2 + '" style="background:' + k.panel2 + ';border:1px solid ' + k.linea + ';border-radius:10px;padding:14px;">' +
-          '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
-          '<td width="180" valign="top" style="font-size:0;line-height:0;">' + fotoServicio(st, svc, 180) + '</td>' +
-          '<td valign="top" style="padding:0 0 0 14px;">' +
-            '<div style="font-family:' + FH + ';font-size:9px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:' + k.vivo + ';">' + esc(f.tag) + '</div>' +
+          // Foto y texto como bloques flotantes: en el movil el texto baja bajo la foto en vez
+          // de quedar en una columna de 70 px con una palabra por linea.
+          '<table role="presentation" width="180" align="left" cellpadding="0" cellspacing="0" border="0" style="width:180px;max-width:100%;"><tr>' +
+          '<td valign="top" style="font-size:0;line-height:0;padding:0 14px 10px 0;">' + fotoServicio(st, svc, 180) + '</td></tr></table>' +
+          '<table role="presentation" width="250" align="left" cellpadding="0" cellspacing="0" border="0" style="width:250px;max-width:100%;"><tr>' +
+          '<td valign="top">' +
+            '<div style="font-family:' + FH + ';font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:' + k.vivo + ';">' + esc(f.tag) + '</div>' +
             '<div style="font-family:' + FH + ';font-size:15px;font-weight:800;color:' + k.texto + ';padding:5px 0 4px 0;">' + esc(f.svcTit) + '</div>' +
             '<div style="font-family:' + FB + ';font-size:13px;line-height:18px;color:' + k.apagado + ';">' + esc(f.svcTxt) + '</div>' +
-            '<div style="padding:7px 0 0 0;"><a href="' + esc(linkFor(st, svc)) + '" style="font-family:' + FH + ';font-size:11px;font-weight:800;color:' + k.acento + ';text-decoration:none;">Ver presentaci\u00f3n &rarr;</a></div>' +
+            '<div style="padding:0;"><a href="' + esc(linkFor(st, svc)) + '" style="display:inline-block;padding:12px 0;font-family:' + FH + ';font-size:14px;line-height:20px;font-weight:800;color:' + k.acento + ';text-decoration:none;">Ver presentaci\u00f3n &rarr;</a></div>' +
           '</td></tr></table></td></tr></table>' : ''),
         pad + 'padding-bottom:28px;'));
     });
@@ -1482,16 +1723,16 @@
     P.push(row(
       '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
       '<td bgcolor="' + k.panel2 + '" style="background:' + k.panel2 + ';border-left:3px solid ' + k.acento + ';padding:16px 18px;">' +
-      '<div style="font-family:' + FH + ';font-size:15px;font-weight:800;color:' + k.texto + ';">Sin fricciones t\u00e9cnicas</div>' +
+      '<div style="font-family:' + FH + ';font-size:15px;font-weight:800;color:' + k.texto + ';">' + realce(h(g.cajaTitulo), '<span style="color:' + k.acento + ';">', '</span>') + '</div>' +
       '<div style="font-family:' + FB + ';font-size:14px;line-height:20px;color:' + k.apagado + ';padding:6px 0 0 0;">' +
-        'Nosotros nos encargamos de todo lo t\u00e9cnico. T\u00fa apruebas el dise\u00f1o.</div>' +
+        realce(h(g.cajaTexto), '<b>', '</b>') + '</div>' +
       '</td></tr></table>', pad + 'padding-bottom:26px;'));
 
     if (on(st, 'cta')) {
       P.push(row(
         '<div style="font-family:' + FB + ';font-size:15px;line-height:1.6;color:' + k.texto + ';padding:0 0 14px 0;">' +
-          'Cu\u00e9ntame de tu marca y te preparo una propuesta <b>a la medida de tu presupuesto</b>. Sin compromiso.</div>' +
-        botonAsesor(st, 'Cu\u00e9ntame de tu marca', B(st, 'cta').url) +
+          realce(h(g.ctaTexto), '<b>', '</b>') + '</div>' +
+        botonAsesor(st, h(g.boton), ctaHref(st, h(g.titulo))) +
         '<div style="font-family:' + FB + ';font-size:12px;color:' + k.apagado + ';padding:12px 0 0 0;">' + esc(a.respuesta) + '</div>',
         pad + 'padding-bottom:28px;'));
     }
@@ -1504,10 +1745,10 @@
         'padding:24px 32px 26px 32px;background:' + k.panel + ';border-top:1px solid ' + k.linea + ';'));
     }
     if (on(st, 'pie')) {
-      P.push(row('<div style="font-family:' + FB + ';font-size:11px;line-height:16px;color:' + k.apagado + ';">' +
-        nl2br(B(st, 'pie').texto) + '</div>', 'padding:14px 32px 0 32px;'));
+      P.push(row('<div style="font-family:' + FB + ';font-size:13px;line-height:19px;color:' + k.apagado + ';">' +
+        nl2br(B(st, 'pie').texto) + '</div>', 'padding:0 32px 24px 32px;background:' + k.panel + ';'));
     }
-    return doc(st, k.fondo, P.join(''));
+    return doc(st, P.join(''));
   }
 
   // -- Formato G - "Phygital" (asesor) ------------------------------------------
@@ -1516,75 +1757,71 @@
   function plantillaG(st) {
     const tema = temaDe(st), o = tema !== 'claro', k = paleta(tema), P = [];
     const pad = 'padding-left:32px;padding-right:32px;background:' + k.panel + ';';
+    const p = B(st, 'phygital');
+    const h = t => huecos(t, { destinatario: st.destinatario || '[Nombre]' });
+    // En un titulo que ya va en negrita, la negrita no se nota: ahi el realce es el color.
+    const b = t => realce(h(t), '<b>', '</b>');
+    const c = t => realce(h(t), '<span style="color:' + k.acento + ';">', '</span>');
 
-    P.push(row(cabeceraAsesor(st, P, 'PHYGITAL \u00b7 Serie 2026'),
+    P.push(row(cabeceraAsesor(st, P, h(p.meta)),
       'padding:26px 32px 22px 32px;background:' + k.panel + ';'));
 
     P.push(row(
-      epigrafe(st, 'Physical + Digital') +
+      epigrafe(st, h(p.epigrafe)) +
       '<div style="font-family:' + FH + ';font-size:40px;line-height:1.02;font-weight:800;letter-spacing:-.035em;color:' + k.texto + ';">' +
-        'La pantalla capta.<br><span style="color:' + k.vivo + ';">El m\u00f3vil cierra.</span></div>',
+        realce(h(p.titulo), '<span style="color:' + k.vivo + ';">', '</span>') + '</div>',
       pad + 'padding-bottom:24px;'));
 
     if (on(st, 'saludo')) {
       P.push(row(
         '<div style="font-family:' + FB + ';font-size:15px;line-height:1.65;color:' + k.texto + ';">' +
-          'Hola ' + esc(st.destinatario || '[Nombre]') + ',</div>' +
+          b(p.saludo) + '</div>' +
         '<div style="font-family:' + FB + ';font-size:15px;line-height:1.65;color:' + k.apagado + ';padding:10px 0 0 0;">' +
-          'La gente ya no mira los anuncios. Los graba, los sube y los convierte en contenido, o los ignora. ' +
-          'Sabemos que necesitan algo que rompa el molde. Antes de mostrarte precios o formatos, mira c\u00f3mo se ve ' +
-          'una campa\u00f1a Phygital en <b style="color:' + k.texto + ';">tres minutos reales</b>. Despu\u00e9s conversamos.</div>',
+          realce(h(p.parrafo), '<b style="color:' + k.texto + ';">', '</b>') + '</div>',
         pad + 'padding-bottom:26px;'));
     }
 
     // Escena 01: la calle.
     const led = st.servicios.filter(function (x) { return x.id === 'led' && x.on; })[0];
     P.push(row(
-      '<div style="font-family:' + FH + ';font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:' + k.vivo + ';padding:0 0 10px 0;">' +
-        '\u25cf 09:00 AM \u00b7 Chacao</div>' +
+      '<div style="font-family:' + FH + ';font-size:12px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:' + k.vivo + ';padding:0 0 10px 0;">' +
+        '\u25cf ' + b(p.hora1) + '</div>' +
       (led ? fotoServicio(st, led, 536) : '') +
-      '<div style="font-family:' + FH + ';font-size:10px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:' + k.apagado + ';padding:12px 0 4px 0;">Escena 01</div>' +
+      '<div style="font-family:' + FH + ';font-size:12px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:' + k.apagado + ';padding:12px 0 4px 0;">' + b(p.escena1) + '</div>' +
       '<div style="font-family:' + FB + ';font-size:15px;line-height:1.6;color:' + k.texto + ';">' +
-        'Una persona mira arriba. Ve un QR gigante en la pantalla LED. Curiosidad. Levanta el tel\u00e9fono.</div>' +
-      '<div style="font-family:' + FH + ';font-size:11px;font-weight:800;letter-spacing:.2em;color:' + k.vivo + ';padding:14px 0 0 0;">3 SEGUNDOS &darr;</div>',
+        b(p.escena1Texto) + '</div>' +
+      '<div style="font-family:' + FH + ';font-size:12px;font-weight:800;letter-spacing:.2em;color:' + k.vivo + ';padding:14px 0 0 0;">' + b(p.puente) + ' &darr;</div>',
       pad + 'padding-bottom:26px;'));
 
     // Escena 02: el movil. Maqueta de la publicacion, construida con tablas.
     P.push(row(
-      '<div style="font-family:' + FH + ';font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:' + k.acento + ';padding:0 0 10px 0;">' +
-        '\u25cf 09:03 AM \u00b7 Instagram</div>' +
+      '<div style="font-family:' + FH + ';font-size:12px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:' + k.acento + ';padding:0 0 10px 0;">' +
+        '\u25cf ' + b(p.hora2) + '</div>' +
       '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
       '<td bgcolor="' + k.panel2 + '" style="background:' + k.panel2 + ';border:1px solid ' + k.linea + ';border-radius:12px;padding:14px 16px;">' +
-        '<div style="font-family:' + FH + ';font-size:13px;font-weight:800;color:' + k.texto + ';">@tu_marca_aqui</div>' +
-        '<div style="font-family:' + FB + ';font-size:11px;color:' + k.apagado + ';padding:2px 0 10px 0;">Caracas \u00b7 Venezuela</div>' +
-        '<div style="font-family:' + FH + ';font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:' + k.vivo + ';">Filtro AR activo</div>' +
+        '<div style="font-family:' + FH + ';font-size:13px;font-weight:800;color:' + k.texto + ';">' + b(p.cuenta) + '</div>' +
+        '<div style="font-family:' + FB + ';font-size:13px;color:' + k.apagado + ';padding:2px 0 10px 0;">' + b(p.lugar) + '</div>' +
+        '<div style="font-family:' + FH + ';font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:' + k.vivo + ';">' + b(p.filtro) + '</div>' +
         '<div style="font-family:' + FB + ';font-size:15px;line-height:1.5;color:' + k.texto + ';padding:8px 0 10px 0;">' +
-          'Encontr\u00e9 la valla \u26a1 <span style="color:' + k.acento + ';">#TuMarcaChacao</span></div>' +
-        '<div style="font-family:' + FH + ';font-size:12px;font-weight:800;color:' + k.texto + ';">2.847 me gusta</div>' +
+          realce(h(p.publicacion), '<span style="color:' + k.acento + ';">', '</span>') + '</div>' +
+        '<div style="font-family:' + FH + ';font-size:12px;font-weight:800;color:' + k.texto + ';">' + b(p.meGusta) + '</div>' +
         '<div style="font-family:' + FB + ';font-size:13px;line-height:19px;color:' + k.apagado + ';padding:8px 0 0 0;">' +
-          'Vieron mi campa\u00f1a. Se pararon. La grabaron. La subieron.</div>' +
+          b(p.comentario) + '</div>' +
       '</td></tr></table>', pad + 'padding-bottom:26px;'));
 
     P.push(row(
       '<div style="font-family:' + FH + ';font-size:26px;line-height:1.15;font-weight:800;letter-spacing:-.025em;color:' + k.texto + ';">' +
-        'La calle tambi\u00e9n es feed.</div>' +
+        c(p.remate) + '</div>' +
       '<div style="font-family:' + FB + ';font-size:15px;line-height:1.6;color:' + k.apagado + ';padding:10px 0 0 0;">' +
-        'Eso es Phygital. Una pantalla que no termina cuando el sem\u00e1foro cambia.</div>',
+        b(p.remateTexto) + '</div>',
       pad + 'padding-bottom:26px;'));
 
     // Como se arma: tres piezas.
-    P.push(row(epigrafe(st, 'C\u00f3mo se arma', k.acento) +
+    P.push(row(epigrafe(st, h(p.comoEpigrafe), k.acento) +
       '<div style="font-family:' + FB + ';font-size:14px;color:' + k.apagado + ';padding:0 0 4px 0;">' +
-      'Tres piezas. Una campa\u00f1a que se comparte.</div>', pad + 'padding-bottom:12px;'));
+      b(p.comoTexto) + '</div>', pad + 'padding-bottom:12px;'));
 
-    const PIEZAS = [
-      { n: '01', t: 'Pantalla LED \u00b7 el gancho f\u00edsico',
-        d: 'QR gigante en Chacao o Las Mercedes. Lleva a un filtro AR, un cup\u00f3n o tu e-commerce directo.' },
-      { n: '02', t: 'Rider Clon \u00b7 la campa\u00f1a que se mueve',
-        d: '250 motos con caja LED se convierten en caza-recompensas: los usuarios las fotograf\u00edan y suben, etiquet\u00e1ndote.' },
-      { n: '03', t: 'Capa digital \u00b7 el cierre en el m\u00f3vil',
-        d: 'Retargeting a quien escane\u00f3, filtros AR de tu marca, hashtag propio. El impacto f\u00edsico deja huella medible en redes.' },
-    ];
+    const PIEZAS = [1, 2, 3].map(num => ({ n: '0' + num, t: h(p['pieza' + num]), d: h(p['pieza' + num + 'Texto']) }));
     let piezas = '';
     PIEZAS.forEach(function (z) {
       piezas += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 12px 0;"><tr>' +
@@ -1599,15 +1836,15 @@
     P.push(row(
       '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
       '<td bgcolor="' + k.panel2 + '" style="background:' + k.panel2 + ';border-left:3px solid ' + k.vivo + ';padding:16px 18px;">' +
-      '<div style="font-family:' + FH + ';font-size:15px;font-weight:800;color:' + k.texto + ';">Lo que resolvemos</div>' +
+      '<div style="font-family:' + FH + ';font-size:15px;font-weight:800;color:' + k.texto + ';">' + c(p.cajaTitulo) + '</div>' +
       '<div style="font-family:' + FB + ';font-size:14px;line-height:20px;color:' + k.apagado + ';padding:6px 0 0 0;">' +
-        'Ya no eliges entre branding masivo o conversi\u00f3n digital. La calle capta. El m\u00f3vil cierra.</div>' +
+        b(p.cajaTexto) + '</div>' +
       '</td></tr></table>', pad + 'padding-bottom:26px;'));
 
     if (on(st, 'cta')) {
-      P.push(row(botonAsesor(st, 'Dise\u00f1emos una campa\u00f1a que se comparta', B(st, 'cta').url) +
+      P.push(row(botonAsesor(st, h(p.boton), ctaHref(st, h(p.titulo))) +
         '<div style="font-family:' + FB + ';font-size:12px;color:' + k.apagado + ';padding:12px 0 0 0;">' +
-        'Llamada creativa de 15 minutos, sin brief formal.</div>',
+        b(p.pieBoton) + '</div>',
         pad + 'padding-bottom:28px;'));
     }
 
@@ -1619,10 +1856,10 @@
         'padding:24px 32px 26px 32px;background:' + k.panel + ';border-top:1px solid ' + k.linea + ';'));
     }
     if (on(st, 'pie')) {
-      P.push(row('<div style="font-family:' + FB + ';font-size:11px;line-height:16px;color:' + k.apagado + ';">' +
-        nl2br(B(st, 'pie').texto) + '</div>', 'padding:14px 32px 0 32px;'));
+      P.push(row('<div style="font-family:' + FB + ';font-size:13px;line-height:19px;color:' + k.apagado + ';">' +
+        nl2br(B(st, 'pie').texto) + '</div>', 'padding:0 32px 24px 32px;background:' + k.panel + ';'));
     }
-    return doc(st, k.fondo, P.join(''));
+    return doc(st, P.join(''));
   }
 
   // -- Formato H - "Entrega" (la presentacion propia del cliente) ---------------------
@@ -1727,14 +1964,14 @@
     // propuesta que llega con tu nombre y tu empresa en la cabecera no tiene nada que explicar, y
     // la firma de arriba ya lleva el correo y el teléfono. Además el que había no se podía tocar:
     // esto pintaba `bloques.entrega.pie` y el panel editaba `bloques.pie`, que es otro campo.
-    return doc(st, k.fondo, P.join(''));
+    return doc(st, P.join(''));
   }
 
   const TEMPLATES = {
-    A: { nombre: 'Cartelera', desc: 'Oscura, misma identidad que los decks. Para primer envío.', fn: plantillaA },
-    B: { nombre: 'Catálogo', desc: 'Clara, tarjetas en dos columnas. Para lectura rápida.', fn: plantillaB },
-    C: { nombre: 'Nota', desc: 'Compacta, parece un correo personal. Para responder en hilo.', fn: plantillaC },
-    D: { nombre: 'Cartelera móvil', desc: 'Una columna, foto arriba, tipografía grande y un solo botón principal. Pensada para Gmail en el teléfono.', fn: plantillaD },
+    A: { nombre: 'Cartelera', desc: 'Oscura. Cada espacio es una valla: la foto a sangre y su nombre en letra de señal. Para primer envío.', fn: plantillaA },
+    B: { nombre: 'Catálogo', desc: 'Clara. Un espacio destacado y los demás de dos en dos, sin cajas. Para lectura rápida.', fn: plantillaB },
+    C: { nombre: 'Nota', desc: 'Parece un correo escrito a mano: sin rótulos ni botón de campaña. Para responder en hilo.', fn: plantillaC },
+    D: { nombre: 'Cartelera móvil', desc: 'Una columna, fotos a sangre, letra de señal y un solo botón principal. Pensada para Gmail en el teléfono.', fn: plantillaD },
     E: { nombre: 'Inventario', desc: 'Asesor de diseño · para agencias. Tabla de inventario con métricas comparables, sin brief educativo. Claro u oscuro.', fn: plantillaE },
     F: { nombre: 'Guía', desc: 'Asesor de diseño · para cliente nuevo. Tres fases en orden: que te conozcan, que te recuerden, que te compren. Claro u oscuro.', fn: plantillaF },
     G: { nombre: 'Phygital', desc: 'Asesor de diseño · la escena de las 9:00 AM. La calle capta, el móvil cierra. Claro u oscuro.', fn: plantillaG },
@@ -1749,9 +1986,23 @@
     const t = st.temaEntrega || st.tema;
     return TEMAS.indexOf(t) >= 0 ? t : 'claro';
   };
+  // Una linea del catalogo puede limitarse a algunas plantillas (003, FR-309). Las que no incluyen
+  // la de este correo salen apagadas, en una COPIA: lo que la persona tiene encendido no se toca.
+  function soloSuyas(st, k) {
+    const fuera = {};
+    let alguna = false;
+    SERVICIOS.forEach(function (x) {
+      if (typeof x.plantillas === 'string' && x.plantillas.indexOf(k) < 0) { fuera[x.id] = true; alguna = true; }
+    });
+    if (!alguna || !Array.isArray(st.servicios)) return st;
+    return Object.assign({}, st, { servicios: st.servicios.map(function (x) {
+      return fuera[x.id] ? Object.assign({}, x, { on: false }) : x;
+    }) });
+  }
+
   const render = (st, key) => {
     const k = key || pick(st);
-    const listo = aplicaAsunto(aplicaPerfil(normaliza(st)));
+    const listo = soloSuyas(aplicaAsunto(aplicaPerfil(normaliza(st))), k);
     // Solo la Personalizada mira su propio aspecto, y sobre una COPIA: `tema` sigue siendo
     // el del catalogo y no se toca, que es lo que evita que el morado reaparezca alli.
     return TEMPLATES[k].fn(k === 'H'
@@ -1759,5 +2010,111 @@
       : listo);
   };
 
-  return { C, SERVICIOS, GRUPOS, TEMPLATES, IMG_SETS, PERFILES, ASUNTOS, asuntosDe, EFECTOS, efectoDe, pesoDe, rangoPeso, ROLES, CORREOS, cargoDe, correosDe, BANCO, bancoDe, fotosDe, comandoCarrusel, FICHA, CONTENT_VERSION, defaultState, render, renderText, renderWhatsApp, pick, aplicaPerfil, aplicaAsunto, normaliza };
+  // ── ¿Cambia el correo si se toca este campo? ──
+  // El panel es uno para las ocho plantillas y cada una usa una parte: E, F y G ignoran el texto
+  // del saludo, la introduccion y el boton; el interruptor del asesor no cambiaba nada en
+  // ninguna. Sin decirlo, el panel mentia: se escribia y no pasaba nada.
+  //
+  // En vez de una lista a mano de que usa cada plantilla -que caducaria con el primer cambio-,
+  // se pregunta al propio motor: se cambia el campo en una COPIA, se renderiza, y si el correo
+  // sale identico, ese campo no pinta nada aqui. Unos 0,2 ms por prueba.
+  const leeRuta = (o, p) => p.split('.').reduce((a, k) => a == null ? a : a[k], o);
+  const ponRuta = (o, p, v) => { const ks = p.split('.'); const u = ks.pop(); ks.reduce((a, k) => a[k], o)[u] = v; };
+  const TESTIGO = '⁣·testigo·';
+  function cambiaElCorreo(st, key, ruta) {
+    const copia = () => {
+      const s = JSON.parse(JSON.stringify(st));
+      // Un campo de un bloque apagado no sale PORQUE el bloque esta apagado, no porque la
+      // plantilla no lo use: se prueba con su bloque o su servicio encendido.
+      const m = /^bloques\.([^.]+)\./.exec(ruta);
+      if (m && s.bloques && s.bloques[m[1]]) s.bloques[m[1]].on = true;
+      const n = /^servicios\.(\d+)\./.exec(ruta);
+      if (n && s.servicios && s.servicios[+n[1]]) s.servicios[+n[1]].on = true;
+      return s;
+    };
+    try {
+      const a = copia(), b = copia();
+      const v = leeRuta(b, ruta);
+      if (typeof v === 'boolean') ponRuta(b, ruta, !v);
+      else if (Array.isArray(v)) ponRuta(b, ruta, v.concat([TESTIGO]));
+      else ponRuta(b, ruta, String(v == null ? '' : v) + TESTIGO);
+      return render(a, key) !== render(b, key);
+    } catch (e) { return true; }   // ante la duda se dice que si: mejor callar que mentir
+  }
+
+  // ── Fechas ya pasadas en los datos que caducan ──
+  // E salia por defecto anunciando "Q1 2026" en septiembre de 2026, y nada lo avisaba. No se
+  // corrigen solas -que trimestre se vende es cosa del negocio-, pero se dicen.
+  const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto',
+                 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  function fechasPasadas(datos, hoy) {
+    const avisos = [];
+    Object.keys(datos || {}).forEach(function (campo) {
+      const v = String(datos[campo] || '');
+      let m;
+      const trimestre = /Q([1-4])\s*(20\d\d)/gi;
+      while ((m = trimestre.exec(v))) {
+        if (new Date(+m[2], +m[1] * 3, 0) < hoy) avisos.push('«' + m[0] + '» ya terminó');
+      }
+      const mes = new RegExp('(' + MESES.join('|') + ')\\s+(?:de\\s+)?(20\\d\\d)', 'gi');
+      while ((m = mes.exec(v))) {
+        if (new Date(+m[2], MESES.indexOf(m[1].toLowerCase()) + 1, 0) < hoy) avisos.push('«' + m[0] + '» ya pasó');
+      }
+    });
+    return avisos;
+  }
+
+  // ── Catalogo de lineas de negocio (especificacion 003) ──
+  // El catalogo de serie son las constantes de arriba. `catalogoActual()` lo entrega en la forma que
+  // usa el servidor: build.js lo exporta a catalogo-serie.json y el servidor se siembra de ahi, asi
+  // que hay UNA sola fuente. `ponCatalogo()` hace lo contrario: recibe el catalogo del servidor y
+  // reemplaza EN SITIO las constantes, que son las mismas referencias que usa todo el motor.
+  // Sin llamarla, el motor se queda exactamente como estaba.
+  function catalogoActual() {
+    const familiaDe = {};
+    GRUPOS.forEach(function (g) { g.servicios.forEach(function (id) { familiaDe[id] = g.id; }); });
+    return {
+      lineas: SERVICIOS.map(function (x) {
+        const l = {};
+        CAMPOS_LINEA.forEach(function (k) { l[k] = x[k] == null ? '' : x[k]; });
+        l.ficha = FICHA[x.id] ? Object.assign({}, FICHA[x.id]) : null;
+        l.familia = familiaDe[x.id] || '';
+        l.plantillas = typeof x.plantillas === 'string' ? x.plantillas : 'ABCDEFGH';
+        return l;
+      }),
+      familias: GRUPOS.map(function (g) { return { id: g.id, eyebrow: g.eyebrow, titulo: g.titulo }; }),
+    };
+  }
+  function ponCatalogo(cat) {
+    if (!cat || !Array.isArray(cat.lineas) || !cat.lineas.length) return false;
+    const lineas = cat.lineas.filter(function (l) { return l && l.id && l.nombre; });
+    if (!lineas.length) return false;
+    SERVICIOS.splice.apply(SERVICIOS, [0, SERVICIOS.length].concat(lineas.map(function (l) {
+      const x = {};
+      CAMPOS_LINEA.forEach(function (k) { x[k] = l[k] == null ? '' : String(l[k]); });
+      x.plantillas = typeof l.plantillas === 'string' ? l.plantillas : 'ABCDEFGH';
+      return x;
+    })));
+    Object.keys(FICHA).forEach(function (k) { delete FICHA[k]; });
+    lineas.forEach(function (l) {
+      const f = l.ficha || {};
+      if (!(f.ubic || f.medida || f.trafico || f.desde)) return;
+      FICHA[l.id] = { ubic: f.ubic || '', medida: f.medida || '', trafico: f.trafico || '', desde: f.desde || '' };
+    });
+    // Familias de la D: las del catalogo, con sus lineas en el orden del catalogo. Una linea sin
+    // familia (o con una que no existe) va a «Otros servicios» en vez de desaparecer.
+    const familias = Array.isArray(cat.familias) ? cat.familias : [];
+    const conocidas = {};
+    familias.forEach(function (f) { conocidas[f.id] = true; });
+    const grupos = familias.map(function (f) {
+      return { id: f.id, eyebrow: f.eyebrow || '', titulo: f.titulo || '',
+        servicios: lineas.filter(function (l) { return l.familia === f.id; }).map(function (l) { return l.id; }) };
+    });
+    const sueltas = lineas.filter(function (l) { return !conocidas[l.familia]; }).map(function (l) { return l.id; });
+    if (sueltas.length) grupos.push({ id: 'otros', eyebrow: 'Más servicios', titulo: 'Otros servicios', servicios: sueltas });
+    GRUPOS.splice.apply(GRUPOS, [0, GRUPOS.length].concat(grupos));
+    return true;
+  }
+
+  return { C, SERVICIOS, GRUPOS, TEMPLATES, IMG_SETS, PERFILES, ASUNTOS, asuntosDe, EFECTOS, efectoDe, pesoDe, rangoPeso, ROLES, CORREOS, cargoDe, correosDe, BANCO, bancoDe, fotosDe, comandoCarrusel, FICHA, CONTENT_VERSION, defaultState, catalogoActual, ponCatalogo, render, renderText, renderWhatsApp, linkFor, cambiaElCorreo, fechasPasadas, pick, aplicaPerfil, aplicaAsunto, normaliza };
 });

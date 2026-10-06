@@ -40,6 +40,10 @@
   .seg button:hover:not([aria-pressed="true"]) { background:var(--hover); color:var(--text); }
   .grow { flex:1; }
   .acts { display:flex; gap:8px; }
+  /* Equipo y salida: solo con servidor detras, donde hay sesion de la que salir. */
+  .menu { display:flex; gap:12px; font-size:12px; }
+  .menu a { color:var(--dim); text-underline-offset:3px; }
+  .menu a:hover, .menu a:focus-visible { color:var(--text); }
   .btn { padding:8px 14px; border-radius:7px; font-weight:600; font-size:13px; border:1px solid var(--border); background:var(--card); color:var(--text); }
   .btn:hover { background:var(--hover); }
   .btn.primary { background:var(--orange); border-color:var(--orange); color:#141016; }
@@ -52,6 +56,19 @@
   .grp h2 { font:600 11px/1 var(--mono); letter-spacing:.16em; color:var(--faint); text-transform:uppercase; margin:0 0 10px; }
   .fld { display:block; margin:0 0 10px; }
   .fld-l { display:block; font-size:12px; color:var(--dim); margin-bottom:4px; }
+  /* Lo que no sale en la plantilla elegida. Atenuado y dicho con palabras: el color solo no
+     basta para entender por que escribir ahi no cambia nada. */
+  .sw.nousa { opacity:.45; }
+  .fld.nousa .fld-l { color:var(--faint); }
+  .fld.nousa input, .fld.nousa textarea, .fld.nousa select { border-style:dashed; }
+  .fld.nousa .fld-l::after { content:' \00B7  no cambia este correo'; font-style:italic; }
+  .blk.nousa .blk-t { color:var(--faint); }
+  .blk.nousa > .blk-h::after { content:'no se usa aqu\00ED'; font-size:11px; font-style:italic;
+    color:var(--faint); white-space:nowrap; }
+  /* Fechas ya pasadas en los datos que caducan. Se ve aunque el bloque este cerrado. */
+  .blk.caduco:not(.nousa) > .blk-h::after { content:'fechas vencidas'; font-size:11px; font-weight:600;
+    color:var(--orange, #F79131); white-space:nowrap; }
+  .aviso-fechas { color:var(--orange, #F79131); font-size:12px; margin:0 0 10px; }
   .fld select { width:100%; background:var(--card); border:1px solid var(--control); border-radius:6px; padding:7px 9px; font-size:13px; color:var(--text); }
   .fld input, .fld textarea { width:100%; background:var(--card); border:1px solid var(--control); border-radius:6px; padding:7px 9px; font-size:13px; line-height:1.4; resize:vertical; }
   .fld input:focus, .fld textarea:focus { border-color:var(--purple-l); outline:none; }
@@ -61,7 +78,7 @@
   .paso h2 { display:flex; align-items:baseline; gap:8px; }
   .paso h2 .n { font:700 11px/1 var(--mono); color:var(--purple-l); }
   .paso h2 .n[data-hecho="1"] { color:var(--ok); }
-  .suelta { border:1px dashed var(--control); border-radius:var(--radius); padding:20px 14px;
+  .suelta { display:block; width:100%; border:1px dashed var(--control); border-radius:var(--radius); padding:20px 14px;
             text-align:center; color:var(--dim); font-size:13px; cursor:pointer;
             background:var(--bg); }
   .suelta:hover, .suelta.encima { border-color:var(--purple-l); color:var(--text); }
@@ -139,6 +156,8 @@
   .svc-b { display:none; padding-top:6px; }
   .svc.open .svc-b { display:block; }
   .svc.off .svc-t { color:var(--faint); text-decoration:line-through; }
+  .svc.fuera .svc-t { color:var(--faint); }
+  .svc.fuera .svc-t::after { content:' \00B7  no se usa en esta plantilla'; font-size:11px; font-style:italic; }
 
   /* interruptor */
   .sw { position:relative; width:34px; height:20px; flex:none; }
@@ -168,12 +187,21 @@
   .toast.show { opacity:1; transform:translate(-50%,0); }
 
   @media (max-width:900px) { main { grid-template-columns:1fr; } aside { max-height:45vh; border-right:0; border-bottom:1px solid var(--border); } }
+  /* En pantallas estrechas la pagina se desplaza y la barra de plantillas se parte en filas:
+     antes medía 746 px fijos y E-H quedaban fuera, sin forma de tocarlas (auditoria 2026-10-03). */
+  #tpl { flex-wrap:wrap; }
+  @media (max-width:900px) { html, body { height:auto; } body { overflow:auto; } main { min-height:92vh; } }
   @media (prefers-reduced-motion:reduce) { * { transition:none !important; } }
 </style>
 </head>
 <body>
 <header class="bar">
-  <div class="brand"><img src="img/logo.jpg" alt="" width="30" height="30"><h1>Compositor de mails</h1><span class="tag">PROTOTIPO</span></div>
+  <div class="brand"><img src="img/logo.jpg" alt="" width="30" height="30"><h1>Compositor de mails</h1><span class="tag">PROTOTIPO</span>
+    <nav class="menu" id="menu" aria-label="Panel" hidden>
+      <a href="/panel/lineas">Líneas de negocio</a>
+      <a href="/panel/equipo">Equipo</a>
+      <a href="/panel/salir">Salir</a>
+    </nav></div>
   <div class="seg" id="tpl" role="group" aria-label="Plantilla"></div>
   <div class="grow"></div>
   <div class="acts">
@@ -238,8 +266,8 @@
     ['destinatario', 'Destinatario (rellena {destinatario})'],
     ['imgSet', 'Imágenes de los servicios', 'select'],
     ['assetBaseProd', 'URL pública de las imágenes (se usa al copiar)'],
-    ['linkBase', 'Base de links cortos (vacío = canva.link actuales)'],
-    ['token', 'Token por destinatario (?c=)'],
+    // Ya no hay "base de links cortos": cada servicio lleva su propio enlace, en su ficha.
+    ['token', 'Token por destinatario (?c=) · solo en enlaces cortos de Centauro'],
   ];
   const BLOQUES = [
     { k: 'hero', label: 'Foto de cabecera (solo D)', hint: 'Archivo de img/. Solo la usa la plantilla D Cartelera móvil.',
@@ -248,12 +276,74 @@
     { k: 'intro', label: 'Introducción', f: [['texto', 'Párrafo', 'textarea']] },
     { k: 'titulo', label: 'Título de sección', f: [['texto', 'Título'], ['sub', 'Subtítulo']] },
     { k: 'servicios', label: 'Servicios (catálogo)', servicios: true },
-    { k: 'asesor', label: 'Datos del formato del asesor (E, F, G)',
+    { k: 'asesor', label: 'Datos del formato del asesor', sinInterruptor: true,
       hint: 'Estos datos CADUCAN. Revisalos antes de cada envio: una disponibilidad vieja o una fecha pasada se notan.',
       f: [['periodo', 'Periodo que se anuncia'], ['etiquetaMeta', 'Etiqueta de la cabecera'],
           ['dispoFecha', 'Disponibilidad actualizada al'], ['dispoTexto', 'Que hay disponible'],
           ['cierreTexto', 'Fecha de cierre'], ['slotsLed', 'Distintivo del LED (ej. 3 SLOTS)'],
-          ['pieCta', 'Linea bajo el boton'], ['respuesta', 'Compromiso de respuesta']] },
+          ['botonTexto', 'Texto del boton (plantilla E)'], ['pieCta', 'Linea bajo el boton'], ['respuesta', 'Compromiso de respuesta']] },
+    // Los textos de E, F y G. Eran literales en el codigo; ahora son datos. Cada bloque sale solo
+    // con su plantilla elegida (soloPara): en las demas no cambian nada.
+    { k: 'inventario', soloPara: 'E', sinInterruptor: true, label: 'Textos de la plantilla E',
+      hint: 'Escribe *así* para resaltar una palabra (en los titulares sale en color; en los párrafos, en negrita). Enter = salto de línea. Huecos: {periodo}, {frentes} (en letras), {n} (en cifra), {destinatario}.',
+      f: [['epigrafe', 'Epígrafe sobre el titular'], ['titulo', 'Titular', 'textarea'], ['entrada', 'Entrada', 'textarea'],
+          ['saludoEpigrafe', 'Epígrafe del saludo'], ['saludo1', 'Saludo · primer párrafo', 'textarea'],
+          ['saludo2', 'Saludo · segundo párrafo', 'textarea'],
+          ['cifra1', 'Cifra 1'], ['etiqueta1', 'Cifra 1 · etiqueta'], ['cifra2', 'Cifra 2'], ['etiqueta2', 'Cifra 2 · etiqueta'],
+          ['cifra3', 'Cifra 3'], ['etiqueta3', 'Cifra 3 · etiqueta'],
+          ['seccion', 'Epígrafe de la tabla'], ['seccionTitulo', 'Título de la tabla'], ['seccionSub', 'Subtítulo de la tabla'],
+          ['pieFoto', 'Pie de la foto del LED'], ['dispoEtiqueta', 'Texto antes de la fecha de disponibilidad']] },
+    { k: 'tablaInventario', soloPara: 'E', sinInterruptor: true, label: 'Tabla de inventario (plantilla E)',
+      hint: 'Una fila por espacio; solo salen los espacios encendidos. {medida} la pone la ficha oficial: no la escribas a mano.',
+      f: [['led_titulo', 'LED Chacao · nombre en la tabla'],
+          ['led_detalle', 'LED Chacao · detalle ({medida} = la de la ficha)', 'textarea'],
+          ['led_dato1', 'LED Chacao · dato 1'], ['led_valor1', 'LED Chacao · valor 1'],
+          ['led_dato2', 'LED Chacao · dato 2'], ['led_valor2', 'LED Chacao · valor 2'],
+          ['mercedes_titulo', 'LED Las Mercedes · nombre en la tabla'],
+          ['mercedes_detalle', 'LED Las Mercedes · detalle ({medida} = la de la ficha)', 'textarea'],
+          ['mercedes_dato1', 'LED Las Mercedes · dato 1'], ['mercedes_valor1', 'LED Las Mercedes · valor 1'],
+          ['mercedes_dato2', 'LED Las Mercedes · dato 2'], ['mercedes_valor2', 'LED Las Mercedes · valor 2'],
+          ['vallas_titulo', 'Vallas · nombre en la tabla'],
+          ['vallas_detalle', 'Vallas · detalle ({medida} = la de la ficha)', 'textarea'],
+          ['vallas_dato1', 'Vallas · dato 1'], ['vallas_valor1', 'Vallas · valor 1'],
+          ['vallas_dato2', 'Vallas · dato 2'], ['vallas_valor2', 'Vallas · valor 2'],
+          ['rider_titulo', 'Rider Clon · nombre en la tabla'],
+          ['rider_distintivo', 'Rider Clon · distintivo (ej. TRACKING)'],
+          ['rider_detalle', 'Rider Clon · detalle ({medida} = la de la ficha)', 'textarea'],
+          ['rider_dato1', 'Rider Clon · dato 1'], ['rider_valor1', 'Rider Clon · valor 1'],
+          ['rider_dato2', 'Rider Clon · dato 2'], ['rider_valor2', 'Rider Clon · valor 2'],
+          ['totem_titulo', 'Tótem · nombre en la tabla'],
+          ['totem_detalle', 'Tótem · detalle ({medida} = la de la ficha)', 'textarea'],
+          ['totem_dato1', 'Tótem · dato 1'], ['totem_valor1', 'Tótem · valor 1'],
+          ['totem_dato2', 'Tótem · dato 2'], ['totem_valor2', 'Tótem · valor 2']] },
+    { k: 'guia', soloPara: 'F', sinInterruptor: true, label: 'Textos de la plantilla F',
+      hint: 'Escribe *así* para resaltar una palabra (en los titulares sale en color; en los párrafos, en negrita). Enter = salto de línea. Hueco: {destinatario}.',
+      f: [['meta', 'Etiqueta de la cabecera'], ['titulo', 'Titular', 'textarea'], ['entrada', 'Entrada', 'textarea'],
+          ['saludo', 'Saludo'], ['parrafo', 'Párrafo del saludo', 'textarea'],
+          ['fase1', 'Fase 1 · nombre'], ['fase1Titulo', 'Fase 1 · título'], ['fase1Texto', 'Fase 1 · texto', 'textarea'],
+          ['fase1Etiqueta', 'Fase 1 · etiqueta del espacio'], ['fase1Servicio', 'Fase 1 · espacio'], ['fase1Detalle', 'Fase 1 · detalle del espacio', 'textarea'],
+          ['fase2', 'Fase 2 · nombre'], ['fase2Titulo', 'Fase 2 · título'], ['fase2Texto', 'Fase 2 · texto', 'textarea'],
+          ['fase2Etiqueta', 'Fase 2 · etiqueta del espacio'], ['fase2Servicio', 'Fase 2 · espacio'], ['fase2Detalle', 'Fase 2 · detalle del espacio', 'textarea'],
+          ['fase3', 'Fase 3 · nombre'], ['fase3Titulo', 'Fase 3 · título'], ['fase3Texto', 'Fase 3 · texto', 'textarea'],
+          ['fase3Etiqueta', 'Fase 3 · etiqueta del espacio'], ['fase3Servicio', 'Fase 3 · espacio'], ['fase3Detalle', 'Fase 3 · detalle del espacio', 'textarea'],
+          ['cajaTitulo', 'Recuadro · título'], ['cajaTexto', 'Recuadro · texto', 'textarea'],
+          ['ctaTexto', 'Frase antes del botón', 'textarea'], ['boton', 'Texto del botón']] },
+    { k: 'phygital', soloPara: 'G', sinInterruptor: true, label: 'Textos de la plantilla G',
+      hint: 'Escribe *así* para resaltar una palabra (en los titulares sale en color; en los párrafos, en negrita). Enter = salto de línea. Hueco: {destinatario}.',
+      f: [['meta', 'Etiqueta de la cabecera'], ['epigrafe', 'Epígrafe sobre el titular'], ['titulo', 'Titular', 'textarea'],
+          ['saludo', 'Saludo'], ['parrafo', 'Párrafo del saludo', 'textarea'],
+          ['hora1', 'Escena 1 · hora y lugar'], ['escena1', 'Escena 1 · rótulo'], ['escena1Texto', 'Escena 1 · texto', 'textarea'],
+          ['puente', 'Entre escenas (va con una flecha)'],
+          ['hora2', 'Escena 2 · hora y red'], ['cuenta', 'Publicación · cuenta'], ['lugar', 'Publicación · lugar'],
+          ['filtro', 'Publicación · rótulo'], ['publicacion', 'Publicación · texto'], ['meGusta', 'Publicación · me gusta'],
+          ['comentario', 'Publicación · comentario', 'textarea'],
+          ['remate', 'Remate · titular'], ['remateTexto', 'Remate · texto', 'textarea'],
+          ['comoEpigrafe', 'Cómo se arma · epígrafe'], ['comoTexto', 'Cómo se arma · texto'],
+          ['pieza1', 'Pieza 1 · título'], ['pieza1Texto', 'Pieza 1 · texto', 'textarea'],
+          ['pieza2', 'Pieza 2 · título'], ['pieza2Texto', 'Pieza 2 · texto', 'textarea'],
+          ['pieza3', 'Pieza 3 · título'], ['pieza3Texto', 'Pieza 3 · texto', 'textarea'],
+          ['cajaTitulo', 'Recuadro · título'], ['cajaTexto', 'Recuadro · texto', 'textarea'],
+          ['boton', 'Texto del botón'], ['pieBoton', 'Línea bajo el botón']] },
     { k: 'clientes', label: 'Marcas que ya son clientes (solo perfil Cliente nuevo)',
       hint: 'APAGADO hasta que Elizabeth confirme que podemos nombrar a esas marcas.',
       f: [['titulo', 'Título'], ['lista', 'Marcas (separadas por ·)']] },
@@ -263,7 +353,13 @@
       f: [['titulo', 'Título'], ['texto', 'Texto', 'textarea'], ['requisitos', 'Requisitos (uno por línea)', 'lines']] },
     { k: 'pasos', label: 'Próximos pasos', f: [['titulo', 'Título'], ['texto', 'Texto', 'textarea']] },
     { k: 'presupuesto', label: 'Datos para presupuesto', f: [['titulo', 'Título'], ['items', 'Datos (uno por línea)', 'lines']] },
-    { k: 'cta', label: 'Botón de acción', f: [['texto', 'Texto del botón'], ['url', 'Enlace']] },
+    { k: 'cta', label: 'Botón de acción',
+      f: [['texto', 'Texto del botón'],
+          ['responder', 'Responder a este correo', 'interruptor',
+           'Abre un mensaje a mercadeo@centauroads.com con «Re:» y el asunto de este correo. Apágalo para usar un enlace propio.'],
+          ['cuerpo', 'Texto que ya aparece escrito en la respuesta · {titulo} = el título de este correo', 'textarea'],
+          ['alternativa', 'Línea bajo el botón (A–D)'],
+          ['url', 'Enlace propio (solo con «Responder» apagado)']] },
     { k: 'cierre', label: 'Cierre', f: [['texto', 'Texto']] },
     { k: 'firma', label: 'Firma', hint: 'Teléfono y dirección son valores de ejemplo: confirmar con Elizabeth.',
       f: [['nombre', 'Nombre'],
@@ -277,6 +373,7 @@
 
   function inputEl(path, label, type, onInput) {
     const wrap = el('label', 'fld'); wrap.appendChild(el('span', 'fld-l', label));
+    wrap.dataset.ruta = path;
     // 'opciones': selector de catalogo, con el mapa clave->etiqueta en el 4o argumento.
     // El 'select' de abajo esta clavado a M.IMG_SETS y no vale para nada mas.
     if (type === 'opciones') {
@@ -299,33 +396,72 @@
     inp.addEventListener('input', () => { set(st, path, type === 'lines' ? inp.value.split('\n') : inp.value); if (typeof onInput === 'function') onInput(inp.value); touch(); });
     wrap.appendChild(inp); return wrap;
   }
-  function switchEl(path, onChange) {
+  // Un interruptor como campo de un bloque, con su explicacion al lado: la misma fila que el
+  // "Tema oscuro" del perfil.
+  function filaInterruptor(path, etiqueta, ayuda) {
+    const r = el('div', 'row'); r.appendChild(switchEl(path, () => {}, etiqueta));
+    const t = el('div', 'row-t'); t.appendChild(document.createTextNode(etiqueta));
+    if (ayuda) t.appendChild(el('i', null, ayuda));
+    r.appendChild(t); return r;
+  }
+  // Un titulo que abre y cierra su seccion, y lo anuncia (aria-expanded).
+  function plegable(boton, caja) {
+    const di = () => boton.setAttribute('aria-expanded', String(caja.classList.contains('open')));
+    di(); boton.addEventListener('click', () => { caja.classList.toggle('open'); di(); });
+  }
+  function switchEl(path, onChange, nombre) {
     const l = el('label', 'sw'); const c = document.createElement('input'); c.type = 'checkbox'; c.checked = !!get(st, path);
-    c.setAttribute('aria-label', 'Mostrar u ocultar');
+    l.dataset.ruta = path;
+    c.setAttribute('aria-label', nombre ? 'Mostrar ' + nombre : 'Mostrar u ocultar');
     c.addEventListener('change', () => { set(st, path, c.checked); onChange(c.checked); touch(); });
     l.appendChild(c); l.appendChild(el('i', 'sw-k')); return l;
   }
   function servicioEl(s, i) {
-    const w = el('div', 'svc'); w.classList.toggle('off', !s.on);
-    const h = el('div', 'svc-h'); h.appendChild(switchEl('servicios.' + i + '.on', on => w.classList.toggle('off', !on)));
-    const t = el('button', 'svc-t', s.nombre); t.type = 'button'; t.addEventListener('click', () => w.classList.toggle('open')); h.appendChild(t); w.appendChild(h);
+    const w = el('div', 'svc'); w.classList.toggle('off', !s.on); w.dataset.servicio = s.id;
+    const h = el('div', 'svc-h'); h.appendChild(switchEl('servicios.' + i + '.on', on => w.classList.toggle('off', !on), s.nombre));
+    const t = el('button', 'svc-t', s.nombre); t.type = 'button'; plegable(t, w); h.appendChild(t); w.appendChild(h);
     const b = el('div', 'svc-b');
     b.appendChild(inputEl('servicios.' + i + '.nombre', 'Nombre', null, v => { t.textContent = v; }));
+
+    // El enlace de la presentación. Vale otro de Canva o uno corto del acortador propio. Debajo
+    // se dice qué enlace sale DE VERDAD en el correo —con el token, si lo lleva—: sin eso no hay
+    // forma de saber si lo escrito llega, y ya pasó que un enlace sin https:// acababa en un 404.
+    const sale = el('p', 'hint');
+    const avisa = v => {
+      const url = String(v || '').trim();
+      if (!/^https?:\/\//i.test(url)) {
+        sale.textContent = 'Tiene que empezar por https:// — sin eso el enlace no abre.';
+        sale.style.color = 'var(--danger, #E8836F)';
+        return;
+      }
+      const dom = /^https?:\/\/links\.centauroads\.com\//i.test(url) ? ' · enlace corto de Centauro' :
+                  /canva\.(link|com|site)/i.test(url) ? ' · Canva' : ' · otro sitio';
+      sale.textContent = 'Sale en el correo: ' + M.linkFor(st, Object.assign({}, s, { canva: url })) + dom;
+      sale.style.color = '';
+    };
+    b.appendChild(inputEl('servicios.' + i + '.canva', 'Enlace de la presentación', null, avisa));
+    b.appendChild(sale);
+    avisa(s.canva);
     b.appendChild(inputEl('servicios.' + i + '.cobertura', 'Cobertura / ubicación'));
     b.appendChild(inputEl('servicios.' + i + '.nota', 'Nota (opcional)'));
     b.appendChild(inputEl('servicios.' + i + '.cta', 'Texto del botón (plantilla D)'));
     w.appendChild(b); return w;
   }
   function blockEl(def) {
-    const b = el('section', 'blk'); b.classList.toggle('off', !get(st, 'bloques.' + def.k + '.on'));
+    const b = el('section', 'blk'); b.dataset.bloque = def.k;
+    // Un bloque de DATOS -no una seccion del correo- no lleva interruptor: no hay nada que
+    // mostrar u ocultar. El del asesor tenia uno y no cambiaba nada en ninguna plantilla.
+    if (!def.sinInterruptor) b.classList.toggle('off', !get(st, 'bloques.' + def.k + '.on'));
     const head = el('header', 'blk-h');
-    head.appendChild(switchEl('bloques.' + def.k + '.on', on => b.classList.toggle('off', !on)));
-    const t = el('button', 'blk-t', def.label); t.type = 'button'; t.addEventListener('click', () => b.classList.toggle('open'));
+    if (!def.sinInterruptor) head.appendChild(switchEl('bloques.' + def.k + '.on', on => b.classList.toggle('off', !on), def.label));
+    const t = el('button', 'blk-t', def.label); t.type = 'button'; plegable(t, b);
     head.appendChild(t); b.appendChild(head);
     const body = el('div', 'blk-b');
     if (def.hint) body.appendChild(el('p', 'hint', def.hint));
     if (def.servicios) st.servicios.forEach((s, i) => body.appendChild(servicioEl(s, i)));
-    else def.f.forEach(([k, l, ty, op]) => body.appendChild(inputEl('bloques.' + def.k + '.' + k, l, ty, op)));
+    else def.f.forEach(([k, l, ty, op]) => body.appendChild(ty === 'interruptor'
+      ? filaInterruptor('bloques.' + def.k + '.' + k, l, op)
+      : inputEl('bloques.' + def.k + '.' + k, l, ty, op)));
     b.appendChild(body); return b;
   }
   // Perfil del destinatario: reescribe asunto, textos y orden de servicios, y añade su bloque propio.
@@ -567,6 +703,8 @@
   // ver el formato: se pegan el enlace y la imagen a mano. Lo que no se puede es subir el PDF ni
   // guardar la entrega, y eso se dice, no se deja adivinar.
   const HAY_SERVIDOR = /^https?:$/.test(location.protocol);
+  // Equipo y salida apuntan al servidor: en la copia autonoma no llevarian a ninguna parte.
+  if (HAY_SERVIDOR && document.getElementById('menu')) document.getElementById('menu').hidden = false;
   let paginasSubidas = [];   // lo que devolvio la subida: {indice, url, rotulo, aviso_precio}
   let elegidas = [];         // indices elegidos, EN ORDEN
   // Si se esta dando de alta un contacto a mano, y lo escrito hasta ahora. Vive FUERA de
@@ -579,7 +717,7 @@
   function api(ruta, opciones) {
     return fetch(ruta, Object.assign({ credentials: 'same-origin' }, opciones || {}))
       .then(r => r.json().then(d => {
-        if (!r.ok) throw new Error(d.detail || 'Error del servidor');
+        if (!r.ok) { const e = new Error(d.detail || 'Error del servidor'); e.status = r.status; throw e; }
         return d;
       }));
   }
@@ -599,7 +737,25 @@
     return b;
   }
 
-  function estadoEl(texto, clase) { return el('p', 'estado' + (clase ? ' ' + clase : ''), texto); }
+  function estadoEl(texto, clase) {
+    const p = el('p', 'estado' + (clase ? ' ' + clase : ''), texto);
+    p.setAttribute('role', 'status'); p.setAttribute('aria-live', 'polite'); return p;
+  }
+  // Un error del servidor, junto al boton que lo provoco. Si es de sesion, con la salida al lado:
+  // el aviso general esta arriba del todo y, con el panel bajado, nadie lo ve. «Hay que entrar al
+  // panel» a secas dejaba sin saber que hacer.
+  function falla(est, e) {
+    est.className = 'estado mal';
+    if (e && e.status === 401) {
+      est.textContent = 'No has entrado al panel en este navegador (o la sesión caducó: dura 8 horas). ';
+      const a = el('a', null, 'Entrar y volver aquí');
+      a.href = '/panel/entrar?destino=' + encodeURIComponent(location.pathname);
+      a.style.color = 'var(--purple-l)';
+      est.appendChild(a);
+      return;
+    }
+    est.textContent = e && e.message ? e.message : 'Error del servidor';
+  }
 
   function buildEntrega() {
     const E = st.bloques.entrega;
@@ -685,7 +841,7 @@
           if (r.ok === true) { est.className = 'estado bien'; est.textContent = 'El enlace abre.'; }
           else if (r.ok === null) { est.className = 'estado'; est.textContent = r.motivo; }
           else { est.className = 'estado mal'; est.textContent = r.motivo || 'El enlace no abre.'; }
-        }).catch(e => { est.className = 'estado mal'; est.textContent = e.message; });
+        }).catch(e => falla(est, e));
       }));
       p1.appendChild(fila); p1.appendChild(est);
     }
@@ -757,7 +913,7 @@
     // 03 - Las paginas
     const p3 = pasoEl('03', 'Las páginas', elegidas.length >= 2);
     if (HAY_SERVIDOR) {
-      const suelta = el('div', 'suelta');
+      const suelta = el('button', 'suelta'); suelta.type = 'button';
       suelta.innerHTML = 'Suelta aquí el <b>PDF que descarga Canva</b>, o varias imágenes';
       const fichero = el('input'); fichero.type = 'file';
       fichero.accept = '.pdf,image/*'; fichero.multiple = true; fichero.hidden = true;
@@ -849,9 +1005,9 @@
       const b = el('section', 'blk');
       const apagado = () => b.classList.toggle('off', !st.bloques.entrega[clave]);
       const head = el('header', 'blk-h');
-      head.appendChild(switchEl('bloques.entrega.' + clave, apagado));
+      head.appendChild(switchEl('bloques.entrega.' + clave, apagado, nombre));
       const t = el('button', 'blk-t', nombre); t.type = 'button';
-      t.addEventListener('click', () => b.classList.toggle('open'));
+      plegable(t, b);
       head.appendChild(t); b.appendChild(head);
       const body = el('div', 'blk-b');
       campos.forEach(([ruta, etiqueta, tipo]) => body.appendChild(inputEl(ruta, etiqueta, tipo)));
@@ -877,7 +1033,7 @@
         }
         api('/api/entregas/' + st.entregaId + '/entregada', { method: 'POST' })
           .then(() => { est5.className = 'estado bien'; est5.textContent = 'Anotada como entregada.'; })
-          .catch(e => { est5.className = 'estado mal'; est5.textContent = e.message; });
+          .catch(e => falla(est5, e));
       }));
       p5.appendChild(fila6); p5.appendChild(est5);
     }
@@ -936,7 +1092,7 @@
         // pulsar F5 para ver lo que acaba de guardar.
         buildPanel(); renderPreview();
       })
-      .catch(e => { est.className = 'estado mal'; est.textContent = e.message; });
+      .catch(e => falla(est, e));
   }
 
   function sube(ficheros) {
@@ -965,7 +1121,7 @@
         est.textContent = d.paginas.length + ' páginas. Elige de 2 a 4, en el orden que quieras.';
         pintaMinis($('#minis'), est);
       })
-      .catch(e => { est.className = 'estado mal'; est.textContent = e.message; });
+      .catch(e => falla(est, e));
   }
 
   function pintaMinis(rejilla, est) {
@@ -1017,7 +1173,7 @@
       est.className = 'estado bien';
       est.textContent = 'Carrusel listo con ' + elegidas.length + ' páginas.';
       touch();
-    }).catch(e => { est.className = 'estado mal'; est.textContent = e.message; });
+    }).catch(e => falla(est, e));
   }
 
   function pideAClaude() {
@@ -1051,6 +1207,7 @@
   }
 
   async function copiaWhatsApp() {
+    if (faltaEnlaceH()) return;
     const texto = M.renderWhatsApp(prod());
     toast(await copiaTexto(texto)
       ? "WhatsApp copiado · un solo enlace, al principio"
@@ -1078,7 +1235,8 @@
     const g1 = el('div', 'grp'); g1.appendChild(el('h2', null, 'Envío'));
     ENVIO.forEach(([k, l, ty]) => g1.appendChild(inputEl(k, l, ty))); p.appendChild(g1);
     const g2 = el('div', 'grp'); g2.appendChild(el('h2', null, 'Bloques del mensaje · interruptor = mostrar / inhibir'));
-    BLOQUES.forEach(d => g2.appendChild(blockEl(d))); p.appendChild(g2);
+    BLOQUES.filter(d => !d.soloPara || d.soloPara === M.pick(st))
+      .forEach(d => g2.appendChild(blockEl(d))); p.appendChild(g2);
     const r = el('button', 'reset', 'Restablecer todo el contenido'); r.type = 'button';
     r.addEventListener('click', () => { st = M.defaultState(); save(); buildPanel(); buildSeg(); renderPreview(); toast('Contenido restablecido'); });
     p.appendChild(r);
@@ -1117,15 +1275,73 @@
     // bloqueadas se quedaba muda. Quitando el `src` el navegador pinta el alt, que es justo lo
     // que hace Outlook (constitucion, principio III).
     const cuerpo = noImg ? html.replace(/\ssrc="[^"]*"/g, '') : html;
-    const extra = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&display=swap"><base target="_blank">' +
+    // Sin Montserrat: el correo no la lleva y Gmail quita los <link>, asi que el cliente ve
+    // Trebuchet. Inyectarla solo aqui ensenaba una tipografia que nadie recibe.
+    const extra = '<base target="_blank">' +
       (noImg ? '<style>img{border:1px dashed #9895A7!important;min-height:22px}</style>' : '');
     $('#preview').srcdoc = cuerpo.replace('</head>', extra + '</head>');
     $('#meta-tpl').textContent = 'Plantilla ' + key + ' · ' + M.TEMPLATES[key].nombre + ' · ' + M.PERFILES[st.perfil].nombre + ' · ' + (st.imgSet === 'portadas' ? 'portadas Canva' : 'fotos reales');
     $('#meta-size').textContent = Math.round(M.render(prod(), key).length / 1024) + ' KB HTML';
-    $('#meta-subj').textContent = M.aplicaPerfil(st).asunto;
+    // El asunto que se manda DE VERDAD: el mismo camino que usa render. Antes ensenaba el del
+    // perfil e ignoraba cual de los tres asuntos estaba elegido.
+    $('#meta-subj').textContent = M.aplicaAsunto(M.aplicaPerfil(M.normaliza(JSON.parse(JSON.stringify(st))))).asunto;
+    marcaLoQueNoSeUsa();
+    avisaFechasPasadas();
   }
 
-  function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 1800); }
+  // ── Lo que no cambia el correo ──
+  // La decision la toma el motor (M.cambiaElCorreo), que es donde se puede probar; aqui solo se
+  // pinta. El porque, en render.js.
+  function marcaLoQueNoSeUsa() {
+    const key = M.pick(st);
+    const usa = ruta => M.cambiaElCorreo(st, key, ruta);
+    document.querySelectorAll('#panel [data-ruta]').forEach(nodo => {
+      // Solo texto e interruptores. Un selector tiene valores cerrados: meterle un testigo lo
+      // dejaria en un valor que no existe y la prueba no diria nada util.
+      const probable = nodo.classList.contains('sw') || nodo.querySelector('input[type=text], textarea');
+      if (!probable) return;
+      // Se usa al COPIAR, no al pintar la vista previa: probarlo aqui lo daria por muerto.
+      if (nodo.dataset.ruta === 'assetBaseProd') return;
+      const no = !usa(nodo.dataset.ruta);
+      nodo.classList.toggle('nousa', no);
+      // No siempre es la plantilla: tambien el perfil o el asunto elegido deciden que se usa.
+      if (no) nodo.title = 'No cambia el correo con la plantilla ' + key + ' y la configuracion actual';
+      else nodo.removeAttribute('title');
+    });
+    // Una linea del catalogo limitada a otras plantillas (003, FR-310): se dice en su cabecera.
+    // Sus campos ya salen como «no cambia este correo» por la regla de arriba.
+    document.querySelectorAll('#panel .svc[data-servicio]').forEach(w => {
+      const linea = M.SERVICIOS.find(x => x.id === w.dataset.servicio);
+      w.classList.toggle('fuera', !!linea && typeof linea.plantillas === 'string' && linea.plantillas.indexOf(key) < 0);
+    });
+    document.querySelectorAll('#panel [data-bloque]').forEach(b => {
+      const nodos = Array.from(b.querySelectorAll('[data-ruta]'))
+        .filter(n => n.classList.contains('sw') || n.querySelector('input[type=text], textarea'));
+      b.classList.toggle('nousa', nodos.length > 0 && nodos.every(n => n.classList.contains('nousa')));
+    });
+  }
+
+  // ── Datos que caducan ──
+  // Los del asesor anuncian trimestres y fechas que pasan. No se corrigen solos -que se vende y
+  // cuando es cosa del negocio-, pero el panel lo dice. La decision es del motor (M.fechasPasadas).
+  function avisaFechasPasadas() {
+    const b = document.querySelector('#panel [data-bloque="asesor"]');
+    if (!b) return;
+    const avisos = M.fechasPasadas((st.bloques || {}).asesor, new Date());
+    b.classList.toggle('caduco', avisos.length > 0);
+    if (avisos.length) b.title = 'Fechas vencidas: ' + avisos.join(' · ');
+    else b.removeAttribute('title');
+  }
+
+  function toast(msg, ms) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), ms || 1800); }
+  // La Personalizada sin enlace mandaria un boton que no lleva a ninguna parte (href="#"):
+  // lo vio la auditoria del 2026-10-03. Se avisa y no se copia.
+  function faltaEnlaceH() {
+    const e = (st.bloques && st.bloques.entrega) || {};
+    if (st.plantilla !== 'H' || String(e.enlace || e.url || '').trim()) return false;
+    toast('Falta el enlace de la propuesta: el botón no llevaría a ninguna parte. Ponlo en el paso 01.', 5000);
+    return true;
+  }
   async function copyRich(html, text) {
     try {
       if (navigator.clipboard && window.ClipboardItem) {
@@ -1140,10 +1356,12 @@
     sel.removeAllRanges(); d.remove(); return ok;
   }
   $('#copyGmail').addEventListener('click', async () => {
+    if (faltaEnlaceH()) return;
     const full = M.render(prod()); const body = (full.match(/<body[^>]*>([\s\S]*)<\/body>/) || [0, full])[1];
     toast((await copyRich(body, M.renderText(prod()))) ? 'Copiado: pega en un correo nuevo de Gmail (Ctrl+V)' : 'No se pudo copiar: el navegador bloqueó el portapapeles');
   });
   $('#copyHtml').addEventListener('click', async () => {
+    if (faltaEnlaceH()) return;
     try { await navigator.clipboard.writeText(M.render(prod())); toast('HTML completo copiado'); } catch (e) { toast('No se pudo copiar el HTML'); }
   });
     // El boton de la barra. Estaba puesto y sin conectar: se vaciaba el hueco visual y no hacia
@@ -1151,6 +1369,7 @@
   // entrara cada quien.
   $('#copyWa').addEventListener('click', copiaWhatsApp);
   $('#copyText').addEventListener('click', async () => {
+    if (faltaEnlaceH()) return;
     try { await navigator.clipboard.writeText(M.renderText(prod())); toast('Versión en texto plano copiada'); } catch (e) { toast('No se pudo copiar el texto'); }
   });
   $('#vDesk').addEventListener('click', () => { $('#stage').classList.remove('mobile'); $('#vDesk').setAttribute('aria-pressed', 'true'); $('#vMob').setAttribute('aria-pressed', 'false'); });
@@ -1167,6 +1386,18 @@
     if (window.ASSET_BASE) im.src = String(window.ASSET_BASE).replace(/\/$/, '') + '/logo.jpg';
   })();
   buildPanel(); buildSeg(); renderPreview();
+
+  // Catalogo de lineas de negocio (003). El del servidor manda: se pinta primero con el de serie
+  // para no dejar la pantalla vacia y, en cuanto llega, se rehace con el vigente. Las fotos subidas
+  // llegan como /media/...; el correo necesita la direccion completa, como en las entregas.
+  // Si no llega, se sigue con el de serie y se dice (FR-323).
+  if (HAY_SERVIDOR) {
+    api('/api/catalogo').then(cat => {
+      (cat.lineas || []).forEach(l => { if (/^\/[^/]/.test(l.img || '')) l.img = location.origin + l.img; });
+      if (!M.ponCatalogo(cat)) return;
+      st = M.normaliza(st); save(); buildPanel(); buildSeg(); renderPreview();
+    }).catch(() => toast('No se pudo cargar el catálogo de líneas: se usa el de serie', 5000));
+  }
 })();
 </script>
 </body>

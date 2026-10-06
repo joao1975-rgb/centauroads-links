@@ -14,6 +14,10 @@ services:
       - SUPERADMIN_USER=${SUPERADMIN_USER}
       - SUPERADMIN_PASS=${SUPERADMIN_PASS}
       - DATABASE_URL=sqlite:///./data/centaurads_links.db
+      - SESSION_SECRET=${SESSION_SECRET}
+      - PANEL_BOOTSTRAP=${PANEL_BOOTSTRAP}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - CORS_ORIGINS=${CORS_ORIGINS:-}
     volumes:
       # Persistir la base de datos SQLite entre reinicios
       - links_data:/app/data

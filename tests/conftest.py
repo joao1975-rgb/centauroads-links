@@ -44,3 +44,16 @@ os.environ.setdefault("COOKIE_INSEGURA", "1")
 os.environ.setdefault("CORS_ORIGINS", "https://panel.ejemplo.test")
 
 DIRECTORIO_TEMPORAL = _TMP
+
+
+import pytest  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def _intentos_a_cero():
+    """El límite de intentos guarda los fallos en memoria, por dirección. Todas las pruebas llegan
+    desde la misma («testclient»): sin esto, los fallos de una prueba bloquearían a la siguiente."""
+    from app.auth import intentos
+    intentos.reinicia()
+    yield
+    intentos.reinicia()

@@ -14,7 +14,12 @@ const path = require('path');
 const M = require('./render.js');
 
 const here = __dirname;
-const imgDir = path.join(here, 'img');
+// `img/` esta en .gitignore: existe en el equipo donde se trabajan los prototipos, pero no en un
+// clon recien sacado de GitHub, y ahi este script reventaba antes de publicar nada ni pasar las
+// guardias. Las mismas imagenes estan versionadas en app/static/email/, que es lo que sirve
+// produccion: si img/ no esta, se leen de ahi.
+const imgLocal = path.join(here, 'img');
+const imgDir = fs.existsSync(imgLocal) ? imgLocal : path.join(here, '..', '..', 'app', 'static', 'email');
 const slug = { A: 'cartelera', B: 'catalogo', C: 'nota', D: 'movil', E: 'inventario', F: 'guia', G: 'phygital', H: 'personalizada' };
 
 // 1. Plantillas estáticas: con fotos reales (por defecto) y con portadas de Canva (sufijo -portadas)
@@ -83,6 +88,14 @@ if (kbOut > 15 * 1024) {
   const kb = (fs.statSync(path.join(destino, 'compositor.html')).size +
               fs.statSync(path.join(destino, 'render.js')).size) / 1024;
   console.log('OK app/static/email/compositor.html + render.js', Math.round(kb), 'KB (publicable)');
+}
+
+// Catalogo de serie (003): el servidor siembra sus lineas de negocio de este archivo, que sale del
+// propio render.js. Una sola fuente: si cambia el catalogo de serie, cambia aqui al construir.
+{
+  const destino = path.join(here, '..', '..', 'app', 'static', 'email', 'catalogo-serie.json');
+  fs.writeFileSync(destino, JSON.stringify(M.catalogoActual(), null, 1) + '\n', 'utf8');
+  console.log('OK app/static/email/catalogo-serie.json', M.catalogoActual().lineas.length, 'lineas');
 }
 
 // 3. Guardia de contenido: la construcción falla si reaparece un dato de contacto retirado, o si falta uno vigente.

@@ -263,7 +263,7 @@ def test_sin_client_id_no_se_ofrece_el_boton_de_google(cliente, monkeypatch):
     assert "accounts.google.com/gsi/client" not in r.text
 
 
-def test_a_donde_lleva_entrar_existe_de_verdad(cliente):
+def test_a_donde_lleva_entrar_existe_de_verdad(cliente, admin):
     """
     Entrar y aterrizar en un 404 es entrar mal.
 
@@ -271,10 +271,13 @@ def test_a_donde_lleva_entrar_existe_de_verdad(cliente):
     que nunca se creó. La sesión quedaba puesta y la persona veía `{"detail":"Not Found"}`. No lo
     cogió ninguna prueba porque todas comprobaban el **login**, y ninguna a dónde te deja.
 
-    Comprobar que una dirección responde es barato; descubrirlo con alguien entrando, no.
+    Comprobar que una dirección responde es barato; descubrirlo con alguien entrando, no. Se
+    comprueba CON sesión y sin seguir redirecciones: sin sesión el compositor manda a entrar, y
+    siguiéndola se acabaría en la pantalla de entrada, que también da 200 y no prueba nada.
     """
-    assert cliente.get(rutas.COMPOSITOR).status_code == 200, (
-        "el compositor no responde en " + rutas.COMPOSITOR)
+    r = cliente.get(rutas.COMPOSITOR, follow_redirects=False)
+    assert r.status_code == 200, "el compositor no responde en " + rutas.COMPOSITOR
+    cliente.cookies.clear()
 
     r = cliente.get("/panel/entrar")
     assert rutas.COMPOSITOR in r.text, "la pantalla de entrada no apunta al compositor"
@@ -290,3 +293,74 @@ def test_el_destino_no_puede_llevar_fuera_del_sitio(cliente):
     for malo in ("https://otro-sitio.example/robar", "//otro-sitio.example"):
         r = cliente.get("/panel/entrar", params={"destino": malo})
         assert "otro-sitio.example" not in r.text
+
+
+# --- Primero se entra, luego se usa la herramienta ------------------------------------
+# El enlace que circulaba abría el compositor sin preguntar quién eras, y solo al pulsar algo
+# que hablaba con el servidor salía «Hay que entrar al panel». Era el orden al revés.
+
+def test_sin_sesion_el_compositor_lleva_a_la_entrada(cliente):
+    cliente.cookies.clear()
+    r = cliente.get(rutas.COMPOSITOR, follow_redirects=False)
+    assert r.status_code == 307
+    assert r.headers["location"] == "/panel/entrar?destino=%2Fstatic%2Femail%2Fcompositor.html"
+
+
+def test_una_cookie_inventada_no_abre_el_compositor(cliente):
+    cliente.cookies.set(sesion.COOKIE, "inventada.sin.firma")
+    r = cliente.get(rutas.COMPOSITOR, follow_redirects=False)
+    assert r.status_code == 307
+    cliente.cookies.clear()
+
+
+def test_con_sesion_la_entrada_pasa_directo_a_la_herramienta(cliente, admin):
+    """Quien ya entró no tiene que volver a escribir su correo."""
+    r = cliente.get("/panel/entrar", follow_redirects=False)
+    assert r.status_code == 303 and r.headers["location"] == rutas.COMPOSITOR
+    # Y respeta a dónde iba, si es una ruta de la casa.
+    r = cliente.get("/panel/entrar", params={"destino": "/admin"}, follow_redirects=False)
+    assert r.headers["location"] == "/admin"
+    cliente.cookies.clear()
+
+
+def test_la_direccion_corta_del_panel_lleva_a_la_entrada(cliente):
+    cliente.cookies.clear()
+    r = cliente.get("/panel", follow_redirects=False)
+    assert r.status_code == 307 and r.headers["location"] == "/panel/entrar"
+
+
+def test_las_imagenes_de_los_correos_siguen_publicas(cliente):
+    """Las cargan los correos de los clientes, que no tienen sesión ni la van a tener."""
+    cliente.cookies.clear()
+    assert cliente.get("/static/email/logo_h_dark_2x.png").status_code == 200
+    assert cliente.get("/static/email/render.js").status_code == 200
+
+
+def test_el_navegador_no_guarda_el_compositor(cliente, admin):
+    """
+    Si lo guarda, tras salir lo sigue abriendo de su caché sin preguntar al servidor, y la puerta
+    no sirve de nada. Se vio probándolo en un navegador de verdad.
+    """
+    r = cliente.get(rutas.COMPOSITOR, follow_redirects=False)
+    assert r.status_code == 200 and r.headers.get("cache-control") == "no-store"
+    cliente.cookies.clear()
+    r = cliente.get(rutas.COMPOSITOR, follow_redirects=False)
+    assert r.status_code == 307 and r.headers.get("cache-control") == "no-store"
+
+
+# --- Sin guía de instalación (2026-10-01, petición del usuario) ------------------------------------
+# La herramienta se usa en mails.centauroads.com: no se instala en ningún equipo. La guía que
+# explicaba cómo instalarla se retiró de la app, y con ella sus direcciones y sus enlaces.
+
+def test_la_guia_de_instalacion_ya_no_existe(cliente):
+    cliente.cookies.clear()
+    for ruta in ("/panel/guia", "/panel/guia/descargar", "/static/guia-instalacion.html"):
+        assert cliente.get(ruta, follow_redirects=False).status_code == 404, ruta
+
+
+def test_ni_la_entrada_ni_el_compositor_enlazan_la_guia(cliente, admin):
+    html = cliente.get(rutas.COMPOSITOR).text
+    assert "/panel/guia" not in html and "guia-instalacion" not in html
+    cliente.cookies.clear()
+    html = cliente.get("/panel/entrar").text
+    assert "/panel/guia" not in html and "guia-instalacion" not in html

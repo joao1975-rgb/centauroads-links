@@ -41,8 +41,8 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from .. import models
-from . import google, local, sesion, superadmin
-from .dependencias import usuario_actual, solo_admin
+from . import google, intentos, local, sesion, superadmin
+from .dependencias import usuario_actual, usuario_actual_opcional, solo_admin
 
 log = logging.getLogger("centaurads.auth")
 router = APIRouter()
@@ -135,14 +135,18 @@ def entrar_con_google(datos: EntradaGoogle, db: Session = Depends(get_db)):
 
 
 @router.post("/api/auth/local")
-def entrar_con_contrasena(datos: EntradaLocal, db: Session = Depends(get_db)):
-    """La excepción para quien no tenga cuenta de Google (FR-001b)."""
+def entrar_con_contrasena(datos: EntradaLocal, request: Request, db: Session = Depends(get_db)):
+    """La excepción para quien no tenga cuenta de Google (FR-001b). Con límite de intentos."""
+    intentos.comprueba(request, "entrada", intentos.MAX_ENTRADA)
     usuario = _autorizado(db, datos.email)
     if not usuario or not usuario.password_hash:
+        intentos.fallo(request, "entrada")
         raise HTTPException(status_code=403, detail=_RECHAZO)
     if not local.verificar(usuario.password_hash, datos.password):
         log.warning("contraseña incorrecta para %s", usuario.email)
+        intentos.fallo(request, "entrada")
         raise HTTPException(status_code=403, detail=_RECHAZO)
+    intentos.acierto(request, "entrada")
     return _entra(db, usuario)
 
 
@@ -219,6 +223,61 @@ def baja_usuario(usuario_id: int, db: Session = Depends(get_db),
     return {"ok": True, "email": usuario.email}
 
 
+# Lo justo para no guardar algo que no puede ser un correo: algo antes de la arroba, un dominio
+# con punto y sin espacios. La comprobación de verdad la hace quien entra (Google, o la contraseña).
+_CORREO = re.compile(r"[^@\s]+@[^@\s]+\.[^@\s]+")
+
+
+class UsuarioCambios(BaseModel):
+    """Solo cambia lo que se manda: un campo ausente se deja como estaba."""
+    email: Optional[str] = Field(default=None, max_length=200)
+    nombre: Optional[str] = Field(default=None, max_length=200)
+    rol: Optional[str] = None
+
+
+@router.patch("/api/panel/usuarios/{usuario_id}")
+def edita_usuario(usuario_id: int, datos: UsuarioCambios, db: Session = Depends(get_db),
+                  quien: models.PanelUser = Depends(solo_admin)):
+    """
+    Corregir el correo o el nombre de alguien, o cambiarle el rol, sin darle de baja y de alta.
+
+    La sesión va por el número de la persona, no por su correo: cambiárselo no le cierra la
+    sesión. Nadie puede quitarse a sí mismo el rol de administrador; como tampoco puede
+    retirarse el acceso, siempre queda al menos un administrador que gestione el panel.
+
+    Ojo con `PANEL_BOOTSTRAP`: si se cambia el correo de una cuenta que está en esa variable, al
+    siguiente arranque se vuelve a crear la del correo viejo (sin contraseña). Lo que hay que
+    corregir entonces es la variable.
+    """
+    usuario = db.query(models.PanelUser).filter(models.PanelUser.id == usuario_id).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail="No encontrado")
+    antes = (usuario.email, usuario.rol)
+    if datos.rol is not None:
+        if datos.rol not in ("admin", "comercial"):
+            raise HTTPException(status_code=400, detail="El rol solo puede ser admin o comercial")
+        if usuario.id == quien.id and datos.rol != "admin":
+            raise HTTPException(status_code=400,
+                                detail="No puedes quitarte a ti mismo el rol de administrador")
+        usuario.rol = datos.rol
+    if datos.email is not None:
+        email = datos.email.strip().lower()
+        if not _CORREO.fullmatch(email):
+            raise HTTPException(status_code=400, detail="Ese correo no tiene un formato válido")
+        otro = db.query(models.PanelUser).filter(models.PanelUser.email == email,
+                                                 models.PanelUser.id != usuario.id).first()
+        if otro:
+            raise HTTPException(status_code=409, detail="Ya hay otra persona con ese correo")
+        usuario.email = email
+    if datos.nombre is not None:
+        usuario.nombre = datos.nombre.strip() or usuario.email.split("@")[0]
+    db.commit()
+    log.info("%s edita a %s: correo %s -> %s, rol %s -> %s", quien.email, antes[0],
+             antes[0], usuario.email, antes[1], usuario.rol)
+    return {"id": usuario.id, "email": usuario.email, "nombre": usuario.nombre,
+            "rol": usuario.rol, "activo": usuario.activo}
+
+
 # ---------------------------------------------------------------------------
 # Contraseñas
 #
@@ -262,15 +321,27 @@ def _pon_contrasena(usuario: models.PanelUser, nueva: str) -> None:
 
 
 @router.post("/api/panel/arranque/contrasena")
-def contrasena_de_arranque(datos: ArranqueContrasena, db: Session = Depends(get_db)):
+def contrasena_de_arranque(datos: ArranqueContrasena, request: Request,
+                           db: Session = Depends(get_db)):
     """
     La primera contraseña, cuando aún no ha entrado nadie.
 
     Solo sirve para cuentas que **ya están en la lista** (las que puso `PANEL_BOOTSTRAP`, o las
     que añadió un administrador). No da de alta a nadie: si esta ruta pudiera crear cuentas, la
     credencial de superadmin sería una puerta trasera al panel en vez de una llave de emergencia.
+
+    También la usa la ventana «¿Olvidaste tu contraseña?» de la pantalla de entrada, que la deja a
+    la vista: por eso cuenta los fallos y cierra tras `intentos.MAX_SUPERADMIN`.
     """
-    superadmin.verifica(datos.user, datos.password)
+    intentos.comprueba(request, "superadmin", intentos.MAX_SUPERADMIN)
+    try:
+        superadmin.verifica(datos.user, datos.password)
+    except HTTPException as e:
+        if e.status_code == 401:
+            intentos.fallo(request, "superadmin")
+            log.warning("credencial de superadmin incorrecta desde %s", intentos.direccion(request))
+        raise
+    intentos.acierto(request, "superadmin")
     usuario = _autorizado(db, datos.email)
     if not usuario:
         raise HTTPException(
@@ -333,7 +404,7 @@ _ENTRADA = """<!DOCTYPE html>
   .sep {{ display:flex; align-items:center; gap:12px; color:#8C8598; font-size:12px; margin:26px 0; }}
   .sep::before, .sep::after {{ content:""; flex:1; height:1px; background:#2E2838; }}
   label {{ display:block; font-size:12px; color:#A9A2B5; margin:0 0 4px; }}
-  input {{ width:100%; box-sizing:border-box; background:#1E1A26; border:1px solid #2E2838;
+  input {{ width:100%; box-sizing:border-box; background:#1E1A26; border:1px solid #6B6885;
           color:#EEEDF2; border-radius:8px; padding:11px 12px; font-size:14px; margin:0 0 14px; }}
   input:focus {{ outline:2px solid #B98FC7; outline-offset:1px; border-color:#B98FC7; }}
   button {{ width:100%; background:#85439A; color:#fff; border:0; border-radius:8px;
@@ -343,6 +414,23 @@ _ENTRADA = """<!DOCTYPE html>
   .aviso {{ margin:18px 0 0; padding:11px 13px; border-radius:8px; background:#3A1A22;
            border:1px solid #6B2B38; color:#F4C7CF; font-size:13px; }}
   .pie {{ margin-top:30px; font-size:12px; color:#8C8598; }}
+  .aviso.ok {{ background:#16271F; border-color:#2C5A43; color:#BFE8D2; }}
+  button.enlace {{ width:auto; background:none; padding:0; margin:14px 0 0; color:#C9A3D8;
+                   font-size:13px; font-weight:600; text-decoration:underline; text-underline-offset:3px; }}
+  button.enlace:hover {{ background:none; color:#EEEDF2; }}
+  button.secundario {{ background:#241F2E; }}
+  button.secundario:hover {{ background:#2E2838; }}
+  dialog {{ width:calc(100% - 32px); max-width:420px; box-sizing:border-box; background:#1A1622;
+           color:#EEEDF2; border:1px solid #2E2838; border-radius:12px; padding:24px; }}
+  dialog::backdrop {{ background:rgba(10,8,14,.78); }}
+  dialog h2 {{ font-size:19px; margin:0 0 8px; }}
+  dialog p {{ font-size:13px; color:#A9A2B5; margin:0 0 14px; }}
+  dialog b {{ color:#EEEDF2; }}
+  .emergencia {{ border-top:1px solid #2E2838; padding-top:16px; }}
+  .botones {{ display:flex; gap:8px; }}
+  .botones button {{ width:auto; white-space:nowrap; }}
+  .botones button[type=submit] {{ flex:1; }}
+  .botones button.secundario {{ padding:13px 18px; }}
 </style>
 </head><body><main class="caja">
   <div class="marca">Centauro ADS</div>
@@ -360,11 +448,38 @@ _ENTRADA = """<!DOCTYPE html>
   </form>
 
   <div class="aviso" id="aviso" role="alert" hidden></div>
+  <button type="button" class="enlace" id="abre-olvido">¿Olvidaste tu contraseña?</button>
   <p class="pie">Si no puedes entrar, pide que añadan tu correo a la lista del panel.</p>
+
+  <dialog id="olvido" aria-labelledby="t-olvido">
+    <h2 id="t-olvido">¿Olvidaste tu contraseña?</h2>
+    <p>Lo normal: pide a un <b>administrador</b> del panel que te ponga una nueva desde
+      <b>Equipo → Poner contraseña</b>. Esta herramienta no envía correos, así que no hay enlace de
+      recuperación por email.</p>
+    <form id="f-olvido" class="emergencia" autocomplete="off">
+      <p><b>Recuperación de emergencia.</b> Para el responsable del panel, cuando nadie puede
+        entrar. Pide la credencial de superadmin, que está en EasyPanel → Entorno.</p>
+      <label for="r-user">Usuario de superadmin</label>
+      <input id="r-user" type="text" required autocomplete="off" spellcheck="false">
+      <label for="r-pass">Contraseña de superadmin</label>
+      <input id="r-pass" type="password" required autocomplete="off">
+      <label for="r-email">Correo de la cuenta a recuperar</label>
+      <input id="r-email" type="email" required autocomplete="off">
+      <label for="r-nueva">Contraseña nueva (12 caracteres o más)</label>
+      <input id="r-nueva" type="password" minlength="12" required autocomplete="new-password">
+      <label for="r-otra">Repite la contraseña nueva</label>
+      <input id="r-otra" type="password" minlength="12" required autocomplete="new-password">
+      <div class="aviso" id="aviso-olvido" role="alert" hidden></div>
+      <div class="botones" style="margin-top:16px">
+        <button type="submit">Guardar contraseña</button>
+        <button type="button" class="secundario" id="cierra-olvido">Cerrar</button>
+      </div>
+    </form>
+  </dialog>
 </main>
 <script>
   var aviso = document.getElementById('aviso');
-  function falla(texto) {{ aviso.textContent = texto; aviso.hidden = false; }}
+  function falla(texto) {{ aviso.className = 'aviso'; aviso.textContent = texto; aviso.hidden = false; }}
   function entra(ruta, cuerpo) {{
     aviso.hidden = true;
     return fetch(ruta, {{ method: 'POST', headers: {{ 'Content-Type': 'application/json' }},
@@ -383,6 +498,44 @@ _ENTRADA = """<!DOCTYPE html>
   window.entrarConGoogle = function (respuesta) {{
     entra('/api/auth/google', {{ credential: respuesta.credential }});
   }};
+
+  // La ventana de recuperacion. Llama a la misma ruta que la recuperacion desde PowerShell; el
+  // servidor limita los fallos, asi que aqui solo se explica cada respuesta.
+  var ventana = document.getElementById('olvido');
+  var avisoO = document.getElementById('aviso-olvido');
+  function fallaO(texto) {{ avisoO.textContent = texto; avisoO.hidden = false; }}
+  document.getElementById('abre-olvido').addEventListener('click', function () {{
+    document.getElementById('r-email').value = document.getElementById('email').value;
+    avisoO.hidden = true;
+    if (ventana.showModal) ventana.showModal(); else ventana.setAttribute('open', '');
+    document.getElementById('r-user').focus();
+  }});
+  document.getElementById('cierra-olvido').addEventListener('click', function () {{
+    if (ventana.close) ventana.close(); else ventana.removeAttribute('open');
+  }});
+  document.getElementById('f-olvido').addEventListener('submit', function (ev) {{
+    ev.preventDefault();
+    var nueva = document.getElementById('r-nueva').value;
+    if (nueva !== document.getElementById('r-otra').value) {{ fallaO('Las dos contraseñas nuevas no coinciden.'); return; }}
+    avisoO.hidden = true;
+    fetch('/api/panel/arranque/contrasena', {{ method: 'POST', headers: {{ 'Content-Type': 'application/json' }},
+      body: JSON.stringify({{ user: document.getElementById('r-user').value,
+                              password: document.getElementById('r-pass').value,
+                              email: document.getElementById('r-email').value, nueva: nueva }}) }})
+      .then(function (r) {{ return r.json().catch(function () {{ return {{}}; }}).then(function (d) {{
+        if (r.status === 401) throw new Error('Usuario o contraseña de superadmin incorrectos.');
+        if (!r.ok) throw new Error(d.detail || 'No se pudo cambiar la contraseña.');
+        ev.target.reset();
+        if (ventana.close) ventana.close(); else ventana.removeAttribute('open');
+        document.getElementById('email').value = d.email;
+        document.getElementById('clave').value = '';
+        aviso.className = 'aviso ok';
+        aviso.textContent = 'Contraseña nueva puesta para ' + d.email + '. Escríbela arriba para entrar.';
+        aviso.hidden = false;
+        document.getElementById('clave').focus();
+      }}); }})
+      .catch(function (e) {{ fallaO(e.message); }});
+  }});
 </script>
 </body></html>"""
 
@@ -393,8 +546,19 @@ _BLOQUE_GOOGLE = """<div id="g_id_onload" data-client_id="{client_id}"
 <div class="sep">o con tu contraseña</div>"""
 
 
+@router.get("/panel")
+def a_la_entrada():
+    """
+    La direccion del panel (mails.centauroads.com lleva aqui). Lleva a la pantalla de entrada,
+    que es por donde se empieza. Antes daba 404 y el enlace que circulaba era el del compositor,
+    que abria la herramienta sin preguntar quien eras y solo lo pedia al pulsar algo.
+    """
+    return RedirectResponse(url="/panel/entrar", status_code=307)
+
+
 @router.get("/panel/entrar", response_class=HTMLResponse)
-def pantalla_de_entrada(request: Request, destino: str = COMPOSITOR):
+def pantalla_de_entrada(request: Request, destino: str = COMPOSITOR,
+                        usuario: Optional[models.PanelUser] = Depends(usuario_actual_opcional)):
     """
     La pantalla de entrada. Ofrece Google solo si está configurado: enseñar un botón que fallaría
     al pulsarlo es peor que no enseñarlo.
@@ -408,6 +572,10 @@ def pantalla_de_entrada(request: Request, destino: str = COMPOSITOR):
     # navegador convierte la barra invertida en barra: redireccion abierta desde el login.
     if not _RUTA_INTERNA.fullmatch(destino or ""):
         destino = COMPOSITOR
+
+    # Quien ya tiene la sesion abierta no tiene que volver a identificarse: pasa directo.
+    if usuario is not None:
+        return RedirectResponse(url=destino, status_code=303)
 
     if google.esta_configurado():
         cid = os.getenv("GOOGLE_CLIENT_ID", "").strip()
