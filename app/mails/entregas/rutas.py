@@ -91,6 +91,9 @@ class EntregaEntrada(BaseModel):
     def _con_esquema(cls, v: str) -> str:
         return valida_enlace(v)
     texto: str = ""
+    # Nulo = no se manda, y no se toca lo guardado: un compositor anterior no los borra. "" = vaciarlo.
+    rotulo: Optional[str] = Field(default=None, max_length=120)
+    texto_corto: Optional[str] = Field(default=None, max_length=2000)
     servicios: str = ""
     contact_id: Optional[int] = None
     contacto: Optional[ContactoRapido] = None
@@ -104,6 +107,8 @@ class EntregaSalida(BaseModel):
     titulo: str
     canva_url: str
     texto: str
+    rotulo: Optional[str] = None
+    texto_corto: Optional[str] = None
     servicios: str
     estado: str
     contact_id: int
@@ -211,6 +216,8 @@ def _a_salida(db: Session, entrega: models.Entrega) -> EntregaSalida:
         titulo=entrega.titulo,
         canva_url=entrega.canva_url,
         texto=entrega.texto,
+        rotulo=entrega.rotulo,
+        texto_corto=entrega.texto_corto,
         servicios=entrega.servicios,
         estado=entrega.estado,
         contact_id=entrega.contact_id,
@@ -323,6 +330,8 @@ def crear(datos: EntregaEntrada,
         titulo=datos.titulo.strip(),
         canva_url=datos.canva_url.strip(),
         texto=datos.texto or "",
+        rotulo=(datos.rotulo or "").strip() or None,
+        texto_corto=(datos.texto_corto or "").strip() or None,
         servicios=datos.servicios or "",
         sender_account_id=datos.sender_account_id,
         firma_cargo=datos.firma_cargo,
@@ -361,6 +370,10 @@ def actualizar(entrega_id: int, datos: EntregaEntrada,
 
     entrega.titulo = datos.titulo.strip()
     entrega.texto = datos.texto or ""
+    if datos.rotulo is not None:
+        entrega.rotulo = datos.rotulo.strip() or None
+    if datos.texto_corto is not None:
+        entrega.texto_corto = datos.texto_corto.strip() or None
     entrega.servicios = datos.servicios or ""
     entrega.firma_cargo = datos.firma_cargo
     if datos.canva_url and datos.canva_url != entrega.canva_url:

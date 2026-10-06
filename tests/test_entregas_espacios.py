@@ -447,3 +447,32 @@ def test_leer_la_entrega_trae_sus_espacios_con_el_carrusel_versionado(cliente, e
     assert leida["cobertura"] == "Cobertura (prueba US4)"
     assert "/espacios/%s/carrusel.gif?v=" % linea in leida["carrusel"]
     assert len(leida["paginas"]) == 2
+
+
+# --- El rotulo de la esquina y el texto corto de WhatsApp viajan con la entrega ------------------
+
+def test_el_rotulo_y_el_texto_corto_se_guardan_con_la_entrega(cliente, entrega):
+    ruta = "/api/entregas/%d" % entrega["id"]
+    base = {"titulo": entrega["titulo"], "canva_url": entrega["canva_url"]}
+    r = cliente.put(ruta, json=dict(base, rotulo="ROTULO DE PRUEBA", texto_corto="Corto de WhatsApp (prueba)"))
+    assert r.status_code == 200, r.text
+    leida = cliente.get(ruta).json()
+    assert leida["rotulo"] == "ROTULO DE PRUEBA" and leida["texto_corto"] == "Corto de WhatsApp (prueba)"
+
+
+def test_un_compositor_que_no_los_manda_no_los_borra(cliente, entrega):
+    ruta = "/api/entregas/%d" % entrega["id"]
+    base = {"titulo": entrega["titulo"], "canva_url": entrega["canva_url"]}
+    cliente.put(ruta, json=dict(base, rotulo="ROTULO", texto_corto="Corto"))
+    cliente.put(ruta, json=base)
+    leida = cliente.get(ruta).json()
+    assert leida["rotulo"] == "ROTULO" and leida["texto_corto"] == "Corto"
+    cliente.put(ruta, json=dict(base, rotulo="", texto_corto=""))
+    leida = cliente.get(ruta).json()
+    assert leida["rotulo"] is None and leida["texto_corto"] is None
+
+
+def test_el_rotulo_tiene_limite(cliente, entrega):
+    base = {"titulo": entrega["titulo"], "canva_url": entrega["canva_url"]}
+    r = cliente.put("/api/entregas/%d" % entrega["id"], json=dict(base, rotulo="x" * 121))
+    assert r.status_code == 422

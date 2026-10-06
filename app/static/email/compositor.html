@@ -1164,13 +1164,17 @@
     return g;
   }
 
-  // Carga lo que el servidor guarda de una entrega. Lo que no guarda -rotulo de la esquina, texto
-  // corto de WhatsApp, aspecto, efecto- se queda como estaba en este compositor.
+  // Carga lo que el servidor guarda de una entrega. Lo que no guarda -aspecto y efecto, que son
+  // gusto de quien redacta- se queda como estaba en este compositor.
   function abreEntrega(d) {
     const E = st.bloques.entrega;
+    const base = M.defaultState().bloques.entrega;
     const abs = u => u ? location.origin + u : '';
     E.url = d.canva_url; E.titulo = d.titulo;
-    if (d.texto) E.texto = d.texto;
+    // Lo que la entrega no trae vuelve al de por defecto, no se queda el de la entrega anterior.
+    E.texto = d.texto || base.texto;
+    E.meta = d.rotulo || base.meta;
+    E.corto = d.texto_corto || base.corto;
     E.empresa = d.contacto_empresa || '';
     E.enlace = abs(d.enlace);
     // Sin imagenes no hay imagen: dejar la de la entrega anterior enseñaria la propuesta de otro.
@@ -1214,6 +1218,8 @@
     }
     const cuerpo = {
       titulo: E.titulo, canva_url: E.url, texto: E.texto || '',
+      // El rotulo de la esquina y el texto corto de WhatsApp viajan con la entrega (004).
+      rotulo: E.meta || '', texto_corto: E.corto || '',
       // Los espacios de ESTA entrega (004), no el `on` de las plantillas A-G.
       servicios: (E.incluidos || []).join(','),
     };

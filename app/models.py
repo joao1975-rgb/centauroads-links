@@ -193,6 +193,10 @@ class Entrega(Base):
     # desde el panel del acortador, y la entrega debe conservar a qué presentación se refería.
     canva_url = Column(String(500), nullable=False)
     texto = Column(Text, nullable=False, default="")
+    # El rotulo de la esquina y el texto corto de WhatsApp (004): antes solo vivian en el navegador
+    # donde se armo la entrega, y al abrirla en otra sesion no estaban. Nulo = el de por defecto.
+    rotulo = Column(String(120), nullable=True)
+    texto_corto = Column(Text, nullable=True)
     # Identificadores del catálogo separados por comas ("led,mercedes"). Vacío es legítimo:
     # una entrega puede no llevar ningún servicio acompañante.
     servicios = Column(Text, nullable=False, default="")

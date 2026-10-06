@@ -212,3 +212,26 @@ def test_el_codigo_anterior_seguiria_funcionando(bd_anterior):
             text("SELECT contact_token FROM clicks ORDER BY id DESC LIMIT 1")
         ).scalar_one()
         assert token is None, "Un clic del código anterior debe quedar como apertura anónima"
+
+
+def test_las_entregas_de_produccion_reciben_rotulo_y_texto_corto(tmp_path):
+    """
+    La tabla `entregas` ya existe en produccion con entregas dentro: `create_all` no le anade
+    columnas. Las dos nuevas (004) llegan por ALTER, opcionales, y lo guardado sobrevive.
+    """
+    ruta = tmp_path / "con_entregas.db"
+    con = sqlite3.connect(ruta)
+    con.executescript(ESQUEMA_ANTERIOR + """
+    CREATE TABLE entregas (id INTEGER PRIMARY KEY, link_id INTEGER NOT NULL, contact_id INTEGER NOT NULL,
+      titulo VARCHAR(200) NOT NULL, canva_url VARCHAR(500) NOT NULL, texto TEXT NOT NULL, servicios TEXT NOT NULL,
+      panel_user_id INTEGER NOT NULL, estado VARCHAR(20) NOT NULL);
+    INSERT INTO entregas VALUES (1, 1, 1, 'Propuesta guardada', 'https://canva.link/x', 'Texto', 'led', 1, 'borrador');
+    """)
+    con.commit()
+    con.close()
+    motor = _migrar(ruta)
+    columnas = {c["name"]: c for c in inspect(motor).get_columns("entregas")}
+    for nueva in ("rotulo", "texto_corto"):
+        assert nueva in columnas and columnas[nueva]["nullable"], nueva
+    with motor.connect() as c:
+        assert c.execute(text("SELECT titulo, rotulo FROM entregas WHERE id = 1")).fetchone() == ("Propuesta guardada", None)

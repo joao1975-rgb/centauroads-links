@@ -81,3 +81,10 @@ def test_empezar_una_nueva_no_escribe_encima_de_la_anterior(html):
     nueva = _funcion(html, "nuevaEntrega")
     assert "delete st.entregaId" in nueva and "delete st.contactId" in nueva
     assert "st.bloques.entrega = base.bloques.entrega" in nueva
+
+
+def test_el_rotulo_y_el_texto_corto_se_guardan_y_se_abren(html):
+    guarda = _funcion(html, "guardaEntrega")
+    assert "rotulo: E.meta || ''" in guarda and "texto_corto: E.corto || ''" in guarda
+    abre = _funcion(html, "abreEntrega")
+    assert "E.meta = d.rotulo || base.meta" in abre and "E.corto = d.texto_corto || base.corto" in abre

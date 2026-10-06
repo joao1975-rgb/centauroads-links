@@ -41,6 +41,11 @@ COLUMNAS_NUEVAS = {
         ("sender_account_id", "INTEGER"),
         ("panel_user_id", "INTEGER"),
     ],
+    # La tabla ya existe en produccion con entregas dentro: create_all no le anade columnas (004).
+    "entregas": [
+        ("rotulo", "VARCHAR(120)"),
+        ("texto_corto", "TEXT"),
+    ],
 }
 
 # Índices que conviene tener, creados aparte porque ALTER TABLE ADD COLUMN no los admite.
