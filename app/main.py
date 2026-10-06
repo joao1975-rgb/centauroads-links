@@ -141,6 +141,22 @@ async def entrar_antes_del_compositor(request: Request, call_next):
     respuesta.headers["Cache-Control"] = "no-store"
     return respuesta
 
+
+# Definido el ultimo para quedar por fuera de todos: tambien cubre las redirecciones y los 403.
+@app.middleware("http")
+async def cabeceras_de_seguridad(request: Request, call_next):
+    """
+    Que ningun otro sitio meta estas paginas en un marco (clickjacking): un sitio ajeno podia cargar
+    el panel invisible encima del suyo y hacer que alguien con sesion pulsara donde no queria. El
+    propio sitio si puede (SAMEORIGIN): la vista previa del compositor es un marco suyo.
+    """
+    respuesta = await call_next(request)
+    respuesta.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+    respuesta.headers.setdefault("Content-Security-Policy", "frame-ancestors 'self'")
+    respuesta.headers.setdefault("X-Content-Type-Options", "nosniff")
+    respuesta.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    return respuesta
+
 # Con la lista de autorizados vacia no entra nadie, ni siquiera para anadir al primero.
 # PANEL_BOOTSTRAP asegura esos correos como administradores. Es configuracion, no un secreto.
 # `asegura_bootstrap` ya registra por su cuenta a quien da de alta. Aqui no se vuelve a
