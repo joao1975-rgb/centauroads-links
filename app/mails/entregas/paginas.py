@@ -180,7 +180,12 @@ def pagina_de_imagen(datos: bytes, ancho: int = ANCHO_PAGINA, origen: str = "ima
     """
     from PIL import Image
 
-    imagen = Image.open(io.BytesIO(datos)).convert("RGB")
+    # La cabecera dice imagen, pero el contenido puede no serlo (o estar danado): un 400 que se
+    # entiende, no un 500.
+    try:
+        imagen = Image.open(io.BytesIO(datos)).convert("RGB")
+    except Exception:
+        raise FicheroNoValido("La imagen no se puede leer: puede estar dañada. Prueba a exportarla de nuevo.")
     if imagen.width > ancho:
         alto = max(1, round(imagen.height * ancho / imagen.width))
         imagen = imagen.resize((ancho, alto), Image.LANCZOS)

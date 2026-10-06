@@ -54,7 +54,7 @@ def raiz() -> str:
 
 
 def linea_valida(linea: str) -> bool:
-    return bool(_LINEA.match(linea or ""))
+    return bool(_LINEA.fullmatch(linea or ""))  # fullmatch: «$» admite un salto de linea final
 
 
 def _partes(entrega_id: int, linea: Optional[str]) -> list:
@@ -86,7 +86,7 @@ def ruta_absoluta(relativa: str) -> str:
 
 
 def nombre_valido(nombre: str) -> bool:
-    return bool(_NOMBRE.match(nombre or ""))
+    return bool(_NOMBRE.fullmatch(nombre or ""))
 
 
 def resuelve(entrega_id: int, nombre: str, linea: Optional[str] = None) -> Optional[str]:

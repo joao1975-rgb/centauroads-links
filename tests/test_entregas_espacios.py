@@ -390,3 +390,49 @@ def test_media_del_espacio_sirve_una_pagina_de_verdad(cliente, entrega, linea):
     assert r.status_code == 200
     assert r.headers["content-type"].startswith("image/")
     assert "immutable" in r.headers["cache-control"]
+
+
+# --- Revision de seguridad (2026-10-06) ----------------------------------------------------------
+
+def test_dos_guardados_a_la_vez_del_mismo_espacio_no_dan_500(cliente, entrega, linea, monkeypatch):
+    """
+    El compositor guarda cada campo por su lado: el nombre y la cobertura de un espacio nuevo
+    pueden llegar a la vez, los dos ven que no hay fila y los dos la crean. El segundo chocaba con
+    UNIQUE(entrega_id, linea_id) -un 500- y su valor se perdia. Se simula haciendo que la primera
+    busqueda de la fila no vea la que ya creo el otro guardado.
+    """
+    from app.mails.entregas import espacios
+    ruta = "/api/entregas/%d/espacios/%s" % (entrega["id"], linea)
+    assert cliente.put(ruta, json={"nombre": "Nombre propio (prueba)"}).status_code == 200
+    real, vistas = espacios._fila, []
+
+    def _fila_sin_ver_la_primera_vez(db, entrega_id, linea_id):
+        vistas.append(1)
+        return None if len(vistas) == 1 else real(db, entrega_id, linea_id)
+
+    monkeypatch.setattr(espacios, "_fila", _fila_sin_ver_la_primera_vez)
+    r = cliente.put(ruta, json={"cobertura": "Cobertura propia (prueba)"})
+    assert r.status_code == 200, r.text
+    propio = _espacio(r.json(), linea)
+    assert propio["nombre"] == "Nombre propio (prueba)"
+    assert propio["cobertura"] == "Cobertura propia (prueba)"
+
+
+def test_una_imagen_ilegible_es_un_400_y_no_un_500(cliente, entrega, linea):
+    # Cabecera de PNG (pasa el filtro de tipo) y basura detras: Pillow no la puede abrir.
+    rota = bytes([0x89]) + b"PNG" + bytes([13, 10, 26, 10]) + b"esto no es una imagen" * 20
+    r = cliente.post("/api/entregas/%d/espacios/%s/paginas" % (entrega["id"], linea),
+                     files={"fichero": ("rota.png", io.BytesIO(rota), "image/png")})
+    assert r.status_code == 400
+    r = cliente.post("/api/entregas/%d/paginas" % entrega["id"],
+                     files={"fichero": ("rota.png", io.BytesIO(rota), "image/png")})
+    assert r.status_code == 400, "la principal usa la misma lectura"
+
+
+@pytest.mark.parametrize("nombre", ["p0.jpg" + chr(10), "carrusel.gif" + chr(10)])
+def test_un_salto_de_linea_al_final_no_es_un_nombre_valido(nombre):
+    assert not almacen.nombre_valido(nombre)
+
+
+def test_un_salto_de_linea_al_final_no_es_una_linea_valida():
+    assert not almacen.linea_valida("mercedes" + chr(10))
