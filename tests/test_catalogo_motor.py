@@ -298,7 +298,7 @@ def test_sin_ficha_no_entra_en_ninguna_tabla(ficha):
 def test_el_precio_desde_solo_sale_con_el_modo_de_precios(ficha):
     assert "987" not in ficha["e"] and "987" not in ficha["agencias"]
     assert "987 $/mes" in ficha["ePrecio"]
-    assert "987 $/mes" in ficha["agenciasPrecio"]
+    assert "987&nbsp;$/mes" in ficha["agenciasPrecio"]
 
 
 # --- Familias de la plantilla D (US5, T331) ------------------------------------------------------

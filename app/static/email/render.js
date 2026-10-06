@@ -763,8 +763,10 @@
     const linea = dark ? C.line : C.rule, zebra = dark ? C.ink2 : C.sand;
     const acento = dark ? C.orange : C.orangeInk;
     const cab = 'font-family:' + FH + ';font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:' + m + ';padding:12px 10px 8px 0;';
-    // La columna de precio solo existe cuando el usuario enciende el modo "desde": sin ella la tabla
-    // no insinua tarifas, y con ella el importe tiene cabecera propia en vez de colarse bajo "Trafico".
+    // El precio solo sale con el modo "desde" encendido: sin el, la tabla no insinua tarifas. Va debajo
+    // de la ubicacion de cada espacio, no en una cuarta columna: cuatro columnas no caben en un telefono
+    // de 375 px sin media queries, y el correo no las tiene (medido el 2026-10-06: 104 px fuera). Por lo
+    // mismo ninguna celda lleva nowrap: «1024 × 2048 px» partido en dos lineas cabe; entero, no.
     const conPrecio = st.precios === 'desde';
     let filas = '';
     activos(st).forEach(function (s, i) {
@@ -776,20 +778,19 @@
         '<td style="' + bg + 'padding:11px 10px 11px 12px;border-top:1px solid ' + linea + ';">' +
           '<div style="font-family:' + FH + ';font-size:14px;font-weight:800;color:' + t + ';line-height:18px;">' + esc(s.nombre) + '</div>' +
           '<div style="font-family:' + FB + ';font-size:12px;color:' + m + ';line-height:17px;">' + esc(f.ubic) + '</div>' +
+          (conPrecio
+            ? '<div style="font-family:' + FB + ';font-size:12px;line-height:17px;padding:3px 0 0 0;' + (f.desde ? 'color:' + acento + ';font-weight:700;' : 'color:' + m + ';') + '">' +
+                (f.desde ? 'desde ' + esc(f.desde) + '&nbsp;$/mes' : 'a cotizar') + '</div>'
+            : '') +
         '</td>' +
-        '<td align="right" style="' + celda + 'white-space:nowrap;">' + esc(f.medida) + '</td>' +
-        '<td align="right" style="' + celda + (conPrecio ? '' : 'padding-right:12px;') + '">' + esc(f.trafico) + '</td>' +
-        (conPrecio
-          ? '<td align="right" style="' + celda + 'padding-right:12px;white-space:nowrap;' + (f.desde ? 'color:' + acento + ';font-weight:700;' : 'color:' + m + ';') + '">' +
-              (f.desde ? esc(f.desde) + ' $/mes' : 'a cotizar') + '</td>'
-          : '') +
+        '<td align="right" style="' + celda + '">' + esc(f.medida) + '</td>' +
+        '<td align="right" style="' + celda + 'padding-right:12px;">' + esc(f.trafico) + '</td>' +
         '</tr>';
     });
     return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid ' + linea + ';border-radius:8px;">' +
       '<tr><td style="' + cab + 'padding-left:12px;">Espacio</td>' +
       '<td align="right" style="' + cab + '">Medidas</td>' +
-      '<td align="right" style="' + cab + (conPrecio ? '' : 'padding-right:12px;') + '">Tr\u00e1fico</td>' +
-      (conPrecio ? '<td align="right" style="' + cab + 'padding-right:12px;">Desde</td>' : '') +
+      '<td align="right" style="' + cab + 'padding-right:12px;">Tr\u00e1fico</td>' +
       '</tr>' +
       filas + '</table>';
   }
