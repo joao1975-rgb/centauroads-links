@@ -436,3 +436,14 @@ def test_un_salto_de_linea_al_final_no_es_un_nombre_valido(nombre):
 
 def test_un_salto_de_linea_al_final_no_es_una_linea_valida():
     assert not almacen.linea_valida("mercedes" + chr(10))
+
+
+def test_leer_la_entrega_trae_sus_espacios_con_el_carrusel_versionado(cliente, entrega, linea):
+    """Lo que necesita el compositor para reabrir una entrega en otra sesion (US4)."""
+    _sube(cliente, entrega["id"], linea)
+    _elige(cliente, entrega["id"], linea)
+    cliente.put("/api/entregas/%d/espacios/%s" % (entrega["id"], linea), json={"cobertura": "Cobertura (prueba US4)"})
+    leida = _espacio(cliente.get("/api/entregas/%d" % entrega["id"]).json(), linea)
+    assert leida["cobertura"] == "Cobertura (prueba US4)"
+    assert "/espacios/%s/carrusel.gif?v=" % linea in leida["carrusel"]
+    assert len(leida["paginas"]) == 2

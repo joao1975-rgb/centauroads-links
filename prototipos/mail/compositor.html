@@ -897,6 +897,9 @@
     // El aspecto, arriba del todo: es lo primero que se decide y lo que cambia el correo entero.
     // El interruptor de A-G no vale aqui —vive en un panel que este modo no pinta, y ademas tiene
     // dos posiciones para tres temas.
+    // Que entrega se esta editando, abrir otra guardada o empezar una nueva (004, US4).
+    if (HAY_SERVIDOR) frag.appendChild(grupoEntrega());
+
     const asp = el('div', 'grp');
     asp.appendChild(el('h2', null, 'Aspecto del correo'));
     const ASPECTOS = [
@@ -1112,6 +1115,95 @@
     frag.appendChild(p5);
 
     return frag;
+  }
+
+  // ── La entrega que se esta armando (004, US4) ──
+  // El servidor guarda cada entrega, pero el compositor no sabia volver a una: todo vivia en el
+  // navegador donde se armo. Y sin «Empezar una nueva», guardar la entrega del siguiente cliente
+  // la escribia ENCIMA de la anterior (PUT sobre el mismo id).
+  function grupoEntrega() {
+    const E = st.bloques.entrega;
+    const g = el('div', 'grp');
+    g.appendChild(el('h2', null, 'La entrega'));
+    g.appendChild(el('p', 'hint', st.entregaId
+      ? 'Estás editando la entrega #' + st.entregaId + (E.titulo ? ' · ' + E.titulo : '') +
+        (st.contactId && st.destinatario ? ' — ' + st.destinatario : '') + '. Lo que guardes va sobre ella.'
+      : 'Entrega nueva: se crea al guardarla en el paso 2.'));
+    const est = estadoEl('');
+    const lab = el('label', 'fld');
+    lab.appendChild(el('span', 'fld-l', 'Abrir una entrega guardada'));
+    const sel = el('select');
+    sel.appendChild(el('option', null, 'Cargando las entregas guardadas…')).value = '';
+    lab.appendChild(sel); g.appendChild(lab);
+    const aviso = () => 'Se deja de editar la entrega #' + st.entregaId +
+      '. Queda guardada y la puedes volver a abrir. ¿Seguir?';
+    const fila = el('div', 'fila-bt');
+    fila.appendChild(botonEl('Abrir', 'primary', () => {
+      if (!sel.value) { est.className = 'estado mal'; est.textContent = 'Elige una entrega de la lista.'; return; }
+      if (st.entregaId && String(st.entregaId) !== sel.value && !confirm(aviso())) return;
+      est.className = 'estado'; est.textContent = 'Abriendo…';
+      api('/api/entregas/' + encodeURIComponent(sel.value)).then(abreEntrega).catch(e => falla(est, e));
+    }));
+    fila.appendChild(botonEl('Empezar una nueva', null, () => {
+      if (st.entregaId && !confirm(aviso())) return;
+      nuevaEntrega();
+    }));
+    g.appendChild(fila); g.appendChild(est);
+    api('/api/entregas').then(lista => {
+      sel.textContent = '';
+      sel.appendChild(el('option', null, lista.length ? 'Elige una…' : 'Aún no hay entregas guardadas')).value = '';
+      lista.forEach(d => {
+        const o = el('option', null, '#' + d.id + ' · ' + d.titulo + ' — ' + d.contacto_nombre +
+          (d.contacto_empresa ? ' (' + d.contacto_empresa + ')' : '') + (d.estado === 'entregada' ? ' · entregada' : ''));
+        o.value = String(d.id);
+        if (d.id === st.entregaId) o.selected = true;
+        sel.appendChild(o);
+      });
+    }).catch(e => falla(est, e));
+    return g;
+  }
+
+  // Carga lo que el servidor guarda de una entrega. Lo que no guarda -rotulo de la esquina, texto
+  // corto de WhatsApp, aspecto, efecto- se queda como estaba en este compositor.
+  function abreEntrega(d) {
+    const E = st.bloques.entrega;
+    const abs = u => u ? location.origin + u : '';
+    E.url = d.canva_url; E.titulo = d.titulo;
+    if (d.texto) E.texto = d.texto;
+    E.empresa = d.contacto_empresa || '';
+    E.enlace = abs(d.enlace);
+    // Sin imagenes no hay imagen: dejar la de la entrega anterior enseñaria la propuesta de otro.
+    E.img = abs(d.carrusel || d.portada || (d.paginas && d.paginas[0] ? d.paginas[0].url : ''));
+    E.incluidos = d.servicios ? d.servicios.split(',').filter(Boolean) : [];
+    E.espacios = {};
+    (d.espacios || []).forEach(x => {
+      const pr = {};
+      if (x.canva_url) pr.canva = x.canva_url;
+      if (x.nombre) pr.nombre = x.nombre;
+      if (x.cobertura) pr.cobertura = x.cobertura;
+      if (x.carrusel) pr.carrusel = abs(x.carrusel);
+      if (Object.keys(pr).length) E.espacios[x.linea] = pr;
+    });
+    st.entregaId = d.id; st.contactId = d.contact_id;
+    if (d.contacto_nombre) st.destinatario = d.contacto_nombre;
+    st.plantilla = 'H';
+    // Las miniaturas eran de otra entrega: se vuelven a subir si hace falta; el carrusel ya armado sigue.
+    Object.keys(galerias).forEach(k => delete galerias[k]);
+    save(); buildSeg(); buildPanel(); renderPreview();
+    toast('Entrega #' + d.id + ' abierta');
+  }
+
+  // La entrega vuelve al principio. El aspecto y el efecto, que son gusto de quien redacta, se quedan.
+  function nuevaEntrega() {
+    const base = M.defaultState();
+    st.bloques.entrega = base.bloques.entrega;
+    delete st.entregaId; delete st.contactId;
+    st.destinatario = base.destinatario;
+    contactoNuevo = false;
+    nuevoDatos.nombre = nuevoDatos.empresa = nuevoDatos.email = '';
+    Object.keys(galerias).forEach(k => delete galerias[k]);
+    save(); buildPanel(); renderPreview();
+    toast('Entrega nueva: guárdala en el paso 2 para crearla.');
   }
 
   function guardaEntrega(campos, sel, est) {

@@ -79,23 +79,23 @@ empieza por sus pruebas, que deben fallar antes de implementar.
 
 ## Phase 5: User Story 3 - Se ve qué está personalizado y se puede volver al estándar (P2)
 
-- [ ] T419 [P] [US3] Prueba del compositor (estática + demo): cada espacio dice «Estándar» o «Personalizado para esta entrega» y qué tiene propio
-- [ ] T420 [US3] Compositor: la marca, la lista de lo propio y «Volver al estándar» (`DELETE` + limpiar `espacios[id]`)
+- [x] T419 [P] [US3] Prueba del compositor (estática + demo): cada espacio dice «Estándar» o «Personalizado para esta entrega» y qué tiene propio
+- [x] T420 [US3] Compositor: la marca, la lista de lo propio y «Volver al estándar» (`DELETE` + limpiar `espacios[id]`)
 
 ---
 
 ## Phase 6: User Story 4 - Al reabrir la entrega, todo sigue ahí (P2)
 
-- [ ] T421 [P] [US4] API: `GET /api/entregas/{id}` devuelve los espacios con su carrusel versionado (`?v=`) y sus páginas
-- [ ] T422 [US4] Compositor: «Abrir una entrega guardada» en el paso 01 (lista de `GET /api/entregas`); carga enlace, título, texto, contacto, `incluidos`, carrusel principal y espacios
-- [ ] T423 [US4] Demo: abrir en otra sesión una entrega con espacios personalizados → panel y correo iguales
+- [x] T421 [P] [US4] API: `GET /api/entregas/{id}` devuelve los espacios con su carrusel versionado (`?v=`) y sus páginas
+- [x] T422 [US4] Compositor: «Abrir una entrega guardada» en el paso 01 (lista de `GET /api/entregas`); carga enlace, título, texto, contacto, `incluidos`, carrusel principal y espacios
+- [x] T423 [US4] Demo: abrir en otra sesión una entrega con espacios personalizados → panel y correo iguales
 
 ---
 
 ## Phase 7: Polish & Cross-Cutting
 
-- [ ] T424 `node prototipos/mail/build.js`: guardia byte a byte (16 correos idénticos) y guardia de contenido; suite completa en verde
-- [ ] T425 Verificación visual con Playwright de la H con dos espacios personalizados a 600 y 375 px, sin desborde y con cero errores de página (principio III)
+- [x] T424 `node prototipos/mail/build.js`: guardia byte a byte (16 correos idénticos) y guardia de contenido; suite completa en verde
+- [x] T425 Verificación visual con Playwright de la H con dos espacios personalizados a 600 y 375 px, sin desborde y con cero errores de página (principio III)
 - [x] T426 [P] Revisión de seguridad (agente `security-reviewer`): subidas por espacio, ruta pública con `linea`, permisos
 - [ ] T427 Recorrido de `quickstart.md` en local con datos de prueba; `/health` y `/p/{slug}` intactos
 - [ ] T428 [P] Nota de Obsidian `Centauro-Mails-Servicios.md` y memoria del proyecto

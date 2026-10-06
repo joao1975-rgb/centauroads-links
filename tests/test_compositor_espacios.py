@@ -56,3 +56,28 @@ def test_la_entrega_se_guarda_con_sus_espacios(html):
     guarda = _funcion(html, "guardaEntrega")
     assert "servicios: (E.incluidos || []).join(',')" in guarda
     assert "x.on" not in guarda
+
+
+# --- Abrir una entrega guardada y empezar una nueva (US4) ----------------------------------------
+
+def test_la_personalizada_dice_que_entrega_se_edita_y_deja_abrir_otra(html):
+    entrega = _funcion(html, "buildEntrega")
+    assert "if (HAY_SERVIDOR) frag.appendChild(grupoEntrega());" in entrega
+    grupo = _funcion(html, "grupoEntrega")
+    assert "api('/api/entregas')" in grupo and "'/api/entregas/' + encodeURIComponent(sel.value)" in grupo
+    assert "Empezar una nueva" in grupo and "confirm(aviso())" in grupo
+
+
+def test_abrir_carga_lo_que_guarda_el_servidor(html):
+    abre = _funcion(html, "abreEntrega")
+    for pieza in ("st.entregaId = d.id", "st.contactId = d.contact_id", "E.url = d.canva_url",
+                  "E.incluidos = d.servicios", "E.espacios[x.linea] = pr", "pr.carrusel = abs(x.carrusel)",
+                  "E.img = abs(d.carrusel"):
+        assert pieza in abre, pieza
+
+
+def test_empezar_una_nueva_no_escribe_encima_de_la_anterior(html):
+    """Sin esto, guardar la entrega del siguiente cliente hacia PUT sobre la anterior."""
+    nueva = _funcion(html, "nuevaEntrega")
+    assert "delete st.entregaId" in nueva and "delete st.contactId" in nueva
+    assert "st.bloques.entrega = base.bloques.entrega" in nueva
