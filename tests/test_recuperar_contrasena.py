@@ -54,12 +54,29 @@ def _cuenta(db, email, clave=None):
 
 # --- La ventana en la pantalla de entrada -------------------------------------------------------
 
-def test_la_entrada_ofrece_recuperar_la_contrasena(cliente):
+def _ventana(html, ident):
+    i = html.index('<dialog id="%s"' % ident)
+    return html[i:html.index("</dialog>", i)]
+
+
+def test_quien_olvida_su_contrasena_solo_ve_que_la_pida_a_un_administrador(cliente):
+    """
+    2026-10-07, petición de la propietaria: una persona del equipo que olvidó su contraseña no debe
+    encontrarse un formulario de superadmin. «¿Olvidaste tu contraseña?» solo explica a quién pedirla.
+    """
     html = cliente.get("/panel/entrar").text
     assert "¿Olvidaste tu contraseña?" in html
-    assert '<dialog id="olvido"' in html
+    olvido = _ventana(html, "olvido")
+    assert "administrador" in olvido and "Equipo" in olvido
+    assert "superadmin" not in olvido.lower() and "<input" not in olvido
+
+
+def test_la_recuperacion_de_emergencia_va_aparte_y_para_el_responsable(cliente):
+    html = cliente.get("/panel/entrar").text
+    emergencia = _ventana(html, "emergencia")
+    assert "superadmin" in emergencia.lower()
+    assert 'id="abre-emergencia"' in html and "responsable del panel" in html
     assert ARRANQUE in html
-    assert "administrador" in html
 
 
 def test_la_ventana_pide_lo_que_pide_la_ruta(cliente):

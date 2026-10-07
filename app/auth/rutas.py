@@ -418,6 +418,7 @@ _ENTRADA = """<!DOCTYPE html>
   button.enlace {{ width:auto; background:none; padding:0; margin:14px 0 0; color:#C9A3D8;
                    font-size:13px; font-weight:600; text-decoration:underline; text-underline-offset:3px; }}
   button.enlace:hover {{ background:none; color:#EEEDF2; }}
+  button.enlace.discreto {{ margin:6px 0 0; font-size:12px; font-weight:400; color:#8C8598; }}
   button.secundario {{ background:#241F2E; }}
   button.secundario:hover {{ background:#2E2838; }}
   dialog {{ width:calc(100% - 32px); max-width:420px; box-sizing:border-box; background:#1A1622;
@@ -450,16 +451,26 @@ _ENTRADA = """<!DOCTYPE html>
   <div class="aviso" id="aviso" role="alert" hidden></div>
   <button type="button" class="enlace" id="abre-olvido">¿Olvidaste tu contraseña?</button>
   <p class="pie">Si no puedes entrar, pide que añadan tu correo a la lista del panel.</p>
+  <button type="button" class="enlace discreto" id="abre-emergencia">Soy el responsable del panel y nadie puede entrar</button>
 
+  <!-- Lo que ve cualquiera que olvidó su contraseña: a quién pedirla, sin formularios. La
+       recuperación con la credencial de superadmin es otra cosa y va en su propia ventana. -->
   <dialog id="olvido" aria-labelledby="t-olvido">
     <h2 id="t-olvido">¿Olvidaste tu contraseña?</h2>
-    <p>Lo normal: pide a un <b>administrador</b> del panel que te ponga una nueva desde
-      <b>Equipo → Poner contraseña</b>. Esta herramienta no envía correos, así que no hay enlace de
-      recuperación por email.</p>
+    <p>Pídele a un <b>administrador</b> del panel que te ponga una nueva desde
+      <b>Equipo → Poner contraseña</b>. Después podrás cambiarla tú en <b>Equipo → Tu contraseña</b>.</p>
+    <p>Esta herramienta no envía correos, así que no hay enlace de recuperación por email.</p>
+    <div class="botones"><button type="button" class="secundario" id="cierra-olvido">Entendido</button></div>
+  </dialog>
+
+  <dialog id="emergencia" aria-labelledby="t-emergencia">
+    <h2 id="t-emergencia">Acceso de emergencia</h2>
     <form id="f-olvido" class="emergencia" autocomplete="off">
-      <p><b>Recuperación de emergencia.</b> Para el responsable del panel, cuando nadie puede
-        entrar. Pide la credencial de superadmin, que está en EasyPanel → Entorno.</p>
-      <label for="r-user">Usuario de superadmin</label>
+      <p>Solo para el responsable del panel, cuando <b>ningún administrador</b> puede entrar. Pone
+        una contraseña nueva a cualquier cuenta de la lista. Necesita la credencial de superadmin,
+        que está en EasyPanel → servicio <b>centauro-links</b> → Entorno
+        (<b>SUPERADMIN_USER</b> y <b>SUPERADMIN_PASS</b>): no es tu correo ni tu contraseña.</p>
+      <label for="r-user">Usuario de superadmin (el de EasyPanel)</label>
       <input id="r-user" type="text" required autocomplete="off" spellcheck="false">
       <label for="r-pass">Contraseña de superadmin</label>
       <input id="r-pass" type="password" required autocomplete="off">
@@ -472,7 +483,7 @@ _ENTRADA = """<!DOCTYPE html>
       <div class="aviso" id="aviso-olvido" role="alert" hidden></div>
       <div class="botones" style="margin-top:16px">
         <button type="submit">Guardar contraseña</button>
-        <button type="button" class="secundario" id="cierra-olvido">Cerrar</button>
+        <button type="button" class="secundario" id="cierra-emergencia">Cerrar</button>
       </div>
     </form>
   </dialog>
@@ -499,20 +510,26 @@ _ENTRADA = """<!DOCTYPE html>
     entra('/api/auth/google', {{ credential: respuesta.credential }});
   }};
 
-  // La ventana de recuperacion. Llama a la misma ruta que la recuperacion desde PowerShell; el
-  // servidor limita los fallos, asi que aqui solo se explica cada respuesta.
-  var ventana = document.getElementById('olvido');
+  function abre(v) {{ if (v.showModal) v.showModal(); else v.setAttribute('open', ''); }}
+  function cierra(v) {{ if (v.close) v.close(); else v.removeAttribute('open'); }}
+
+  // «¿Olvidaste tu contraseña?»: solo explica a quien pedirla.
+  var olvido = document.getElementById('olvido');
+  document.getElementById('abre-olvido').addEventListener('click', function () {{ abre(olvido); }});
+  document.getElementById('cierra-olvido').addEventListener('click', function () {{ cierra(olvido); }});
+
+  // El acceso de emergencia del responsable. Llama a la misma ruta que la recuperacion desde
+  // PowerShell; el servidor limita los fallos, asi que aqui solo se explica cada respuesta.
+  var ventana = document.getElementById('emergencia');
   var avisoO = document.getElementById('aviso-olvido');
   function fallaO(texto) {{ avisoO.textContent = texto; avisoO.hidden = false; }}
-  document.getElementById('abre-olvido').addEventListener('click', function () {{
+  document.getElementById('abre-emergencia').addEventListener('click', function () {{
     document.getElementById('r-email').value = document.getElementById('email').value;
     avisoO.hidden = true;
-    if (ventana.showModal) ventana.showModal(); else ventana.setAttribute('open', '');
+    abre(ventana);
     document.getElementById('r-user').focus();
   }});
-  document.getElementById('cierra-olvido').addEventListener('click', function () {{
-    if (ventana.close) ventana.close(); else ventana.removeAttribute('open');
-  }});
+  document.getElementById('cierra-emergencia').addEventListener('click', function () {{ cierra(ventana); }});
   document.getElementById('f-olvido').addEventListener('submit', function (ev) {{
     ev.preventDefault();
     var nueva = document.getElementById('r-nueva').value;
