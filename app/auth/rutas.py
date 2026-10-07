@@ -42,7 +42,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from .. import models
 from . import google, intentos, local, sesion, superadmin
-from .dependencias import usuario_actual, usuario_actual_opcional, solo_admin
+from .dependencias import usuario_actual, solo_admin
 
 log = logging.getLogger("centaurads.auth")
 router = APIRouter()
@@ -557,11 +557,14 @@ def a_la_entrada():
 
 
 @router.get("/panel/entrar", response_class=HTMLResponse)
-def pantalla_de_entrada(request: Request, destino: str = COMPOSITOR,
-                        usuario: Optional[models.PanelUser] = Depends(usuario_actual_opcional)):
+def pantalla_de_entrada(request: Request, destino: str = COMPOSITOR):
     """
     La pantalla de entrada. Ofrece Google solo si está configurado: enseñar un botón que fallaría
     al pulsarlo es peor que no enseñarlo.
+
+    Se muestra SIEMPRE, aunque quede una sesión abierta de antes, y esa sesión se cierra aquí: al
+    abrir la app hay que escribir correo y contraseña (decisión de la propietaria, 2026-10-07).
+    Antes, quien había entrado en las últimas 8 horas pasaba directo al compositor.
 
     `destino` se limita a rutas internas. Sin esa comprobación, un enlace preparado podría llevar
     a alguien a entrar y acabar en otro sitio.
@@ -573,10 +576,6 @@ def pantalla_de_entrada(request: Request, destino: str = COMPOSITOR,
     if not _RUTA_INTERNA.fullmatch(destino or ""):
         destino = COMPOSITOR
 
-    # Quien ya tiene la sesion abierta no tiene que volver a identificarse: pasa directo.
-    if usuario is not None:
-        return RedirectResponse(url=destino, status_code=303)
-
     if google.esta_configurado():
         cid = os.getenv("GOOGLE_CLIENT_ID", "").strip()
         bloque = _BLOQUE_GOOGLE.format(client_id=cid)
@@ -587,8 +586,12 @@ def pantalla_de_entrada(request: Request, destino: str = COMPOSITOR,
     # Serializado, no interpolado: json.dumps escapa comillas, barras y saltos de linea, y
     # produce un literal JavaScript valido. Interpolar dentro de comillas a mano es justo el
     # fallo que esto arregla.
-    return HTMLResponse(_ENTRADA.format(script_google=script, bloque_google=bloque,
-                                        destino=json.dumps(destino)))
+    respuesta = HTMLResponse(_ENTRADA.format(script_google=script, bloque_google=bloque,
+                                             destino=json.dumps(destino)))
+    sesion.quitar(respuesta)
+    # Sin caché: con «atrás» el navegador no debe enseñar una entrada vieja ni saltársela.
+    respuesta.headers["Cache-Control"] = "no-store"
+    return respuesta
 
 
 @router.get("/admin/entregas")

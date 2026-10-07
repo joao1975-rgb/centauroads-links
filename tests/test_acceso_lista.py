@@ -313,13 +313,31 @@ def test_una_cookie_inventada_no_abre_el_compositor(cliente):
     cliente.cookies.clear()
 
 
-def test_con_sesion_la_entrada_pasa_directo_a_la_herramienta(cliente, admin):
-    """Quien ya entró no tiene que volver a escribir su correo."""
+def test_la_entrada_siempre_pide_correo_y_contrasena(cliente, db):
+    """
+    Decisión de la propietaria (2026-10-07): al abrir la app se ve siempre la entrada, aunque quede
+    una sesión abierta de antes. Antes, durante 8 horas, el enlace pasaba directo al compositor.
+    """
+    usuario = _alta(db, "jefa@gmail.com", rol="admin")
+    # En el dominio del cliente de pruebas, como la guardaría el navegador tras entrar.
+    cliente.cookies.set(sesion.COOKIE, sesion.crear(usuario.id, usuario.email), domain="testserver.local")
+    assert cliente.get(rutas.COMPOSITOR, follow_redirects=False).status_code == 200
     r = cliente.get("/panel/entrar", follow_redirects=False)
-    assert r.status_code == 303 and r.headers["location"] == rutas.COMPOSITOR
-    # Y respeta a dónde iba, si es una ruta de la casa.
-    r = cliente.get("/panel/entrar", params={"destino": "/admin"}, follow_redirects=False)
-    assert r.headers["location"] == "/admin"
+    assert r.status_code == 200
+    assert 'id="email"' in r.text and 'id="clave"' in r.text
+    assert r.headers["cache-control"] == "no-store"
+    # La sesión anterior se cierra ahí: sin escribir la contraseña no se llega al compositor.
+    assert sesion.COOKIE in r.headers["set-cookie"] and "Max-Age=0" in r.headers["set-cookie"]
+    r = cliente.get(rutas.COMPOSITOR, follow_redirects=False)
+    assert r.status_code == 307 and r.headers["location"].startswith("/panel/entrar")
+
+
+def test_tras_entrar_va_a_donde_iba(cliente, db):
+    """El destino se sigue respetando: lo usa la propia pantalla al entrar."""
+    usuario = _alta(db, "jefa@gmail.com", rol="admin")
+    cliente.cookies.set(sesion.COOKIE, sesion.crear(usuario.id, usuario.email))
+    html = cliente.get("/panel/entrar", params={"destino": "/panel/textos"}).text
+    assert 'location.href = "/panel/textos"' in html
     cliente.cookies.clear()
 
 
