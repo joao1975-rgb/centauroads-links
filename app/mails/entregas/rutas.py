@@ -24,6 +24,7 @@ persona que ya la pegó y la envió, no un envío.
 
 import json
 import logging
+import re
 import secrets
 from urllib.parse import urlparse
 from datetime import datetime, timezone
@@ -306,19 +307,82 @@ def comprobar_enlace(datos: Enlace, _: models.PanelUser = Depends(usuario_actual
         return {"ok": None, "motivo": "No se pudo comprobar ahora mismo. Ábrelo tú para estar seguro."}
 
 
+def _contacto(c: models.Contact) -> dict:
+    return {"id": c.id, "nombre": c.nombre, "empresa": c.empresa or "", "email": c.email or "",
+            "retirado": bool(c.retirado)}
+
+
 @router.get("/api/contactos")
-def buscar_contactos(q: str = "", db: Session = Depends(get_db),
+def buscar_contactos(q: str = "", retirados: bool = False, db: Session = Depends(get_db),
                      _: models.PanelUser = Depends(usuario_actual)):
-    """Los contactos, para elegir uno sin salir del flujo. `q` filtra por nombre o empresa."""
-    consulta = db.query(models.Contact)
+    """
+    Los contactos, para elegir uno sin salir del flujo. `q` filtra por nombre o empresa.
+    Los retirados no salen; con `retirados=true` salen solo ellos, para poder devolverlos.
+    """
+    consulta = db.query(models.Contact).filter(models.Contact.retirado.is_(retirados))
     if q.strip():
         patron = "%" + q.strip() + "%"
         consulta = consulta.filter(
             models.Contact.nombre.ilike(patron) | models.Contact.empresa.ilike(patron)
             | models.Contact.email.ilike(patron))
     filas = consulta.order_by(models.Contact.nombre).limit(50).all()
-    return [{"id": c.id, "nombre": c.nombre, "email": c.email or "",
-             "empresa": c.empresa or ""} for c in filas]
+    return [_contacto(c) for c in filas]
+
+
+class ContactoCambios(BaseModel):
+    """Una edición: solo cuenta lo que llega. `retirado: false` lo devuelve a la lista."""
+    nombre: Optional[str] = Field(None, max_length=200)
+    empresa: Optional[str] = Field(None, max_length=200)
+    email: Optional[str] = Field(None, max_length=200)
+    retirado: Optional[bool] = None
+
+
+# Algo@algo.algo, sin espacios. No pretende validar todo lo que admite un correo: solo frenar el
+# texto que claramente no lo es.
+_CORREO = re.compile("[^@ ]+@[^@ .]+([.][^@ .]+)+")
+
+
+def _contacto_o_404(db: Session, contacto_id: int) -> models.Contact:
+    c = db.get(models.Contact, contacto_id)
+    if c is None:
+        raise HTTPException(status_code=404, detail="Ese contacto no existe")
+    return c
+
+
+# Los contactos son del equipo: cualquiera con sesión los corrige o los retira (decisión de la
+# propietaria, 2026-10-07). Retirar no borra: las entregas y las aperturas siguen apuntando a él.
+@router.put("/api/contactos/{contacto_id}")
+def edita_contacto(contacto_id: int, cambios: ContactoCambios, db: Session = Depends(get_db),
+                   usuario: models.PanelUser = Depends(usuario_actual)):
+    c = _contacto_o_404(db, contacto_id)
+    if cambios.nombre is not None:
+        if not cambios.nombre.strip():
+            raise HTTPException(status_code=400, detail="El nombre no puede quedar vacío: el correo saluda con él.")
+        c.nombre = cambios.nombre.strip()
+    if cambios.empresa is not None:
+        if not cambios.empresa.strip():
+            raise HTTPException(status_code=400, detail="La empresa no puede quedar vacía: el correo la nombra.")
+        c.empresa = cambios.empresa.strip()
+    if cambios.email is not None:
+        email = cambios.email.strip()
+        if email and not _CORREO.fullmatch(email):
+            raise HTTPException(status_code=400, detail="Ese correo no parece válido.")
+        c.email = email
+    if cambios.retirado is not None:
+        c.retirado = cambios.retirado
+    db.commit()
+    log.info("contacto %d editado por %s", c.id, usuario.email)
+    return _contacto(c)
+
+
+@router.delete("/api/contactos/{contacto_id}")
+def retira_contacto(contacto_id: int, db: Session = Depends(get_db),
+                    usuario: models.PanelUser = Depends(usuario_actual)):
+    c = _contacto_o_404(db, contacto_id)
+    c.retirado = True
+    db.commit()
+    log.info("contacto %d retirado de la lista por %s", c.id, usuario.email)
+    return _contacto(c)
 
 
 @router.post("/api/entregas", response_model=EntregaSalida)

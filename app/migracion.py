@@ -48,6 +48,10 @@ COLUMNAS_NUEVAS = {
         # Nula en las que ya existen, a propósito: ver `models.Entrega.clave`.
         ("clave", "VARCHAR(40)"),
     ],
+    # «Borrar» un contacto lo retira de la lista sin perder sus entregas (2026-10-07).
+    "contacts": [
+        ("retirado", "BOOLEAN NOT NULL DEFAULT FALSE"),
+    ],
 }
 
 # Índices que conviene tener, creados aparte porque ALTER TABLE ADD COLUMN no los admite.

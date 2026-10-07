@@ -102,6 +102,21 @@
   .estado { font-size:12px; color:var(--dim); margin:0 0 10px; }
   .estado.mal { color:#F4A6B4; }
   .estado.bien { color:var(--ok); }
+  /* contactos de la entrega: elegir con un clic; editar y borrar al lado de cada uno */
+  .contactos { list-style:none; margin:0 0 8px; padding:0; max-height:260px; overflow:auto;
+               border:1px solid var(--border); border-radius:7px; }
+  .contacto { display:flex; align-items:center; gap:6px; padding:5px 6px; border-top:1px solid var(--border); }
+  .contacto:first-child { border-top:0; }
+  .contacto.editando { display:block; padding:10px; background:var(--hover); }
+  .contacto.vacio { color:var(--dim); font-size:12px; padding:10px; }
+  .contacto-n { flex:1; min-width:0; text-align:left; background:none; border:1px solid transparent; border-radius:5px;
+                padding:6px 8px; font-size:13px; color:var(--text); overflow-wrap:anywhere; }
+  button.contacto-n:hover { background:var(--hover); }
+  button.contacto-n[aria-pressed="true"] { border-color:var(--purple-l); background:var(--hover); font-weight:600; }
+  .btn.mini-bt { padding:4px 9px; font-size:12px; font-weight:500; }
+  .btn.mini-bt.peligro { color:#F4A6B4; }
+  .btn.enlace-bt { background:none; border-color:transparent; color:var(--dim); text-decoration:underline; padding:8px 4px; }
+  .btn[aria-pressed="true"] { border-color:var(--purple-l); }
 
   /* perfil del destinatario: la decisión que más cambia el mensaje, arriba del todo */
   .pf { display:block; width:100%; text-align:left; border:1px solid var(--border); background:var(--card);
@@ -826,6 +841,7 @@
   // de cero volvia a 'elige un contacto'. Los contactos que ya existen sobreviven a ese
   // repintado porque st.contactId los vuelve a marcar; el nuevo no tenia donde apoyarse.
   let contactoNuevo = false;
+  let verRetirados = false;   // la lista de contactos muestra los retirados, para devolverlos
   const nuevoDatos = { nombre: '', empresa: '', email: '' };
 
   function api(ruta, opciones) {
@@ -969,29 +985,97 @@
     p2.appendChild(el('p', 'fld-l',
       'Obligatorio. Sin contacto no se sabe quién abrió la propuesta, y sin eso no hay aviso.'));
     if (HAY_SERVIDOR) {
-      const selWrap = el('label', 'fld');
-      selWrap.appendChild(el('span', 'fld-l', 'Contacto'));
-      const sel = el('select');
-      const vacia = el('option', null, '— elige un contacto —'); vacia.value = ''; sel.appendChild(vacia);
-      const nueva = el('option', null, '+ crear uno nuevo'); nueva.value = 'nuevo';
-      if (contactoNuevo) nueva.selected = true;
-      sel.appendChild(nueva);
-      selWrap.appendChild(sel);
-      // Se guarda la lista entera, no solo los identificadores: al elegir a alguien hay que
-      // poder meter su nombre y su empresa en el correo, y volver a preguntarselo al servidor
-      // por cada cambio de seleccion seria pedir dos veces lo mismo.
-      let contactos = [];
-      api('/api/contactos').then(cs => {
-        contactos = cs;
-        cs.forEach(c => {
-          const o = el('option', null, c.nombre + (c.empresa ? ' · ' + c.empresa : ''));
-          o.value = String(c.id);
-          if (st.contactId === c.id) o.selected = true;
-          sel.appendChild(o);
+      // Una lista y no un desplegable: cada contacto lleva al lado sus botones de editar y de
+      // borrar, y un <option> no puede llevar botones (peticion de la propietaria, 2026-10-07).
+      // «Borrar» lo retira de la lista: sus entregas y su historial siguen funcionando.
+      p2.appendChild(el('span', 'fld-l', verRetirados ? 'Contactos retirados' : 'Contacto'));
+      const lista = el('ul', 'contactos');
+      lista.setAttribute('aria-label', verRetirados ? 'Contactos retirados' : 'Contactos');
+      const estC = estadoEl('');
+      const recarga = () => { touch(); buildPanel(); };
+      // Elegir a alguien rellena el saludo y el texto en el acto, para que se vea en la vista previa.
+      const elige = c => {
+        contactoNuevo = false;
+        st.contactId = c.id;
+        st.destinatario = c.nombre;
+        st.bloques.entrega.empresa = c.empresa || '';
+        recarga();
+      };
+      const cambiaContacto = (c, metodo, cuerpo) => api('/api/contactos/' + c.id, {
+        method: metodo, headers: { 'Content-Type': 'application/json' },
+        body: cuerpo ? JSON.stringify(cuerpo) : undefined });
+      const editor = (li, c) => {
+        li.textContent = ''; li.className = 'contacto editando';
+        const d = {};
+        [['nombre', 'Nombre'], ['empresa', 'Empresa'], ['email', 'Correo']].forEach(([k, l]) => {
+          const w = el('label', 'fld'); w.appendChild(el('span', 'fld-l', l));
+          const i = el('input'); i.type = k === 'email' ? 'email' : 'text'; i.value = c[k] || '';
+          d[k] = i; w.appendChild(i); li.appendChild(w);
         });
-      }).catch(() => { /* sin sesion: el paso 2 lo dira al guardar */ });
+        const est = estadoEl('');
+        const fila = el('div', 'fila-bt');
+        fila.appendChild(botonEl('Guardar', 'primary', () => {
+          cambiaContacto(c, 'PUT', { nombre: d.nombre.value, empresa: d.empresa.value, email: d.email.value })
+            .then(n => {
+              // Si es el elegido, el correo saluda ya con el nombre corregido.
+              if (st.contactId === n.id) { st.destinatario = n.nombre; st.bloques.entrega.empresa = n.empresa; }
+              recarga();
+            }).catch(e => falla(est, e));
+        }));
+        fila.appendChild(botonEl('Cancelar', '', recarga));
+        li.appendChild(fila); li.appendChild(est);
+        d.nombre.focus();
+      };
+      const filaContacto = c => {
+        const li = el('li', 'contacto');
+        const nombre = c.nombre + (c.empresa ? ' · ' + c.empresa : '');
+        if (verRetirados) {
+          li.appendChild(el('span', 'contacto-n', nombre));
+          const dev = botonEl('Devolver', 'mini-bt', () => {
+            cambiaContacto(c, 'PUT', { retirado: false }).then(recarga).catch(e => falla(estC, e));
+          });
+          dev.setAttribute('aria-label', 'Devolver a la lista a ' + nombre);
+          li.appendChild(dev);
+          return li;
+        }
+        const b = el('button', 'contacto-n', nombre); b.type = 'button';
+        b.setAttribute('aria-pressed', String(st.contactId === c.id));
+        b.addEventListener('click', () => elige(c));
+        li.appendChild(b);
+        const ed = botonEl('Editar', 'mini-bt', () => editor(li, c));
+        ed.setAttribute('aria-label', 'Editar a ' + nombre);
+        const bo = botonEl('Borrar', 'mini-bt peligro', () => {
+          if (!confirm('¿Borrar a ' + nombre + ' de la lista?\n\nSus entregas guardadas siguen funcionando, ' +
+                       'y se puede devolver desde «Ver contactos retirados».')) return;
+          cambiaContacto(c, 'DELETE').then(() => {
+            if (st.contactId === c.id) st.contactId = null;
+            recarga();
+          }).catch(e => falla(estC, e));
+        });
+        bo.setAttribute('aria-label', 'Borrar a ' + nombre + ' de la lista');
+        li.appendChild(ed); li.appendChild(bo);
+        return li;
+      };
+      api('/api/contactos' + (verRetirados ? '?retirados=true' : '')).then(cs => {
+        if (!cs.length) lista.appendChild(el('li', 'contacto vacio',
+          verRetirados ? 'No hay contactos retirados.' : 'Aún no hay contactos: crea el primero.'));
+        cs.forEach(c => lista.appendChild(filaContacto(c)));
+      }).catch(e => falla(estC, e));
+      p2.appendChild(lista); p2.appendChild(estC);
+      const filaC = el('div', 'fila-bt');
+      if (!verRetirados) {
+        const crear = botonEl('+ Crear uno nuevo', '', () => {
+          contactoNuevo = true; st.contactId = null; recarga();
+        });
+        crear.setAttribute('aria-pressed', String(contactoNuevo));
+        filaC.appendChild(crear);
+      }
+      filaC.appendChild(botonEl(verRetirados ? 'Volver a los contactos' : 'Ver contactos retirados', 'enlace-bt', () => {
+        verRetirados = !verRetirados; buildPanel();
+      }));
+      p2.appendChild(filaC);
 
-      const nuevoWrap = el('div'); nuevoWrap.hidden = !contactoNuevo;
+      const nuevoWrap = el('div'); nuevoWrap.hidden = !contactoNuevo || verRetirados;
       const campos = {};
       [['nombre', 'Nombre (obligatorio)'], ['empresa', 'Empresa (obligatorio)'],
        ['email', 'Correo']].forEach(par => {
@@ -1002,27 +1086,16 @@
         i.addEventListener('input', () => { nuevoDatos[par[0]] = i.value; });
         campos[par[0]] = i; w.appendChild(i); nuevoWrap.appendChild(w);
       });
-      sel.addEventListener('change', () => {
-        contactoNuevo = sel.value === 'nuevo';
-        nuevoWrap.hidden = !contactoNuevo;
-        st.contactId = (sel.value && sel.value !== 'nuevo') ? Number(sel.value) : null;
-        // El correo saluda a quien va dirigido, no a un ejemplo del catalogo. Elegir contacto
-        // rellena el saludo y el texto en el acto, para que se vea en la vista previa.
-        const elegido = contactos.filter(c => c.id === st.contactId)[0];
-        if (elegido) {
-          st.destinatario = elegido.nombre;
-          st.bloques.entrega.empresa = elegido.empresa || '';
-        }
-        touch();
-        buildPanel();
-      });
-      p2.appendChild(selWrap); p2.appendChild(nuevoWrap);
+      p2.appendChild(nuevoWrap);
+      // El saludo, junto a quien lo recibe. Antes estaba plegado al final del panel y parecia fijo.
+      p2.appendChild(inputEl('bloques.saludo.texto', 'Saludo', 'textarea'));
+      p2.appendChild(el('p', 'hint', '{destinatario} se cambia por el nombre del contacto elegido.'));
 
       const est2 = estadoEl(st.entregaId ? 'Entrega guardada (#' + st.entregaId + ').' : '',
                             st.entregaId ? 'bien' : '');
       const fila2 = el('div', 'fila-bt');
       fila2.appendChild(botonEl(st.entregaId ? 'Actualizar Personalizada' : 'Guardar Personalizada',
-                                'primary', () => guardaEntrega(campos, sel, est2)));
+                                'primary', () => guardaEntrega(campos, est2)));
       p2.appendChild(fila2); p2.appendChild(est2);
     }
     frag.appendChild(p2);
@@ -1211,7 +1284,7 @@
     toast('Entrega nueva: guárdala en el paso 2 para crearla.');
   }
 
-  function guardaEntrega(campos, sel, est) {
+  function guardaEntrega(campos, est) {
     const E = st.bloques.entrega;
     if (!E.url || !E.titulo) {
       est.className = 'estado mal'; est.textContent = 'Faltan el enlace y el título (paso 1).'; return;
@@ -1223,7 +1296,7 @@
       // Los espacios de ESTA entrega (004), no el `on` de las plantillas A-G.
       servicios: (E.incluidos || []).join(','),
     };
-    if (sel.value === 'nuevo') {
+    if (contactoNuevo) {
       // Nombre y empresa son obligatorios: el correo los dice en el saludo y en el texto, y una
       // propuesta personalizada que no nombra a quien va dirigida no esta personalizada.
       if (!campos.nombre.value.trim() || !campos.empresa.value.trim()) {
@@ -1456,8 +1529,9 @@
       M.SERVICIOS.filter(sv => typeof sv.plantillas !== 'string' || sv.plantillas.indexOf('H') >= 0)
         .forEach(sv => g.appendChild(espacioEl(sv)));
       p.appendChild(g);
-      const gb = el('div', 'grp'); gb.appendChild(el('h2', null, 'Saludo y firma'));
-      BLOQUES.filter(d => ['saludo', 'firma'].indexOf(d.k) >= 0)
+      // El saludo se edita en «Para quién», junto al contacto; aquí queda la firma.
+      const gb = el('div', 'grp'); gb.appendChild(el('h2', null, 'Firma'));
+      BLOQUES.filter(d => d.k === 'firma')
         .forEach(d => gb.appendChild(blockEl(d)));
       p.appendChild(gb);
       return;

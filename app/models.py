@@ -85,6 +85,9 @@ class Contact(Base):
     token = Column(String(64), unique=True, index=True, nullable=False)
     notas = Column(Text, default="")
     created_at = Column(DateTime, default=ahora)
+    # «Borrar» en el compositor lo retira de la lista, no borra la fila: sus entregas y el historial
+    # de aperturas dependen de él (decisión de la propietaria, 2026-10-07). Se puede devolver.
+    retirado = Column(Boolean, nullable=False, default=False)
 
     deliveries = relationship("Delivery", back_populates="contact")
 
