@@ -762,6 +762,8 @@
   // ── Perfil AGENCIAS: parte de disponibilidad ──
   // Una agencia no compra inspiracion, compra disponibilidad y especificaciones. Tabla densa y escaneable,
   // con el dato alineado a la derecha para poder compararlo de un vistazo.
+  // Cabeceras de la tabla de agencias (editables, 005).
+  const TABLA_CAB = { espacio: 'Espacio', medidas: 'Medidas', trafico: 'Tr\u00e1fico' };
   function tablaDisponibilidad(st, dark) {
     const t = dark ? C.textDark : C.text, m = dark ? C.mutedDark : C.muted;
     const linea = dark ? C.line : C.rule, zebra = dark ? C.ink2 : C.sand;
@@ -792,9 +794,9 @@
         '</tr>';
     });
     return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid ' + linea + ';border-radius:8px;">' +
-      '<tr><td style="' + cab + 'padding-left:12px;">Espacio</td>' +
-      '<td align="right" style="' + cab + '">Medidas</td>' +
-      '<td align="right" style="' + cab + 'padding-right:12px;">Tr\u00e1fico</td>' +
+      '<tr><td style="' + cab + 'padding-left:12px;">' + esc(TABLA_CAB.espacio) + '</td>' +
+      '<td align="right" style="' + cab + '">' + esc(TABLA_CAB.medidas) + '</td>' +
+      '<td align="right" style="' + cab + 'padding-right:12px;">' + esc(TABLA_CAB.trafico) + '</td>' +
       '</tr>' +
       filas + '</table>';
   }
@@ -802,21 +804,23 @@
   // ── Perfil CLIENTE NUEVO: la ruta de tres pasos ──
   // La idea del propio cliente (pantalla, valla, digital) deja de ser un parrafo y pasa a ser la columna
   // vertebral visual: tres peldanos numerados, cada uno con su objetivo y el problema que resuelve.
+  // Textos de la ruta (editables, 005): titulo, formato, para que sirve y que resuelve.
+  const RUTA = [
+    { n: '1', tit: 'Que te conozcan', med: 'Pantalla LED y t\u00f3tem digital',
+      obj: 'El movimiento y el brillo detienen la mirada. Explicas qu\u00e9 vendes a quien pasa por la zona.',
+      res: 'Atracci\u00f3n y ventas a corto plazo', id: 'totem' },
+    { n: '2', tit: 'Que te recuerden', med: 'Vallas de gran formato',
+      obj: 'Quien la ve cada d\u00eda camino al trabajo piensa en ti cuando necesita lo que vendes.',
+      res: 'Confianza y posicionamiento', id: 'vallas' },
+    { n: '3', tit: 'Que te encuentren', med: 'Campa\u00f1a digital + c\u00f3digo QR',
+      obj: 'La calle capta la atenci\u00f3n; el m\u00f3vil recoge al interesado y cierra la venta.',
+      res: 'Conversi\u00f3n medible', id: '' },
+  ];
   function rutaPasos(st, dark) {
     const t = dark ? C.textDark : C.text, m = dark ? C.mutedDark : C.muted;
     const caja = dark ? C.ink2 : C.sand, linea = dark ? C.line : C.rule;
     const acento = dark ? C.orange : C.orangeInk;
-    const pasos = [
-      { n: '1', tit: 'Que te conozcan', med: 'Pantalla LED y t\u00f3tem digital',
-        obj: 'El movimiento y el brillo detienen la mirada. Explicas qu\u00e9 vendes a quien pasa por la zona.',
-        res: 'Atracci\u00f3n y ventas a corto plazo', id: 'totem' },
-      { n: '2', tit: 'Que te recuerden', med: 'Vallas de gran formato',
-        obj: 'Quien la ve cada d\u00eda camino al trabajo piensa en ti cuando necesita lo que vendes.',
-        res: 'Confianza y posicionamiento', id: 'vallas' },
-      { n: '3', tit: 'Que te encuentren', med: 'Campa\u00f1a digital + c\u00f3digo QR',
-        obj: 'La calle capta la atenci\u00f3n; el m\u00f3vil recoge al interesado y cierra la venta.',
-        res: 'Conversi\u00f3n medible', id: '' },
-    ];
+    const pasos = RUTA;
     return pasos.map(function (p) {
       const precio = p.id ? desdeDe(st, p.id) : '';
       return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 10px 0;"><tr>' +
@@ -838,6 +842,15 @@
   // ── Perfil PHYGITAL: el puente ──
   // El concepto hay que mostrarlo, no contarlo: calle, escaneo, movil. Tres celdas y dos flechas,
   // construido con tablas para que aguante en Outlook.
+  // Textos del puente (editables, 005).
+  const PUENTE = {
+    pasos: [
+      { tit: 'En la calle', txt: 'La pantalla o la valla detiene la mirada de quien pasa.' },
+      { tit: 'El puente', txt: 'Un c\u00f3digo en pantalla lleva ese impacto al tel\u00e9fono.' },
+      { tit: 'En el m\u00f3vil', txt: 'La campa\u00f1a digital recoge al interesado y cierra.' },
+    ],
+    nota: 'Ya no hay que elegir entre hacer marca en la calle o vender en digital. El exterior capta la atenci\u00f3n que lo digital no consigue, y lo digital mide lo que la calle no puede.',
+  };
   function puentePhygital(st, dark) {
     const t = dark ? C.textDark : C.text, m = dark ? C.mutedDark : C.muted;
     const caja = dark ? C.ink2 : C.sand, linea = dark ? C.line : C.rule;
@@ -852,12 +865,12 @@
     };
     const flecha = '<td width="3.5%" align="center" valign="middle" style="font-family:' + FH + ';font-size:20px;font-weight:800;color:' + acento + ';">&rarr;</td>';
     return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
-      paso('En la calle', 'La pantalla o la valla detiene la mirada de quien pasa.', t) + flecha +
-      paso('El puente', 'Un c\u00f3digo en pantalla lleva ese impacto al tel\u00e9fono.', acento) + flecha +
-      paso('En el m\u00f3vil', 'La campa\u00f1a digital recoge al interesado y cierra.', t) +
+      paso(PUENTE.pasos[0].tit, PUENTE.pasos[0].txt, t) + flecha +
+      paso(PUENTE.pasos[1].tit, PUENTE.pasos[1].txt, acento) + flecha +
+      paso(PUENTE.pasos[2].tit, PUENTE.pasos[2].txt, t) +
       '</tr></table>' +
       '<div style="font-family:' + FB + ';font-size:14px;line-height:21px;color:' + m + ';padding:12px 2px 0 2px;">' +
-      'Ya no hay que elegir entre hacer marca en la calle o vender en digital. El exterior capta la atenci\u00f3n que lo digital no consigue, y lo digital mide lo que la calle no puede.</div>';
+      esc(PUENTE.nota) + '</div>';
   }
 
   // ── Muro de clientes (prueba social, APAGADO hasta que Elizabeth lo confirme) ──
@@ -2169,17 +2182,40 @@
     ['titulo', 'Título', 120], ['sub', 'Subtítulo', 120], ['intro', 'Entrada', 600],
     ['cierre', 'Cierre', 600], ['cta', 'Texto del botón', 60],
   ];
+  // El bloque propio de cada perfil: [clave, etiqueta, campo de la constante, limite].
+  const CAMPOS_RUTA = [['titulo', 'título', 'tit', 60], ['formato', 'formato', 'med', 60],
+    ['objetivo', 'para qué sirve', 'obj', 200], ['resuelve', 'qué resuelve', 'res', 100]];
+  const CAMPOS_PUENTE = [['titulo', 'título', 'tit', 30], ['texto', 'texto', 'txt', 120]];
+  const COLUMNAS_TABLA = [['espacio', 'Primera columna (el espacio)'], ['medidas', 'Segunda columna (las medidas)'],
+    ['trafico', 'Tercera columna (el tráfico)']];
   const TEXTOS = [];
+  // Cada texto sabe donde vive: `pon` lo escribe en su sitio de la constante, que es la que lee el render.
+  function textoEn(perfil, grupo, clave, etiqueta, obj, campo, limite) {
+    TEXTOS.push({ clave: clave, perfil: perfil, grupo: grupo, etiqueta: etiqueta, valor: obj[campo], limite: limite,
+      pon: function (v) { obj[campo] = v; } });
+  }
   Object.keys(PERFILES).forEach(function (p) {
     const pf = PERFILES[p];
     // El General no tiene mensaje propio: sus textos son los del compositor, que ya se editan alli.
-    if (pf.bloque) CAMPOS_PERFIL.forEach(function (c) {
-      TEXTOS.push({ clave: p + '.' + c[0], perfil: p, grupo: 'Mensaje', etiqueta: c[1], valor: pf[c[0]],
-        limite: c[2], pon: function (v) { pf[c[0]] = v; } });
+    if (pf.bloque) CAMPOS_PERFIL.forEach(function (c) { textoEn(p, 'Mensaje', p + '.' + c[0], c[1], pf, c[0], c[2]); });
+    if (pf.bloque === 'ruta') RUTA.forEach(function (paso, i) {
+      CAMPOS_RUTA.forEach(function (c) {
+        textoEn(p, 'Ruta de tres pasos', p + '.ruta.' + (i + 1) + '.' + c[0], 'Paso ' + (i + 1) + ' · ' + c[1], paso, c[2], c[3]);
+      });
+    });
+    if (pf.bloque === 'puente') {
+      PUENTE.pasos.forEach(function (paso, i) {
+        CAMPOS_PUENTE.forEach(function (c) {
+          textoEn(p, 'Puente', p + '.puente.' + (i + 1) + '.' + c[0], 'Paso ' + (i + 1) + ' · ' + c[1], paso, c[2], c[3]);
+        });
+      });
+      textoEn(p, 'Puente', p + '.puente.nota', 'Nota bajo el puente', PUENTE, 'nota', 300);
+    }
+    if (pf.bloque === 'disponibilidad') COLUMNAS_TABLA.forEach(function (c) {
+      textoEn(p, 'Tabla de disponibilidad', p + '.tabla.' + c[0], c[1], TABLA_CAB, c[0], 30);
     });
     (ASUNTOS[p] || []).forEach(function (a) {
-      TEXTOS.push({ clave: p + '.asunto.' + a.clave, perfil: p, grupo: 'Asuntos', etiqueta: a.etiqueta,
-        valor: a.texto, limite: 150, pon: function (v) { a.texto = v; } });
+      textoEn(p, 'Asuntos', p + '.asunto.' + a.clave, a.etiqueta, a, 'texto', 150);
     });
   });
   function textosActuales() {

@@ -20,7 +20,7 @@
 
 - [x] T502 [P] Prueba: `textosActuales()` del motor devuelve las ~62 claves de research R3, cada una con perfil, grupo, etiqueta, valor y límite, y el valor coincide con el texto que hoy pinta el motor — `tests/test_textos_motor.py`
 - [x] T503 [P] Prueba: `build.js` deja `app/static/email/textos-perfil-serie.json` igual a `textosActuales()` y la guardia byte a byte sigue en 16 idénticas — `tests/test_textos_motor.py`
-- [ ] T504 Motor: pasar los textos de `rutaPasos`, `puentePhygital` y las cabeceras de `tablaDisponibilidad` a constantes (`RUTA`, `PUENTE`, `TABLA_CAB`) sin cambiar el HTML; añadir `textosActuales()` — `prototipos/mail/render.js`
+- [x] T504 Motor: pasar los textos de `rutaPasos`, `puentePhygital` y las cabeceras de `tablaDisponibilidad` a constantes (`RUTA`, `PUENTE`, `TABLA_CAB`) sin cambiar el HTML; añadir `textosActuales()` — `prototipos/mail/render.js`
 - [x] T505 `build.js` exporta `textos-perfil-serie.json` y copia el motor a `app/static/email/` — `prototipos/mail/build.js`
 - [x] T506 Modelo `TextoPerfil` (clave PK, valor, actualizado_por, actualizado_en) — `app/models.py`
 
@@ -50,9 +50,9 @@
 
 ## Phase 5: User Story 3 — El bloque propio de cada perfil (P2)
 
-- [ ] T519 [P] [US3] Prueba del motor: cambiar `nuevo.ruta.2.objetivo`, `phygital.puente.2.texto` y `agencia.tabla.trafico` → salen en su sitio en todas las plantillas que pintan ese bloque y en ningún otro perfil — `tests/test_textos_motor.py`
-- [ ] T520 [US3] Motor: `ponTextos` aplica a `RUTA`, `PUENTE` y `TABLA_CAB` — `prototipos/mail/render.js`
-- [ ] T521 [US3] Pantalla: grupos «Ruta de tres pasos», «Puente» y «Tabla de disponibilidad» en su perfil — `app/mails/textos/pantalla.py`
+- [x] T519 [P] [US3] Prueba del motor: cambiar `nuevo.ruta.2.objetivo`, `phygital.puente.2.texto` y `agencia.tabla.trafico` → salen en su sitio en todas las plantillas que pintan ese bloque y en ningún otro perfil — `tests/test_textos_motor.py`
+- [x] T520 [US3] Motor: `ponTextos` aplica a `RUTA`, `PUENTE` y `TABLA_CAB` — `prototipos/mail/render.js`
+- [x] T521 [US3] Pantalla: grupos «Ruta de tres pasos», «Puente» y «Tabla de disponibilidad» en su perfil — `app/mails/textos/pantalla.py`
 
 ## Phase 6: User Story 4 — Volver al texto de serie (P3)
 
@@ -61,7 +61,7 @@
 
 ## Phase 7: Polish
 
-- [ ] T524 README: sección «Textos de los perfiles» — `README.md`
+- [x] T524 README: sección «Textos de los perfiles» — `README.md`
 - [ ] T525 Revisión de seguridad (permisos, escape, origen) y suite completa
 - [ ] T526 Nota de Obsidian del proyecto actualizada
 
@@ -73,7 +73,10 @@
   mano («El mío»). Arreglado en `aplicaPerfil`, con prueba.
 - El General no tiene mensaje propio (sus textos son los del compositor): en la pantalla solo salen sus
   tres asuntos.
-- T504 (pasar ruta, puente y tabla a constantes) se hace con la US3, que es quien los necesita.
+- T504 (pasar ruta, puente y tabla a constantes) se hizo con la US3, que es quien los necesitaba.
+- US3 (2026-10-06): 22 textos de bloque (ruta 12, puente 7, tabla 3); 52 en total. La nota del puente
+  y las cabeceras de la tabla, que eran literales, ahora pasan por esc(). El bloque sale en A-D (E-G son
+  los formatos del asesor, sin bloque de perfil). La etiqueta «Resuelve:» de la ruta sigue fija.
 - US4 adelantada: «Volver al de serie», la marca de cambiado con quién y cuándo y el contador por perfil
   salieron casi gratis con la pantalla del MVP (T522/T523).
 

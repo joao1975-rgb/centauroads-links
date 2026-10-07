@@ -110,7 +110,13 @@ _PAGINA = """<!DOCTYPE html>
   var NOTAS = {
     Mensaje: 'Lo que dice el correo con este perfil. Puedes escribir {destinatario} y {empresa}: en el correo ' +
       'se cambian por el nombre de quien lo recibe y el de su empresa.',
-    Asuntos: 'Los tres asuntos que ofrece el compositor con este perfil. La etiqueta no cambia; el texto sí.'
+    Asuntos: 'Los tres asuntos que ofrece el compositor con este perfil. La etiqueta no cambia; el texto sí.',
+    'Ruta de tres pasos': 'Los tres peldaños que ve el cliente nuevo. El formato sale en mayúsculas, y el precio ' +
+      'se le añade solo cuando el correo muestra precios.',
+    'Puente': 'Las tres casillas calle → puente → móvil y la nota de debajo. Las casillas son estrechas y sus ' +
+      'títulos van en mayúsculas: mejor cortos.',
+    'Tabla de disponibilidad': 'Las cabeceras de la tabla de espacios. Lo que dice cada espacio (ubicación, ' +
+      'medidas, tráfico) se cambia en Líneas de negocio.'
   };
 
   function di(texto) {
@@ -232,12 +238,14 @@ _PAGINA = """<!DOCTYPE html>
       cuerpo.appendChild(el('p', 'nota', 'El perfil General usa los textos que se escriben en el compositor; ' +
         'aquí solo están sus tres asuntos.'));
     }
-    ['Mensaje', 'Asuntos'].forEach(function (g) {
+    // Los grupos, en el orden en que llegan: Mensaje, el bloque propio del perfil y Asuntos.
+    var grupos = [];
+    suyos().forEach(function (t) { if (grupos.indexOf(t.grupo) < 0) grupos.push(t.grupo); });
+    grupos.forEach(function (g) {
       var deGrupo = suyos().filter(function (t) { return t.grupo === g; });
-      if (!deGrupo.length) return;
       var sec = el('section');
       sec.appendChild(el('h2', null, g));
-      sec.appendChild(el('p', 'nota', NOTAS[g]));
+      if (NOTAS[g]) sec.appendChild(el('p', 'nota', NOTAS[g]));
       deGrupo.forEach(function (t) { sec.appendChild(texto(t)); });
       cuerpo.appendChild(sec);
     });

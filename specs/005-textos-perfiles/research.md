@@ -53,8 +53,9 @@ cierre y botón, con prueba (FR-509). Los textos de bloque (ruta, puente, tabla)
 
 ## R6 — Límites
 
-Asunto 150, texto previo 200, título y subtítulo 120, entrada y cierre 600, botón 60, textos de bloque
-200 (cabeceras de tabla 30). Vacío no se guarda (FR-505). Los límites viajan en el JSON de serie.
+Asunto 150, texto previo 200, título y subtítulo 120, entrada y cierre 600, botón 60. Ruta: título y
+formato 60, para qué sirve 200, qué resuelve 100. Puente: título de casilla 30 (va en mayúsculas en una
+casilla estrecha), texto 120, nota 300. Cabeceras de tabla 30. Vacío no se guarda (FR-505). Los límites viajan en el JSON de serie.
 
 ## R7 — Si el servidor no responde
 

@@ -91,6 +91,30 @@
    "limite": 60
   },
   {
+   "clave": "agencia.tabla.espacio",
+   "perfil": "agencia",
+   "grupo": "Tabla de disponibilidad",
+   "etiqueta": "Primera columna (el espacio)",
+   "valor": "Espacio",
+   "limite": 30
+  },
+  {
+   "clave": "agencia.tabla.medidas",
+   "perfil": "agencia",
+   "grupo": "Tabla de disponibilidad",
+   "etiqueta": "Segunda columna (las medidas)",
+   "valor": "Medidas",
+   "limite": 30
+  },
+  {
+   "clave": "agencia.tabla.trafico",
+   "perfil": "agencia",
+   "grupo": "Tabla de disponibilidad",
+   "etiqueta": "Tercera columna (el tráfico)",
+   "valor": "Tráfico",
+   "limite": 30
+  },
+  {
    "clave": "agencia.asunto.directo",
    "perfil": "agencia",
    "grupo": "Asuntos",
@@ -163,6 +187,102 @@
    "limite": 60
   },
   {
+   "clave": "nuevo.ruta.1.titulo",
+   "perfil": "nuevo",
+   "grupo": "Ruta de tres pasos",
+   "etiqueta": "Paso 1 · título",
+   "valor": "Que te conozcan",
+   "limite": 60
+  },
+  {
+   "clave": "nuevo.ruta.1.formato",
+   "perfil": "nuevo",
+   "grupo": "Ruta de tres pasos",
+   "etiqueta": "Paso 1 · formato",
+   "valor": "Pantalla LED y tótem digital",
+   "limite": 60
+  },
+  {
+   "clave": "nuevo.ruta.1.objetivo",
+   "perfil": "nuevo",
+   "grupo": "Ruta de tres pasos",
+   "etiqueta": "Paso 1 · para qué sirve",
+   "valor": "El movimiento y el brillo detienen la mirada. Explicas qué vendes a quien pasa por la zona.",
+   "limite": 200
+  },
+  {
+   "clave": "nuevo.ruta.1.resuelve",
+   "perfil": "nuevo",
+   "grupo": "Ruta de tres pasos",
+   "etiqueta": "Paso 1 · qué resuelve",
+   "valor": "Atracción y ventas a corto plazo",
+   "limite": 100
+  },
+  {
+   "clave": "nuevo.ruta.2.titulo",
+   "perfil": "nuevo",
+   "grupo": "Ruta de tres pasos",
+   "etiqueta": "Paso 2 · título",
+   "valor": "Que te recuerden",
+   "limite": 60
+  },
+  {
+   "clave": "nuevo.ruta.2.formato",
+   "perfil": "nuevo",
+   "grupo": "Ruta de tres pasos",
+   "etiqueta": "Paso 2 · formato",
+   "valor": "Vallas de gran formato",
+   "limite": 60
+  },
+  {
+   "clave": "nuevo.ruta.2.objetivo",
+   "perfil": "nuevo",
+   "grupo": "Ruta de tres pasos",
+   "etiqueta": "Paso 2 · para qué sirve",
+   "valor": "Quien la ve cada día camino al trabajo piensa en ti cuando necesita lo que vendes.",
+   "limite": 200
+  },
+  {
+   "clave": "nuevo.ruta.2.resuelve",
+   "perfil": "nuevo",
+   "grupo": "Ruta de tres pasos",
+   "etiqueta": "Paso 2 · qué resuelve",
+   "valor": "Confianza y posicionamiento",
+   "limite": 100
+  },
+  {
+   "clave": "nuevo.ruta.3.titulo",
+   "perfil": "nuevo",
+   "grupo": "Ruta de tres pasos",
+   "etiqueta": "Paso 3 · título",
+   "valor": "Que te encuentren",
+   "limite": 60
+  },
+  {
+   "clave": "nuevo.ruta.3.formato",
+   "perfil": "nuevo",
+   "grupo": "Ruta de tres pasos",
+   "etiqueta": "Paso 3 · formato",
+   "valor": "Campaña digital + código QR",
+   "limite": 60
+  },
+  {
+   "clave": "nuevo.ruta.3.objetivo",
+   "perfil": "nuevo",
+   "grupo": "Ruta de tres pasos",
+   "etiqueta": "Paso 3 · para qué sirve",
+   "valor": "La calle capta la atención; el móvil recoge al interesado y cierra la venta.",
+   "limite": 200
+  },
+  {
+   "clave": "nuevo.ruta.3.resuelve",
+   "perfil": "nuevo",
+   "grupo": "Ruta de tres pasos",
+   "etiqueta": "Paso 3 · qué resuelve",
+   "valor": "Conversión medible",
+   "limite": 100
+  },
+  {
    "clave": "nuevo.asunto.directo",
    "perfil": "nuevo",
    "grupo": "Asuntos",
@@ -233,6 +353,62 @@
    "etiqueta": "Texto del botón",
    "valor": "Agendar 15 minutos",
    "limite": 60
+  },
+  {
+   "clave": "phygital.puente.1.titulo",
+   "perfil": "phygital",
+   "grupo": "Puente",
+   "etiqueta": "Paso 1 · título",
+   "valor": "En la calle",
+   "limite": 30
+  },
+  {
+   "clave": "phygital.puente.1.texto",
+   "perfil": "phygital",
+   "grupo": "Puente",
+   "etiqueta": "Paso 1 · texto",
+   "valor": "La pantalla o la valla detiene la mirada de quien pasa.",
+   "limite": 120
+  },
+  {
+   "clave": "phygital.puente.2.titulo",
+   "perfil": "phygital",
+   "grupo": "Puente",
+   "etiqueta": "Paso 2 · título",
+   "valor": "El puente",
+   "limite": 30
+  },
+  {
+   "clave": "phygital.puente.2.texto",
+   "perfil": "phygital",
+   "grupo": "Puente",
+   "etiqueta": "Paso 2 · texto",
+   "valor": "Un código en pantalla lleva ese impacto al teléfono.",
+   "limite": 120
+  },
+  {
+   "clave": "phygital.puente.3.titulo",
+   "perfil": "phygital",
+   "grupo": "Puente",
+   "etiqueta": "Paso 3 · título",
+   "valor": "En el móvil",
+   "limite": 30
+  },
+  {
+   "clave": "phygital.puente.3.texto",
+   "perfil": "phygital",
+   "grupo": "Puente",
+   "etiqueta": "Paso 3 · texto",
+   "valor": "La campaña digital recoge al interesado y cierra.",
+   "limite": 120
+  },
+  {
+   "clave": "phygital.puente.nota",
+   "perfil": "phygital",
+   "grupo": "Puente",
+   "etiqueta": "Nota bajo el puente",
+   "valor": "Ya no hay que elegir entre hacer marca en la calle o vender en digital. El exterior capta la atención que lo digital no consigue, y lo digital mide lo que la calle no puede.",
+   "limite": 300
   },
   {
    "clave": "phygital.asunto.directo",

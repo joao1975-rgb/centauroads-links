@@ -10,6 +10,7 @@ Tres piezas en un mismo servicio:
 | **Compositor de correos** | Arma los correos de servicios (plantillas A–H) para pegarlos en Gmail | `/panel` → entrar → compositor |
 | **Entregas a medida** | La plantilla H: sube el PDF de Canva, genera el carrusel y un enlace propio con tarjeta de WhatsApp | Dentro del compositor |
 | **Líneas de negocio** | El catálogo de servicios que ofrecen los correos: alta, edición, orden, plantillas, ficha y grupos | `/panel/lineas` |
+| **Textos de los perfiles** | Lo que dice el correo a cada tipo de cliente: mensaje, asuntos y bloque propio | `/panel/textos` |
 | **Equipo** | Quién entra al panel, su rol y su contraseña | `/panel/equipo` |
 | **Acortador** | Enlaces cortos con registro de clics | `/admin` y `/{slug}` |
 
@@ -171,6 +172,24 @@ devuelven líneas; los comerciales las ven sin poder cambiarlas.
 - El compositor pide el catálogo al abrirse. Lo editado aquí llega a los compositores del equipo
   sin pisar lo que cada persona escribió a mano.
 
+### Textos de los perfiles (`/panel/textos`)
+
+Lo que dice el correo a cada tipo de cliente (Agencias, Cliente nuevo, Phygital y General) lo cambia
+un administrador sin programar (especificación 005); los comerciales lo ven sin poder cambiarlo.
+
+- **Mensaje**: texto previo, título, subtítulo, entrada, cierre y botón de cada perfil. Admiten
+  `{destinatario}` y `{empresa}`. El General no tiene mensaje propio: usa lo que se escribe en el
+  compositor.
+- **Asuntos**: los tres de cada perfil, General incluido. La etiqueta (Directo, Beneficio,
+  Curiosidad) no cambia.
+- **Bloque propio**: los tres pasos de la ruta del cliente nuevo, las casillas y la nota del puente
+  de phygital, y las cabeceras de la tabla de agencias.
+- **Solo se guardan los cambios** (tabla `textos_perfil`). Lo demás es el texto de serie, que vive en
+  `render.js`; `build.js` lo exporta a `app/static/email/textos-perfil-serie.json` y el servidor solo
+  acepta las claves de ese archivo. «Volver al de serie» borra el cambio.
+- Cada cambio queda en el registro con quién lo hizo y el texto que había antes.
+- El compositor pide los cambios al abrirse; si no llegan, sigue con los de serie y lo avisa.
+
 ### Entregas (plantilla H)
 
 - **La entrega**, arriba del panel: cuál se está editando, **abrir una guardada** desde cualquier
@@ -192,6 +211,7 @@ devuelven líneas; los comerciales las ven sin poder cambiarlas.
 | `/panel` | Pantalla de entrada (la que se comparte) | público |
 | `/static/email/compositor.html` | El compositor | **con sesión**; sin ella lleva a `/panel/entrar` y vuelve |
 | `/panel/lineas` | Líneas de negocio | con sesión; editar, solo administradores |
+| `/panel/textos` | Textos de los perfiles | con sesión; cambiar, solo administradores |
 | `/panel/equipo` | Equipo | con sesión; gestionar a otros, solo administradores |
 | `/static/email/*.png`, `*.gif`, `*.jpg` | Imágenes de los correos | público (las cargan los clientes) |
 | `/media/lineas/{archivo}` | Fotos de las líneas de negocio | público (las cargan los clientes) |

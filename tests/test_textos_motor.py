@@ -31,7 +31,13 @@ SERIE = RAIZ / "app" / "static" / "email" / "textos-perfil-serie.json"
 CAMPOS = ["preheader", "titulo", "sub", "intro", "cierre", "cta"]
 CLAVES_MVP = ({"%s.%s" % (p, c) for p in ("agencia", "nuevo", "phygital") for c in CAMPOS}
               | {"%s.asunto.%s" % (p, a) for p in ("general", "agencia", "nuevo", "phygital")
-                 for a in ("directo", "beneficio", "curiosidad")})
+                 for a in ("directo", "beneficio", "curiosidad")}
+              # El bloque propio de cada perfil (US3).
+              | {"nuevo.ruta.%d.%s" % (n, c) for n in (1, 2, 3) for c in ("titulo", "formato", "objetivo", "resuelve")}
+              | {"phygital.puente.%d.%s" % (n, c) for n in (1, 2, 3) for c in ("titulo", "texto")}
+              | {"phygital.puente.nota"}
+              | {"agencia.tabla.%s" % c for c in ("espacio", "medidas", "trafico")})
+GRUPOS = ("Mensaje", "Asuntos", "Ruta de tres pasos", "Puente", "Tabla de disponibilidad")
 
 GUION = r"""
 const M = require(process.argv[2]);
@@ -75,6 +81,13 @@ if (escenario === 'serie') {
   out.otros = M.asuntosDe(base('A', 'agencia'));
   const st = base('A', 'general'); st.asunto3 = 'curiosidad';
   out.html = M.render(st, 'A');
+} else if (escenario === 'bloques') {
+  out.antes = todos();
+  out.puestos = M.ponTextos({ 'nuevo.ruta.2.objetivo': 'OBJETIVO NUEVO X', 'phygital.puente.2.texto': 'PUENTE NUEVO Y',
+    'phygital.puente.nota': 'NOTA NUEVA Z', 'agencia.tabla.trafico': 'Audiencia & <diaria>' });
+  out.despues = todos();
+  M.ponTextos({});
+  out.vuelta = todos();
 } else if (escenario === 'basura') {
   out.antes = todos();
   out.puestos = M.ponTextos({ 'no.existe': 'x', 'agencia.titulo': '   ', 'agencia.cta': 42, constructor: 'x' });
@@ -109,7 +122,7 @@ def test_los_textos_de_serie_tienen_clave_estable_y_todo_lo_que_pide_la_pantalla
     assert len(textos) == len(CLAVES_MVP)
     for t in textos:
         assert t["perfil"] == t["clave"].split(".")[0]
-        assert t["grupo"] in ("Mensaje", "Asuntos")
+        assert t["grupo"] in GRUPOS
         assert t["etiqueta"] and t["valor"].strip(), t
         assert isinstance(t["limite"], int) and len(t["valor"]) <= t["limite"], t
 
@@ -151,6 +164,37 @@ def test_el_titulo_y_el_boton_cambiados_salen_en_su_perfil_y_en_ningun_otro(tmp_
             assert despues == antes, clave
     # Lo de serie sigue siendo lo de serie, y volver a él deja los correos como estaban.
     assert r["serieIntacta"] == "Inventario disponible"
+    assert r["vuelta"] == r["antes"]
+
+
+def test_los_textos_del_bloque_salen_en_su_sitio_y_en_ningun_otro_perfil(tmp_path_factory, serie):
+    """US3: la ruta del cliente nuevo, el puente de phygital y las cabeceras de la tabla de agencias."""
+    de_serie = {t["clave"]: t["valor"] for t in serie["textos"]}
+    r = _corre(tmp_path_factory, "bloques")
+    assert r["puestos"] == 4
+    cambios = {
+        "nuevo": [(de_serie["nuevo.ruta.2.objetivo"], "OBJETIVO NUEVO X")],
+        "phygital": [(de_serie["phygital.puente.2.texto"], "PUENTE NUEVO Y"),
+                     (de_serie["phygital.puente.nota"], "NOTA NUEVA Z")],
+        # La cabecera, no el dato «Tráfico» de otras tablas: va con su estilo delante.
+        "agencia": [('padding-right:12px;">' + de_serie["agencia.tabla.trafico"] + "</td>",
+                     'padding-right:12px;">Audiencia &amp; &lt;diaria&gt;</td>')],
+    }
+    pintan = {"nuevo": 0, "phygital": 0, "agencia": 0}
+    for clave, antes in r["antes"].items():
+        perfil = clave.split("/")[1]
+        despues = r["despues"][clave]
+        if perfil not in cambios:
+            assert despues == antes, clave
+            continue
+        esperado = antes["html"]
+        for viejo, nuevo in cambios[perfil]:
+            esperado = esperado.replace(viejo, nuevo)
+        assert despues["html"] == esperado, clave
+        assert despues["texto"] == antes["texto"], clave  # el texto plano no lleva el bloque
+        pintan[perfil] += esperado != antes["html"]
+    # Cada bloque sale al menos en una plantilla, y volver al de serie deja todo como estaba.
+    assert all(pintan.values()), pintan
     assert r["vuelta"] == r["antes"]
 
 
