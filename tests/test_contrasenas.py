@@ -145,15 +145,23 @@ def test_la_credencial_se_compara_en_tiempo_constante():
     # Se mira la comparacion en si, no el fichero entero: la primera version de esta prueba
     # buscaba "compare_digest" en todo el texto y lo encontraba en un COMENTARIO, asi que daba
     # por buena una version que ya comparaba con ==. Lo cazo volver a mutar el codigo.
-    cuerpo = fuente.split("def verifica")[1]
-    comparacion = [l for l in cuerpo.splitlines()
-                   if "_valor(" in l and ("bien" in l or "compare_digest" in l or "==" in l)]
-    assert comparacion, "no encuentro la comparación de la credencial en verifica()"
-    junto = " ".join(comparacion)
-    assert "compare_digest" in junto, (
-        "la credencial se compara sin compare_digest: " + junto.strip())
-    assert "==" not in junto.replace("!=", ""), (
-        "la credencial se compara con ==: " + junto.strip())
+    def funcion(nombre):
+        i = fuente.index("def %s(" % nombre)
+        fin = fuente.find("\ndef ", i + 1)
+        return fuente[i:] if fin < 0 else fuente[i:fin]
+
+    # Desde la 006 todas las comparaciones pasan por un solo sitio, `_igual`, que compara bytes
+    # con compare_digest (con texto falla si hay letras fuera de ASCII). Se mira que lo haga...
+    igual = funcion("_igual")
+    assert "compare_digest" in igual and "==" not in igual, igual
+    # ...y que cada comparación de la credencial vaya por él y nunca por ==.
+    for nombre in ("verifica", "contrasena_valida", "es_superadmin"):
+        cuerpo = funcion(nombre)
+        comparacion = [l for l in cuerpo.splitlines() if "_valor(" in l or "usuario()" in l]
+        assert comparacion, "no encuentro la comparación de la credencial en %s()" % nombre
+        junto = " ".join(comparacion)
+        assert "_igual(" in junto, "%s() compara sin _igual: %s" % (nombre, junto.strip())
+        assert "==" not in junto.replace("!=", ""), "%s() compara con ==: %s" % (nombre, junto.strip())
 
 
 # --- Un administrador se la pone a alguien --------------------------------------------

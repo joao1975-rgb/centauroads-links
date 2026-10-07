@@ -337,7 +337,7 @@ def test_tras_entrar_va_a_donde_iba(cliente, db):
     usuario = _alta(db, "jefa@gmail.com", rol="admin")
     cliente.cookies.set(sesion.COOKIE, sesion.crear(usuario.id, usuario.email))
     html = cliente.get("/panel/entrar", params={"destino": "/panel/textos"}).text
-    assert 'location.href = "/panel/textos"' in html
+    assert 'var destino = "/panel/textos";' in html
     cliente.cookies.clear()
 
 

@@ -106,6 +106,7 @@ _PAGINA = """<!DOCTYPE html>
   <div class="arriba">
     <div class="marca">Centauro ADS</div>
     <nav class="nav" aria-label="Panel">
+      <a href="/panel/inicio">Inicio</a>
       <a href="/static/email/compositor.html">Volver al compositor</a>
       <a href="/panel/salir">Salir</a>
     </nav>
@@ -275,16 +276,19 @@ _PAGINA = """<!DOCTYPE html>
     campo(caja, 'e-' + u.id + '-correo', 'Correo', correo);
     campo(caja, 'e-' + u.id + '-nombre', 'Nombre', nombre);
     campo(caja, 'e-' + u.id + '-rol', 'Rol', rol);
-    if (soyYo) {
+    if (u.superadmin) {
+      correo.disabled = true; rol.disabled = true;
+      caja.appendChild(el('p', 'nota', 'Es la cuenta del superadmin: su correo, su rol y su contraseña se gestionan en EasyPanel. Aquí solo se cambia el nombre.'));
+    } else if (soyYo) {
       rol.disabled = true;
       caja.appendChild(el('p', 'nota', 'Tu propio rol no se puede cambiar: así siempre queda alguien que administre el equipo.'));
     }
     var botones = el('div', 'botones');
     botones.appendChild(boton('Guardar cambios', '', function () {
       var cambios = {};
-      if (correo.value.trim().toLowerCase() !== u.email) cambios.email = correo.value.trim();
+      if (!u.superadmin && correo.value.trim().toLowerCase() !== u.email) cambios.email = correo.value.trim();
       if (nombre.value.trim() !== (u.nombre || '')) cambios.nombre = nombre.value.trim();
-      if (!soyYo && rol.value !== u.rol) cambios.rol = rol.value;
+      if (!soyYo && !u.superadmin && rol.value !== u.rol) cambios.rol = rol.value;
       if (!Object.keys(cambios).length) { caja.remove(); return; }
       api('PATCH', '/api/panel/usuarios/' + u.id, cambios).then(function (d) {
         if (soyYo) { yo.email = d.email; document.getElementById('soy').textContent = 'Has entrado como ' + d.email + '.'; }
@@ -307,14 +311,19 @@ _PAGINA = """<!DOCTYPE html>
       quien.appendChild(el('b', null, u.nombre || u.email));
       quien.appendChild(el('span', 'correo', u.email));
       var meta = el('div', 'meta');
-      meta.appendChild(el('span', 'etq' + (u.rol === 'admin' ? ' admin' : ''), u.rol === 'admin' ? 'Administrador' : 'Comercial'));
+      // El superadmin es la cuenta de la credencial de EasyPanel (006): se dice, y no se le ofrece
+      // ni contraseña ni retirar el acceso, que la API rechazaría.
+      meta.appendChild(el('span', 'etq' + (u.rol === 'admin' ? ' admin' : ''),
+        u.superadmin ? 'Superadmin' : u.rol === 'admin' ? 'Administrador' : 'Comercial'));
       if (!u.activo) meta.appendChild(el('span', 'etq fuera', 'Sin acceso'));
       meta.appendChild(el('span', 'cuando', fecha(u.ultima_entrada)));
       quien.appendChild(meta);
       li.appendChild(quien);
       var acc = el('div', 'acciones');
       acc.appendChild(boton('Editar', 'suave', function () { formEdita(li, u); }, 'Editar a ' + u.email));
-      if (u.activo) {
+      if (u.superadmin) {
+        // nada más: su contraseña y su acceso los manda EasyPanel
+      } else if (u.activo) {
         if (!esYo(u)) acc.appendChild(boton('Poner contraseña', 'suave', function () { formClave(li, u); }, 'Poner contraseña a ' + u.email));
         if (!esYo(u)) {
           acc.appendChild(boton('Retirar acceso', 'peligro', function () {
@@ -375,7 +384,14 @@ _PAGINA = """<!DOCTYPE html>
 
   api('GET', '/api/auth/yo').then(function (d) {
     yo = d;
-    document.getElementById('soy').textContent = 'Has entrado como ' + d.email + '.';
+    document.getElementById('soy').textContent = 'Has entrado como ' + d.email + (d.superadmin ? ' (superadmin).' : '.');
+    if (d.superadmin) {
+      // Su contraseña es SUPERADMIN_PASS: aquí no se cambia (la API lo rechazaría).
+      var f = document.getElementById('f-mia');
+      f.hidden = true;
+      f.parentNode.querySelector('.nota').textContent =
+        'Eres el superadmin: tu contraseña es la de EasyPanel (SUPERADMIN_PASS) y se cambia allí, en el servicio centauro-links → Entorno.';
+    }
     if (d.rol === 'admin') {
       document.getElementById('lista').hidden = false;
       document.getElementById('alta').hidden = false;

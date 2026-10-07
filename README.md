@@ -81,8 +81,20 @@ Comprueba que responde: `http://localhost:8005/health` → `{"status":"ok",...}`
 
 ### 4. Primer acceso
 
-`PANEL_BOOTSTRAP` da de alta tu correo como administrador, pero **sin contraseña**. La primera se la
-pone la credencial de arranque (`SUPERADMIN_*`), una sola vez:
+Abre **`http://localhost:8005/panel`** y entra con la credencial de superadmin: en «Correo» el valor
+de `SUPERADMIN_USER` y en «Contraseña» el de `SUPERADMIN_PASS`. Llegas al **Centro de control**
+(`/panel/inicio`), con tres salidas: el compositor, la administración (Líneas de negocio y Textos de
+los perfiles) y los accesos (**Equipo**), donde se dan de alta las cuentas del equipo, se les cambia el
+rol y se les pone contraseña.
+
+La cuenta del superadmin es una fila más de la lista, sin contraseña guardada: la suya es siempre
+`SUPERADMIN_PASS` y se cambia en el entorno (EasyPanel), no en el panel. Desde el panel no se le puede
+dar de baja, cambiar el rol o el correo, ni poner contraseña.
+
+Después de entrar, los administradores llegan al Centro de control y los comerciales al compositor.
+
+Si prefieres la consola, la credencial de superadmin también pone la primera contraseña a una cuenta
+que ya esté en la lista (`PANEL_BOOTSTRAP` o Equipo):
 
 ```bash
 curl -X POST http://localhost:8005/api/panel/arranque/contrasena \
@@ -97,16 +109,7 @@ Invoke-RestMethod -Method Post -Uri http://localhost:8005/api/panel/arranque/con
   -Body '{"user":"arranque","password":"<SUPERADMIN_PASS>","email":"tu.correo@centauroads.com","nueva":"<tu contraseña>"}'
 ```
 
-Responde `{"ok":true,...}`. Abre **`http://localhost:8005/panel`**, entra con tu correo y esa
-contraseña, y llegas al compositor.
-
-Para dar de alta al resto del equipo **todavía no hay pantalla**: lo hace un administrador con el API,
-usando su propia sesión (o añadiendo correos a `PANEL_BOOTSTRAP` y repitiendo este paso):
-
-```text
-POST /api/panel/usuarios                    {"email": "nuevo@centauroads.com", "nombre": "Nombre"}
-POST /api/panel/usuarios/{id}/contrasena    {"password": "<12+ caracteres>"}
-```
+Responde `{"ok":true,...}` y esa cuenta ya puede entrar con su correo y esa contraseña.
 
 Quien tenga Google no necesita contraseña si está configurado `GOOGLE_CLIENT_ID`.
 
@@ -209,6 +212,7 @@ un administrador sin programar (especificación 005); los comerciales lo ven sin
 | Dirección | Qué es | Acceso |
 |---|---|---|
 | `/panel` | Pantalla de entrada (la que se comparte) | público |
+| `/panel/inicio` | Centro de control: compositor, administración y accesos | administradores; un comercial va al compositor |
 | `/static/email/compositor.html` | El compositor | **con sesión**; sin ella lleva a `/panel/entrar` y vuelve |
 | `/panel/lineas` | Líneas de negocio | con sesión; editar, solo administradores |
 | `/panel/textos` | Textos de los perfiles | con sesión; cambiar, solo administradores |

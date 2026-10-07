@@ -71,18 +71,14 @@ def test_quien_olvida_su_contrasena_solo_ve_que_la_pida_a_un_administrador(clien
     assert "superadmin" not in olvido.lower() and "<input" not in olvido
 
 
-def test_la_recuperacion_de_emergencia_va_aparte_y_para_el_responsable(cliente):
+def test_la_entrada_ya_no_tiene_formulario_de_superadmin(cliente):
+    """
+    Especificación 006: el responsable entra con la credencial de superadmin en la misma pantalla
+    que todos. La ruta de recuperación por API se queda (consola), pero sin ventana en la entrada.
+    """
     html = cliente.get("/panel/entrar").text
-    emergencia = _ventana(html, "emergencia")
-    assert "superadmin" in emergencia.lower()
-    assert 'id="abre-emergencia"' in html and "responsable del panel" in html
-    assert ARRANQUE in html
-
-
-def test_la_ventana_pide_lo_que_pide_la_ruta(cliente):
-    html = cliente.get("/panel/entrar").text
-    for campo in ('id="r-user"', 'id="r-pass"', 'id="r-email"', 'id="r-nueva"', 'id="r-otra"'):
-        assert campo in html, campo
+    assert 'id="emergencia"' not in html and 'id="r-user"' not in html
+    assert ARRANQUE not in html
 
 
 # --- La recuperación de emergencia funciona de punta a punta ------------------------------------

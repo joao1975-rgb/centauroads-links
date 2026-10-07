@@ -107,6 +107,7 @@ app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), na
 # ---------------------------------------------------------------------------
 from .auth.rutas import router as router_auth, asegura_bootstrap  # noqa: E402
 from .auth.equipo import router as router_equipo  # noqa: E402
+from .auth.inicio import router as router_inicio  # noqa: E402
 from .mails.entregas import router as router_entregas  # noqa: E402
 from .mails.catalogo import router as router_catalogo  # noqa: E402
 from .mails.catalogo.siembra import siembra as siembra_catalogo  # noqa: E402
@@ -114,6 +115,7 @@ from .mails.textos import router as router_textos  # noqa: E402
 
 app.include_router(router_auth)
 app.include_router(router_equipo)
+app.include_router(router_inicio)
 app.include_router(router_entregas)
 app.include_router(router_catalogo)
 app.include_router(router_textos)

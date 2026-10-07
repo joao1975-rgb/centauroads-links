@@ -325,8 +325,9 @@ def test_el_destino_no_se_escapa_de_su_cadena(destino):
     from fastapi.testclient import TestClient
     from app.main import app
     cuerpo = TestClient(app).get("/panel/entrar", params={"destino": destino}).text
-    linea = [l for l in cuerpo.splitlines() if "location.href" in l][0]
-    assert linea.strip() == 'location.href = "/static/email/compositor.html";', (
+    # Desde la 006 el destino se escribe una vez, en `var destino`, y location.href lo usa.
+    linea = [l for l in cuerpo.splitlines() if "var destino =" in l][0]
+    assert linea.strip() == 'var destino = "/static/email/compositor.html";', (
         "el destino %r se coló: %s" % (destino, linea.strip()))
 
 
@@ -335,4 +336,4 @@ def test_un_destino_interno_de_verdad_si_llega():
     from fastapi.testclient import TestClient
     from app.main import app
     cuerpo = TestClient(app).get("/panel/entrar", params={"destino": "/panel"}).text
-    assert 'location.href = "/panel";' in cuerpo
+    assert 'var destino = "/panel";' in cuerpo

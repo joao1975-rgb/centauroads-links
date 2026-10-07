@@ -109,7 +109,7 @@ def _entra(db: Session, usuario: models.PanelUser) -> JSONResponse:
     usuario.last_login_at = datetime.now(timezone.utc)
     db.commit()
     respuesta = JSONResponse({"email": usuario.email, "nombre": usuario.nombre,
-                              "rol": usuario.rol})
+                              "rol": usuario.rol, "superadmin": superadmin.es_superadmin(usuario.email)})
     sesion.poner(respuesta, usuario.id, usuario.email)
     log.info("entra al panel: %s", usuario.email)
     return respuesta
@@ -138,6 +138,8 @@ def entrar_con_google(datos: EntradaGoogle, db: Session = Depends(get_db)):
 def entrar_con_contrasena(datos: EntradaLocal, request: Request, db: Session = Depends(get_db)):
     """La excepción para quien no tenga cuenta de Google (FR-001b). Con límite de intentos."""
     intentos.comprueba(request, "entrada", intentos.MAX_ENTRADA)
+    if superadmin.es_superadmin(datos.email):
+        return _entra_superadmin(db, datos.password, request)
     usuario = _autorizado(db, datos.email)
     if not usuario or not usuario.password_hash:
         intentos.fallo(request, "entrada")
@@ -150,6 +152,40 @@ def entrar_con_contrasena(datos: EntradaLocal, request: Request, db: Session = D
     return _entra(db, usuario)
 
 
+def _entra_superadmin(db: Session, contrasena: str, request: Request) -> JSONResponse:
+    """
+    La credencial de EasyPanel abre sesión (especificación 006). Su cuenta es una fila más de la
+    lista, que se crea o se reactiva aquí, siempre como administradora y **sin contraseña guardada**:
+    la suya es SUPERADMIN_PASS, y se comprueba cada vez. Un fallo cuenta como cualquier otro.
+    """
+    # La llave más valiosa conserva su límite más estricto: 5 fallos, no los 10 de una cuenta normal.
+    intentos.comprueba(request, "superadmin", intentos.MAX_SUPERADMIN)
+    if not superadmin.contrasena_valida(contrasena):
+        log.warning("contraseña de superadmin incorrecta desde %s", intentos.direccion(request))
+        intentos.fallo(request, "entrada")
+        intentos.fallo(request, "superadmin")
+        raise HTTPException(status_code=403, detail=_RECHAZO)
+    intentos.acierto(request, "entrada")
+    intentos.acierto(request, "superadmin")
+    email = superadmin.usuario()
+    usuario = db.query(models.PanelUser).filter(models.PanelUser.email == email).first()
+    if not usuario:
+        usuario = models.PanelUser(email=email, nombre="Superadmin", rol="admin", activo=True)
+        db.add(usuario)
+    usuario.activo, usuario.rol, usuario.password_hash = True, "admin", None
+    log.warning("entra el superadmin (%s) desde %s", email, intentos.direccion(request))
+    return _entra(db, usuario)
+
+
+def _no_es_el_superadmin(usuario: models.PanelUser) -> None:
+    """Su cuenta la manda EasyPanel: desde el panel no se le da de baja, ni rol, ni contraseña."""
+    if superadmin.es_superadmin(usuario.email):
+        raise HTTPException(
+            status_code=403,
+            detail="Esa es la cuenta del superadmin: se gestiona en EasyPanel "
+                   "(SUPERADMIN_USER y SUPERADMIN_PASS).")
+
+
 @router.post("/api/auth/salir")
 def salir():
     respuesta = JSONResponse({"ok": True})
@@ -159,7 +195,8 @@ def salir():
 
 @router.get("/api/auth/yo")
 def quien_soy(usuario: models.PanelUser = Depends(usuario_actual)):
-    return {"email": usuario.email, "nombre": usuario.nombre, "rol": usuario.rol}
+    return {"email": usuario.email, "nombre": usuario.nombre, "rol": usuario.rol,
+            "superadmin": superadmin.es_superadmin(usuario.email)}
 
 
 # ---------------------------------------------------------------------------
@@ -176,7 +213,7 @@ class UsuarioEntrada(BaseModel):
 def listar_usuarios(db: Session = Depends(get_db),
                     _: models.PanelUser = Depends(solo_admin)) -> List[dict]:
     return [{"id": u.id, "email": u.email, "nombre": u.nombre, "rol": u.rol,
-             "activo": u.activo,
+             "activo": u.activo, "superadmin": superadmin.es_superadmin(u.email),
              "ultima_entrada": u.last_login_at.isoformat() if u.last_login_at else None}
             for u in db.query(models.PanelUser).order_by(models.PanelUser.email).all()]
 
@@ -187,6 +224,8 @@ def alta_usuario(datos: UsuarioEntrada, db: Session = Depends(get_db),
     email = datos.email.strip().lower()
     if datos.rol not in ("admin", "comercial"):
         raise HTTPException(status_code=400, detail="El rol solo puede ser admin o comercial")
+    if superadmin.es_superadmin(email):
+        _no_es_el_superadmin(models.PanelUser(email=email))
     existente = db.query(models.PanelUser).filter(models.PanelUser.email == email).first()
     if existente:
         # Volver a dar de alta a quien ya estuvo es reactivar su fila, no crear otra: así su
@@ -214,6 +253,7 @@ def baja_usuario(usuario_id: int, db: Session = Depends(get_db),
     usuario = db.query(models.PanelUser).filter(models.PanelUser.id == usuario_id).first()
     if not usuario:
         raise HTTPException(status_code=404, detail="No encontrado")
+    _no_es_el_superadmin(usuario)
     if usuario.id == quien.id:
         raise HTTPException(status_code=400,
                             detail="No puedes retirarte el acceso a ti mismo")
@@ -253,6 +293,9 @@ def edita_usuario(usuario_id: int, datos: UsuarioCambios, db: Session = Depends(
     if not usuario:
         raise HTTPException(status_code=404, detail="No encontrado")
     antes = (usuario.email, usuario.rol)
+    # Del superadmin solo se corrige el nombre: su correo es SUPERADMIN_USER y su rol, admin.
+    if datos.rol is not None or datos.email is not None:
+        _no_es_el_superadmin(usuario)
     if datos.rol is not None:
         if datos.rol not in ("admin", "comercial"):
             raise HTTPException(status_code=400, detail="El rol solo puede ser admin o comercial")
@@ -262,6 +305,10 @@ def edita_usuario(usuario_id: int, datos: UsuarioCambios, db: Session = Depends(
         usuario.rol = datos.rol
     if datos.email is not None:
         email = datos.email.strip().lower()
+        # Nadie se convierte en el superadmin renombrando su cuenta: antes de su primera entrada
+        # no hay fila con ese correo y el control de duplicados no lo cazaba (revisión 006, M1).
+        if superadmin.es_superadmin(email):
+            _no_es_el_superadmin(models.PanelUser(email=email))
         if not _CORREO.fullmatch(email):
             raise HTTPException(status_code=400, detail="Ese correo no tiene un formato válido")
         otro = db.query(models.PanelUser).filter(models.PanelUser.email == email,
@@ -330,8 +377,9 @@ def contrasena_de_arranque(datos: ArranqueContrasena, request: Request,
     que añadió un administrador). No da de alta a nadie: si esta ruta pudiera crear cuentas, la
     credencial de superadmin sería una puerta trasera al panel en vez de una llave de emergencia.
 
-    También la usa la ventana «¿Olvidaste tu contraseña?» de la pantalla de entrada, que la deja a
-    la vista: por eso cuenta los fallos y cierra tras `intentos.MAX_SUPERADMIN`.
+    Desde la 006 el responsable entra directamente con la credencial de superadmin y pone las
+    contraseñas desde Equipo, así que esta ruta ya no tiene ventana en la entrada: queda para la
+    recuperación desde la consola. Cuenta los fallos y cierra tras `intentos.MAX_SUPERADMIN`.
     """
     intentos.comprueba(request, "superadmin", intentos.MAX_SUPERADMIN)
     try:
@@ -348,6 +396,7 @@ def contrasena_de_arranque(datos: ArranqueContrasena, request: Request,
             status_code=404,
             detail="Ese correo no está en la lista de autorizados. Añádelo primero "
                    "(PANEL_BOOTSTRAP o un administrador).")
+    _no_es_el_superadmin(usuario)
     _pon_contrasena(usuario, datos.nueva)
     db.commit()
     log.warning("contraseña de %s fijada con la credencial de superadmin", usuario.email)
@@ -362,6 +411,7 @@ def contrasena_de_otro(usuario_id: int, datos: ContrasenaNueva,
     usuario = db.query(models.PanelUser).filter(models.PanelUser.id == usuario_id).first()
     if not usuario:
         raise HTTPException(status_code=404, detail="No encontrado")
+    _no_es_el_superadmin(usuario)
     _pon_contrasena(usuario, datos.password)
     db.commit()
     log.info("%s fijó la contraseña de %s", quien.email, usuario.email)
@@ -374,6 +424,9 @@ def cambia_mi_contrasena(datos: ContrasenaPropia, db: Session = Depends(get_db),
     """
     Cambiar la propia. Exige la actual: una sesión robada no debe poder dejar fuera a su dueño.
     """
+    if superadmin.es_superadmin(usuario.email):
+        raise HTTPException(status_code=400,
+                            detail="La contraseña del superadmin se cambia en EasyPanel (SUPERADMIN_PASS).")
     if not usuario.password_hash or not local.verificar(usuario.password_hash, datos.actual):
         raise HTTPException(status_code=403, detail="La contraseña actual no es correcta")
     _pon_contrasena(usuario, datos.nueva)
@@ -418,7 +471,6 @@ _ENTRADA = """<!DOCTYPE html>
   button.enlace {{ width:auto; background:none; padding:0; margin:14px 0 0; color:#C9A3D8;
                    font-size:13px; font-weight:600; text-decoration:underline; text-underline-offset:3px; }}
   button.enlace:hover {{ background:none; color:#EEEDF2; }}
-  button.enlace.discreto {{ margin:6px 0 0; font-size:12px; font-weight:400; color:#8C8598; }}
   button.secundario {{ background:#241F2E; }}
   button.secundario:hover {{ background:#2E2838; }}
   dialog {{ width:calc(100% - 32px); max-width:420px; box-sizing:border-box; background:#1A1622;
@@ -427,7 +479,6 @@ _ENTRADA = """<!DOCTYPE html>
   dialog h2 {{ font-size:19px; margin:0 0 8px; }}
   dialog p {{ font-size:13px; color:#A9A2B5; margin:0 0 14px; }}
   dialog b {{ color:#EEEDF2; }}
-  .emergencia {{ border-top:1px solid #2E2838; padding-top:16px; }}
   .botones {{ display:flex; gap:8px; }}
   .botones button {{ width:auto; white-space:nowrap; }}
   .botones button[type=submit] {{ flex:1; }}
@@ -442,7 +493,7 @@ _ENTRADA = """<!DOCTYPE html>
 
   <form id="local" autocomplete="on">
     <label for="email">Correo</label>
-    <input id="email" name="email" type="email" required autocomplete="username">
+    <input id="email" name="email" type="text" inputmode="email" required autocomplete="username" spellcheck="false">
     <label for="clave">Contraseña</label>
     <input id="clave" name="password" type="password" required autocomplete="current-password">
     <button type="submit">Entrar</button>
@@ -451,10 +502,9 @@ _ENTRADA = """<!DOCTYPE html>
   <div class="aviso" id="aviso" role="alert" hidden></div>
   <button type="button" class="enlace" id="abre-olvido">¿Olvidaste tu contraseña?</button>
   <p class="pie">Si no puedes entrar, pide que añadan tu correo a la lista del panel.</p>
-  <button type="button" class="enlace discreto" id="abre-emergencia">Soy el responsable del panel y nadie puede entrar</button>
 
-  <!-- Lo que ve cualquiera que olvidó su contraseña: a quién pedirla, sin formularios. La
-       recuperación con la credencial de superadmin es otra cosa y va en su propia ventana. -->
+  <!-- Lo que ve cualquiera que olvidó su contraseña: a quién pedirla, sin formularios. El
+       responsable del panel entra aquí mismo con la credencial de superadmin (especificación 006). -->
   <dialog id="olvido" aria-labelledby="t-olvido">
     <h2 id="t-olvido">¿Olvidaste tu contraseña?</h2>
     <p>Pídele a un <b>administrador</b> del panel que te ponga una nueva desde
@@ -463,32 +513,12 @@ _ENTRADA = """<!DOCTYPE html>
     <div class="botones"><button type="button" class="secundario" id="cierra-olvido">Entendido</button></div>
   </dialog>
 
-  <dialog id="emergencia" aria-labelledby="t-emergencia">
-    <h2 id="t-emergencia">Acceso de emergencia</h2>
-    <form id="f-olvido" class="emergencia" autocomplete="off">
-      <p>Solo para el responsable del panel, cuando <b>ningún administrador</b> puede entrar. Pone
-        una contraseña nueva a cualquier cuenta de la lista. Necesita la credencial de superadmin,
-        que está en EasyPanel → servicio <b>centauro-links</b> → Entorno
-        (<b>SUPERADMIN_USER</b> y <b>SUPERADMIN_PASS</b>): no es tu correo ni tu contraseña.</p>
-      <label for="r-user">Usuario de superadmin (el de EasyPanel)</label>
-      <input id="r-user" type="text" required autocomplete="off" spellcheck="false">
-      <label for="r-pass">Contraseña de superadmin</label>
-      <input id="r-pass" type="password" required autocomplete="off">
-      <label for="r-email">Correo de la cuenta a recuperar</label>
-      <input id="r-email" type="email" required autocomplete="off">
-      <label for="r-nueva">Contraseña nueva (12 caracteres o más)</label>
-      <input id="r-nueva" type="password" minlength="12" required autocomplete="new-password">
-      <label for="r-otra">Repite la contraseña nueva</label>
-      <input id="r-otra" type="password" minlength="12" required autocomplete="new-password">
-      <div class="aviso" id="aviso-olvido" role="alert" hidden></div>
-      <div class="botones" style="margin-top:16px">
-        <button type="submit">Guardar contraseña</button>
-        <button type="button" class="secundario" id="cierra-emergencia">Cerrar</button>
-      </div>
-    </form>
-  </dialog>
 </main>
 <script>
+  // A dónde ir al entrar. Sin un destino pedido, un administrador (también el superadmin) va al
+  // Centro de control y un comercial al compositor (especificación 006).
+  var destino = {destino};
+  var porDefecto = {por_defecto};
   var aviso = document.getElementById('aviso');
   function falla(texto) {{ aviso.className = 'aviso'; aviso.textContent = texto; aviso.hidden = false; }}
   function entra(ruta, cuerpo) {{
@@ -497,7 +527,7 @@ _ENTRADA = """<!DOCTYPE html>
                          body: JSON.stringify(cuerpo) }})
       .then(function (r) {{ return r.json().then(function (d) {{
         if (!r.ok) throw new Error(d.detail || 'No se pudo entrar');
-        location.href = {destino};
+        location.href = porDefecto && d.rol === 'admin' ? '/panel/inicio' : destino;
       }}); }})
       .catch(function (e) {{ falla(e.message); }});
   }}
@@ -517,42 +547,6 @@ _ENTRADA = """<!DOCTYPE html>
   var olvido = document.getElementById('olvido');
   document.getElementById('abre-olvido').addEventListener('click', function () {{ abre(olvido); }});
   document.getElementById('cierra-olvido').addEventListener('click', function () {{ cierra(olvido); }});
-
-  // El acceso de emergencia del responsable. Llama a la misma ruta que la recuperacion desde
-  // PowerShell; el servidor limita los fallos, asi que aqui solo se explica cada respuesta.
-  var ventana = document.getElementById('emergencia');
-  var avisoO = document.getElementById('aviso-olvido');
-  function fallaO(texto) {{ avisoO.textContent = texto; avisoO.hidden = false; }}
-  document.getElementById('abre-emergencia').addEventListener('click', function () {{
-    document.getElementById('r-email').value = document.getElementById('email').value;
-    avisoO.hidden = true;
-    abre(ventana);
-    document.getElementById('r-user').focus();
-  }});
-  document.getElementById('cierra-emergencia').addEventListener('click', function () {{ cierra(ventana); }});
-  document.getElementById('f-olvido').addEventListener('submit', function (ev) {{
-    ev.preventDefault();
-    var nueva = document.getElementById('r-nueva').value;
-    if (nueva !== document.getElementById('r-otra').value) {{ fallaO('Las dos contraseñas nuevas no coinciden.'); return; }}
-    avisoO.hidden = true;
-    fetch('/api/panel/arranque/contrasena', {{ method: 'POST', headers: {{ 'Content-Type': 'application/json' }},
-      body: JSON.stringify({{ user: document.getElementById('r-user').value,
-                              password: document.getElementById('r-pass').value,
-                              email: document.getElementById('r-email').value, nueva: nueva }}) }})
-      .then(function (r) {{ return r.json().catch(function () {{ return {{}}; }}).then(function (d) {{
-        if (r.status === 401) throw new Error('Usuario o contraseña de superadmin incorrectos.');
-        if (!r.ok) throw new Error(d.detail || 'No se pudo cambiar la contraseña.');
-        ev.target.reset();
-        if (ventana.close) ventana.close(); else ventana.removeAttribute('open');
-        document.getElementById('email').value = d.email;
-        document.getElementById('clave').value = '';
-        aviso.className = 'aviso ok';
-        aviso.textContent = 'Contraseña nueva puesta para ' + d.email + '. Escríbela arriba para entrar.';
-        aviso.hidden = false;
-        document.getElementById('clave').focus();
-      }}); }})
-      .catch(function (e) {{ fallaO(e.message); }});
-  }});
 </script>
 </body></html>"""
 
@@ -603,8 +597,9 @@ def pantalla_de_entrada(request: Request, destino: str = COMPOSITOR):
     # Serializado, no interpolado: json.dumps escapa comillas, barras y saltos de linea, y
     # produce un literal JavaScript valido. Interpolar dentro de comillas a mano es justo el
     # fallo que esto arregla.
-    respuesta = HTMLResponse(_ENTRADA.format(script_google=script, bloque_google=bloque,
-                                             destino=json.dumps(destino)))
+    respuesta = HTMLResponse(_ENTRADA.format(
+        script_google=script, bloque_google=bloque, destino=json.dumps(destino),
+        por_defecto="false" if "destino" in request.query_params else "true"))
     sesion.quitar(respuesta)
     # Sin caché: con «atrás» el navegador no debe enseñar una entrada vieja ni saltársela.
     respuesta.headers["Cache-Control"] = "no-store"

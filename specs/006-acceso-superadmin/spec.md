@@ -84,6 +84,18 @@ de rol ni ponerle contraseña: su contraseña es la de EasyPanel.
 - **La fila del superadmin estaba dada de baja o como comercial**: al entrar con la credencial vuelve a
   quedar activa y como administradora.
 - **El superadmin intenta cambiar «Tu contraseña»**: se le dice que se cambia en EasyPanel.
+- **Un administrador intenta renombrar una cuenta al correo del superadmin** (antes de que este haya
+  entrado no hay fila con ese correo): se rechaza (revisión de seguridad, M1).
+- **Límite de intentos**: los fallos con el usuario de superadmin cuentan también en su propio límite,
+  más estricto (5 en 15 minutos), el que ya tenía la llave (revisión de seguridad, L1).
+
+## Limitaciones aceptadas (revisión de seguridad, 2026-10-07)
+
+- **Cambiar `SUPERADMIN_PASS` no cierra una sesión ya abierta**: dura hasta 8 horas, como cualquier
+  sesión. Si la credencial se filtra, además de cambiarla conviene reiniciar el servicio con otro
+  `SESSION_SECRET` (cierra todas las sesiones).
+- **Entrada con Google**: si se configura `GOOGLE_CLIENT_ID` y `SUPERADMIN_USER` es una cuenta de Gmail
+  real, entrar con esa cuenta de Google equivale a saber la contraseña de superadmin.
 
 ## Requirements *(mandatory)*
 
