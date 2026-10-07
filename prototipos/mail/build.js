@@ -98,6 +98,18 @@ if (kbOut > 15 * 1024) {
   console.log('OK app/static/email/catalogo-serie.json', M.catalogoActual().lineas.length, 'lineas');
 }
 
+// Textos de los perfiles de serie (005): el servidor valida contra este archivo las claves que se
+// pueden cambiar y muestra el texto de serie de cada una. Sale del render.js, como el catalogo.
+{
+  const destino = path.join(here, '..', '..', 'app', 'static', 'email', 'textos-perfil-serie.json');
+  const serie = {
+    perfiles: Object.keys(M.PERFILES).map(function (id) { return { id: id, nombre: M.PERFILES[id].nombre }; }),
+    textos: M.textosActuales(),
+  };
+  fs.writeFileSync(destino, JSON.stringify(serie, null, 1) + '\n', 'utf8');
+  console.log('OK app/static/email/textos-perfil-serie.json', serie.textos.length, 'textos');
+}
+
 // 3. Guardia de contenido: la construcción falla si reaparece un dato de contacto retirado, o si falta uno vigente.
 const PROHIBIDO = ['412 000 0000', '412 1003559', 'www.centauroads.com', 'contacto@centauroads'];
 const OBLIGATORIO = ['+58 412 100 3559', 'linktr.ee/centauroadss', 'mercadeo@centauroads.com'];

@@ -21,13 +21,14 @@ borrar la fila; guardar un texto igual al de serie, también.
 
 | Grupo | Clave | Cuántos |
 |---|---|---|
-| Mensaje del perfil | `<perfil>.<campo>` — asunto, preheader, titulo, sub, intro, cierre, cta | 4 × 7 |
+| Mensaje del perfil | `<perfil>.<campo>` — preheader, titulo, sub, intro, cierre, cta (agencia, nuevo, phygital) | 3 × 6 |
 | Asuntos | `<perfil>.asunto.<directo\|beneficio\|curiosidad>` | 4 × 3 |
 | Ruta (cliente nuevo) | `nuevo.ruta.<1-3>.<titulo\|formato\|objetivo\|resuelve>` | 12 |
 | Puente (phygital) | `phygital.puente.<1-3>.<titulo\|texto>` y `phygital.puente.nota` | 7 |
 | Tabla (agencias) | `agencia.tabla.<espacio\|medidas\|trafico>` | 3 |
 
-La clave no cambia aunque cambie el texto. La etiqueta de cada asunto (Directo, Beneficio, Curiosidad) no
+El `asunto` propio del perfil no se ofrece: en el correo siempre manda uno de los tres asuntos o el
+escrito a mano. El General no tiene mensaje propio. La clave no cambia aunque cambie el texto. La etiqueta de cada asunto (Directo, Beneficio, Curiosidad) no
 se edita (FR-502).
 
 ## R4 — Cómo los aplica el motor

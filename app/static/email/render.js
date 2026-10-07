@@ -735,12 +735,16 @@
     const pf = PERFILES[st.perfil];
     if (!pf || !pf.bloque) return st;
     const p = JSON.parse(JSON.stringify(st));
-    if (pf.asunto) p.asunto = pf.asunto;
-    if (pf.preheader) p.preheader = pf.preheader;
-    if (pf.titulo) { p.bloques.titulo.texto = pf.titulo; p.bloques.titulo.sub = pf.sub; }
-    if (pf.intro) p.bloques.intro.texto = pf.intro;
-    if (pf.cierre) p.bloques.cierre.texto = pf.cierre;
-    if (pf.cta) p.bloques.cta.texto = pf.cta;
+    // Los textos del perfil los edita el equipo (005): los marcadores valen en todos, no solo en la
+    // entrada, que es el unico que el render pasa por fill().
+    // El asunto no se toca: lo pone aplicaAsunto (uno de los tres del perfil) o lo escribe quien
+    // redacta. Antes aqui se ponia pf.asunto, que pisaba el asunto escrito a mano.
+    const f = function (x) { return fill(x, st); };
+    if (pf.preheader) p.preheader = f(pf.preheader);
+    if (pf.titulo) { p.bloques.titulo.texto = f(pf.titulo); p.bloques.titulo.sub = f(pf.sub); }
+    if (pf.intro) p.bloques.intro.texto = f(pf.intro);
+    if (pf.cierre) p.bloques.cierre.texto = f(pf.cierre);
+    if (pf.cta) p.bloques.cta.texto = f(pf.cta);
     if (pf.orden) {
       const pos = {}; pf.orden.forEach(function (id, i) { pos[id] = i; });
       p.servicios = p.servicios.slice().sort(function (a, b) {
@@ -1199,7 +1203,7 @@
     const elegido = asuntosDe(st).filter(function (x) { return x.clave === st.asunto3; })[0];
     if (!elegido) return st;
     const p = JSON.parse(JSON.stringify(st));
-    p.asunto = elegido.texto;
+    p.asunto = fill(elegido.texto, st);
     return p;
   }
 
@@ -2154,5 +2158,47 @@
     return true;
   }
 
-  return { C, SERVICIOS, GRUPOS, TEMPLATES, IMG_SETS, PERFILES, ASUNTOS, asuntosDe, EFECTOS, efectoDe, pesoDe, rangoPeso, ROLES, CORREOS, cargoDe, correosDe, BANCO, bancoDe, fotosDe, comandoCarrusel, FICHA, CONTENT_VERSION, defaultState, catalogoActual, ponCatalogo, render, renderText, renderWhatsApp, linkFor, cambiaElCorreo, fechasPasadas, pick, aplicaPerfil, aplicaAsunto, normaliza };
+  // ── Textos de los perfiles (especificacion 005) ──
+  // Los de serie son PERFILES y ASUNTOS tal como estan escritos arriba. `textosActuales()` los entrega
+  // con una clave estable; build.js los exporta a textos-perfil-serie.json y el servidor valida las
+  // claves contra ese archivo. `ponTextos()` recibe solo los que el equipo cambio y los aplica EN SITIO
+  // sobre los de serie, asi que `ponTextos({})` deja el motor como estaba.
+  // Sin el `asunto` del perfil: en el correo manda uno de los tres asuntos o el escrito a mano.
+  const CAMPOS_PERFIL = [
+    ['preheader', 'Texto previo (el que se ve en la bandeja)', 200],
+    ['titulo', 'Título', 120], ['sub', 'Subtítulo', 120], ['intro', 'Entrada', 600],
+    ['cierre', 'Cierre', 600], ['cta', 'Texto del botón', 60],
+  ];
+  const TEXTOS = [];
+  Object.keys(PERFILES).forEach(function (p) {
+    const pf = PERFILES[p];
+    // El General no tiene mensaje propio: sus textos son los del compositor, que ya se editan alli.
+    if (pf.bloque) CAMPOS_PERFIL.forEach(function (c) {
+      TEXTOS.push({ clave: p + '.' + c[0], perfil: p, grupo: 'Mensaje', etiqueta: c[1], valor: pf[c[0]],
+        limite: c[2], pon: function (v) { pf[c[0]] = v; } });
+    });
+    (ASUNTOS[p] || []).forEach(function (a) {
+      TEXTOS.push({ clave: p + '.asunto.' + a.clave, perfil: p, grupo: 'Asuntos', etiqueta: a.etiqueta,
+        valor: a.texto, limite: 150, pon: function (v) { a.texto = v; } });
+    });
+  });
+  function textosActuales() {
+    return TEXTOS.map(function (t) {
+      return { clave: t.clave, perfil: t.perfil, grupo: t.grupo, etiqueta: t.etiqueta, valor: t.valor, limite: t.limite };
+    });
+  }
+  // Devuelve cuantos textos quedan cambiados. Lo que no es un texto con contenido no cambia nada.
+  function ponTextos(cambios) {
+    const c = cambios && typeof cambios === 'object' ? cambios : {};
+    let puestos = 0;
+    TEXTOS.forEach(function (t) {
+      const v = Object.prototype.hasOwnProperty.call(c, t.clave) ? c[t.clave] : null;
+      const vale = typeof v === 'string' && v.trim() !== '' && v !== t.valor;
+      t.pon(vale ? v : t.valor);
+      if (vale) puestos++;
+    });
+    return puestos;
+  }
+
+  return { C, SERVICIOS, GRUPOS, TEMPLATES, IMG_SETS, PERFILES, ASUNTOS, asuntosDe, EFECTOS, efectoDe, pesoDe, rangoPeso, ROLES, CORREOS, cargoDe, correosDe, BANCO, bancoDe, fotosDe, comandoCarrusel, FICHA, CONTENT_VERSION, defaultState, catalogoActual, ponCatalogo, textosActuales, ponTextos, render, renderText, renderWhatsApp, linkFor, cambiaElCorreo, fechasPasadas, pick, aplicaPerfil, aplicaAsunto, normaliza };
 });

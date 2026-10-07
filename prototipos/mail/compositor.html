@@ -201,6 +201,7 @@
   <div class="brand"><img src="img/logo.jpg" alt="" width="30" height="30"><h1>Compositor de mails</h1><span class="tag">PROTOTIPO</span>
     <nav class="menu" id="menu" aria-label="Panel" hidden>
       <a href="/panel/lineas">Líneas de negocio</a>
+      <a href="/panel/textos">Textos de los perfiles</a>
       <a href="/panel/equipo">Equipo</a>
       <a href="/panel/salir">Salir</a>
     </nav></div>
@@ -574,7 +575,7 @@
       : inputEl('bloques.' + def.k + '.' + k, l, ty, op)));
     b.appendChild(body); return b;
   }
-  // Perfil del destinatario: reescribe asunto, textos y orden de servicios, y añade su bloque propio.
+  // Perfil del destinatario: reescribe textos y orden de servicios, y añade su bloque propio.
   function buildPerfil() {
     const g = el('div', 'grp'); g.appendChild(el('h2', null, 'Perfil del destinatario'));
     const btns = [];
@@ -590,7 +591,7 @@
       });
       btns.push([b, k]); g.appendChild(b);
     });
-    g.appendChild(el('p', 'hint', 'El perfil reescribe asunto, título, introducción, cierre y botón sobre la marcha: los campos de abajo siguen intactos y son los que se usan en el perfil General.'));
+    g.appendChild(el('p', 'hint', 'El perfil reescribe título, introducción, cierre y botón sobre la marcha (sus textos se cambian en «Textos de los perfiles»): los campos de abajo siguen intactos y son los que se usan en el perfil General.'));
     // Claro u oscuro. Solo afecta a los formatos del asesor (E, F, G): los mios llevan
     // su tema fijo por diseno.
     const tema = el('div', 'row');
@@ -1630,6 +1631,12 @@
       if (!M.ponCatalogo(cat)) return;
       st = M.normaliza(st); save(); buildPanel(); buildSeg(); renderPreview();
     }).catch(() => toast('No se pudo cargar el catálogo de líneas: se usa el de serie', 5000));
+    // Textos de los perfiles (005): solo llegan los que el equipo cambio; el resto es el de serie.
+    // Los asuntos del panel salen de M.asuntosDe, asi que hay que rehacerlo.
+    api('/api/textos-perfil').then(cambios => {
+      if (!M.ponTextos(cambios)) return;
+      buildPanel(); renderPreview();
+    }).catch(() => toast('No se pudieron cargar los textos de los perfiles: se usan los de serie', 5000));
   }
 })();
 </script>

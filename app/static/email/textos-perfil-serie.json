@@ -1,0 +1,262 @@
+{
+ "perfiles": [
+  {
+   "id": "general",
+   "nombre": "General"
+  },
+  {
+   "id": "agencia",
+   "nombre": "Agencias y grandes cuentas"
+  },
+  {
+   "id": "nuevo",
+   "nombre": "Cliente nuevo"
+  },
+  {
+   "id": "phygital",
+   "nombre": "Phygital · DOOH + Digital"
+  }
+ ],
+ "textos": [
+  {
+   "clave": "general.asunto.directo",
+   "perfil": "general",
+   "grupo": "Asuntos",
+   "etiqueta": "Directo",
+   "valor": "📍 Centauro ADS · Espacios publicitarios disponibles",
+   "limite": 150
+  },
+  {
+   "clave": "general.asunto.beneficio",
+   "perfil": "general",
+   "grupo": "Asuntos",
+   "etiqueta": "Beneficio",
+   "valor": "🚦 Tu marca en las calles de Caracas: esto es lo que hay libre",
+   "limite": 150
+  },
+  {
+   "clave": "general.asunto.curiosidad",
+   "perfil": "general",
+   "grupo": "Asuntos",
+   "etiqueta": "Curiosidad",
+   "valor": "👀 120.000 personas al día pasan por esta pantalla",
+   "limite": 150
+  },
+  {
+   "clave": "agencia.preheader",
+   "perfil": "agencia",
+   "grupo": "Mensaje",
+   "etiqueta": "Texto previo (el que se ve en la bandeja)",
+   "valor": "Medidas, tráfico y estado de cada espacio: dos pantallas LED, vallas, tótem y 250 riders.",
+   "limite": 200
+  },
+  {
+   "clave": "agencia.titulo",
+   "perfil": "agencia",
+   "grupo": "Mensaje",
+   "etiqueta": "Título",
+   "valor": "Inventario disponible",
+   "limite": 120
+  },
+  {
+   "clave": "agencia.sub",
+   "perfil": "agencia",
+   "grupo": "Mensaje",
+   "etiqueta": "Subtítulo",
+   "valor": "Centauro ADS · Phygital + DOOH + Digital",
+   "limite": 120
+  },
+  {
+   "clave": "agencia.intro",
+   "perfil": "agencia",
+   "grupo": "Mensaje",
+   "etiqueta": "Entrada",
+   "valor": "Te comparto la disponibilidad, con las medidas y el tráfico de cada espacio, para que puedas cerrar el plan de medios sin pedir las fichas por separado.",
+   "limite": 600
+  },
+  {
+   "clave": "agencia.cierre",
+   "perfil": "agencia",
+   "grupo": "Mensaje",
+   "etiqueta": "Cierre",
+   "valor": "Si necesitas un espacio que no aparezca aquí, dímelo y lo busco.",
+   "limite": 600
+  },
+  {
+   "clave": "agencia.cta",
+   "perfil": "agencia",
+   "grupo": "Mensaje",
+   "etiqueta": "Texto del botón",
+   "valor": "Pedir tarifas y disponibilidad",
+   "limite": 60
+  },
+  {
+   "clave": "agencia.asunto.directo",
+   "perfil": "agencia",
+   "grupo": "Asuntos",
+   "etiqueta": "Directo",
+   "valor": "📊 Inventario OOH/DOOH Caracas · disponibilidad actualizada",
+   "limite": 150
+  },
+  {
+   "clave": "agencia.asunto.beneficio",
+   "perfil": "agencia",
+   "grupo": "Asuntos",
+   "etiqueta": "Beneficio",
+   "valor": "🎯 Cinco frentes con métricas comparables para tu próximo mix",
+   "limite": 150
+  },
+  {
+   "clave": "agencia.asunto.curiosidad",
+   "perfil": "agencia",
+   "grupo": "Asuntos",
+   "etiqueta": "Curiosidad",
+   "valor": "📈 Tu próximo Share of Voice, en una sola tabla",
+   "limite": 150
+  },
+  {
+   "clave": "nuevo.preheader",
+   "perfil": "nuevo",
+   "grupo": "Mensaje",
+   "etiqueta": "Texto previo (el que se ve en la bandeja)",
+   "valor": "Una ruta de tres pasos para empezar en publicidad exterior sin experiencia previa.",
+   "limite": 200
+  },
+  {
+   "clave": "nuevo.titulo",
+   "perfil": "nuevo",
+   "grupo": "Mensaje",
+   "etiqueta": "Título",
+   "valor": "Cómo empezar",
+   "limite": 120
+  },
+  {
+   "clave": "nuevo.sub",
+   "perfil": "nuevo",
+   "grupo": "Mensaje",
+   "etiqueta": "Subtítulo",
+   "valor": "Publicidad exterior para marcas que empiezan",
+   "limite": 120
+  },
+  {
+   "clave": "nuevo.intro",
+   "perfil": "nuevo",
+   "grupo": "Mensaje",
+   "etiqueta": "Entrada",
+   "valor": "Dar el salto a la publicidad exterior no es cuestión de presupuesto, es cuestión de orden. Esta es la ruta que seguimos con las marcas que empiezan de cero.",
+   "limite": 600
+  },
+  {
+   "clave": "nuevo.cierre",
+   "perfil": "nuevo",
+   "grupo": "Mensaje",
+   "etiqueta": "Cierre",
+   "valor": "No hace falta ser experto para empezar. Cuéntame qué vendes y te preparo una propuesta a la medida.",
+   "limite": 600
+  },
+  {
+   "clave": "nuevo.cta",
+   "perfil": "nuevo",
+   "grupo": "Mensaje",
+   "etiqueta": "Texto del botón",
+   "valor": "Cuéntame tu negocio",
+   "limite": 60
+  },
+  {
+   "clave": "nuevo.asunto.directo",
+   "perfil": "nuevo",
+   "grupo": "Asuntos",
+   "etiqueta": "Directo",
+   "valor": "🪧 Cómo empezar a anunciar en la calle, paso a paso",
+   "limite": 150
+  },
+  {
+   "clave": "nuevo.asunto.beneficio",
+   "perfil": "nuevo",
+   "grupo": "Asuntos",
+   "etiqueta": "Beneficio",
+   "valor": "✨ Publicidad exterior sin ser experto ni gastar de más",
+   "limite": 150
+  },
+  {
+   "clave": "nuevo.asunto.curiosidad",
+   "perfil": "nuevo",
+   "grupo": "Asuntos",
+   "etiqueta": "Curiosidad",
+   "valor": "🤔 ¿Por dónde se empieza a anunciar en la calle?",
+   "limite": 150
+  },
+  {
+   "clave": "phygital.preheader",
+   "perfil": "phygital",
+   "grupo": "Mensaje",
+   "etiqueta": "Texto previo (el que se ve en la bandeja)",
+   "valor": "Tu pantalla capta la atención. Tu campaña digital cierra la venta. Así conectamos las dos.",
+   "limite": 200
+  },
+  {
+   "clave": "phygital.titulo",
+   "perfil": "phygital",
+   "grupo": "Mensaje",
+   "etiqueta": "Título",
+   "valor": "De la calle al móvil",
+   "limite": 120
+  },
+  {
+   "clave": "phygital.sub",
+   "perfil": "phygital",
+   "grupo": "Mensaje",
+   "etiqueta": "Subtítulo",
+   "valor": "Phygital · DOOH + Digital",
+   "limite": 120
+  },
+  {
+   "clave": "phygital.intro",
+   "perfil": "phygital",
+   "grupo": "Mensaje",
+   "etiqueta": "Entrada",
+   "valor": "El problema ya no es que no te vean. Es que te ven y siguen caminando. Phygital convierte ese impacto en una acción que puedes medir en el teléfono.",
+   "limite": 600
+  },
+  {
+   "clave": "phygital.cierre",
+   "perfil": "phygital",
+   "grupo": "Mensaje",
+   "etiqueta": "Cierre",
+   "valor": "¿Armamos algo que rompa el molde este mes? Con quince minutos basta para plantearlo.",
+   "limite": 600
+  },
+  {
+   "clave": "phygital.cta",
+   "perfil": "phygital",
+   "grupo": "Mensaje",
+   "etiqueta": "Texto del botón",
+   "valor": "Agendar 15 minutos",
+   "limite": 60
+  },
+  {
+   "clave": "phygital.asunto.directo",
+   "perfil": "phygital",
+   "grupo": "Asuntos",
+   "etiqueta": "Directo",
+   "valor": "📲 Phygital · cómo conectar la calle con el móvil",
+   "limite": 150
+  },
+  {
+   "clave": "phygital.asunto.beneficio",
+   "perfil": "phygital",
+   "grupo": "Asuntos",
+   "etiqueta": "Beneficio",
+   "valor": "🔗 La calle capta la atención. El móvil cierra la venta.",
+   "limite": 150
+  },
+  {
+   "clave": "phygital.asunto.curiosidad",
+   "perfil": "phygital",
+   "grupo": "Asuntos",
+   "etiqueta": "Curiosidad",
+   "valor": "⏱️ 9:00 AM en Chacao. 9:03 AM en Instagram.",
+   "limite": 150
+  }
+ ]
+}

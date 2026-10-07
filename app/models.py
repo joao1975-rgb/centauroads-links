@@ -337,3 +337,17 @@ class LineaNegocio(Base):
     activa = Column(Boolean, nullable=False, default=True)
     actualizado_por = Column(String(200), nullable=False, default="")
     actualizado_en = Column(DateTime, default=ahora, onupdate=ahora)
+
+
+class TextoPerfil(Base):
+    """
+    Un texto de perfil que el equipo cambió (especificación 005). Solo hay fila para los cambiados:
+    el de serie vive en el motor y llega por `textos-perfil-serie.json`. Volver al de serie es borrar
+    la fila, y así un texto de serie mejorado llega a quien no lo había tocado.
+    """
+    __tablename__ = "textos_perfil"
+
+    clave = Column(String(80), primary_key=True)
+    valor = Column(Text, nullable=False)
+    actualizado_por = Column(String(200), nullable=False, default="")
+    actualizado_en = Column(DateTime, default=ahora, onupdate=ahora)

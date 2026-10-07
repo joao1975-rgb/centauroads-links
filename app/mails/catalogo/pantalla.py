@@ -118,6 +118,7 @@ _PAGINA = """<!DOCTYPE html>
     <div class="marca">Centauro ADS</div>
     <nav class="nav" aria-label="Panel">
       <a href="/static/email/compositor.html">Volver al compositor</a>
+      <a href="/panel/textos">Textos de los perfiles</a>
       <a href="/panel/equipo">Equipo</a>
       <a href="/panel/salir">Salir</a>
     </nav>
