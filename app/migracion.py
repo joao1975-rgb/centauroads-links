@@ -47,6 +47,9 @@ COLUMNAS_NUEVAS = {
         ("texto_corto", "TEXT"),
         # Nula en las que ya existen, a propósito: ver `models.Entrega.clave`.
         ("clave", "VARCHAR(40)"),
+        # El estilo del título (007). Nulas = lo de hoy.
+        ("tipografia", "VARCHAR(20)"),
+        ("tam_titulo", "VARCHAR(10)"),
     ],
     # «Borrar» un contacto lo retira de la lista sin perder sus entregas (2026-10-07).
     "contacts": [

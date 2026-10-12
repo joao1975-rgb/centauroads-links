@@ -943,6 +943,7 @@
     const p1 = pasoEl('01', 'La presentación', !!E.url);
     p1.appendChild(inputEl('bloques.entrega.url', 'Enlace de Canva del cliente', 'text'));
     p1.appendChild(inputEl('bloques.entrega.titulo', 'Título de la propuesta', 'text'));
+    p1.appendChild(buildEstilo());
     p1.appendChild(inputEl('bloques.entrega.meta', 'Rótulo de la esquina', 'text'));
 
     // El asunto. Por defecto es el titulo -son la misma frase- pero quien redacta manda, asi que
@@ -1250,6 +1251,9 @@
     E.texto = d.texto || base.texto;
     E.meta = d.rotulo || base.meta;
     E.corto = d.texto_corto || base.corto;
+    // El estilo del título con que se guardó (007); sin él, lo de hoy.
+    st.tipografia = d.tipografia || 'centauro';
+    st.tamTitulo = d.tam_titulo || 'base';
     E.empresa = d.contacto_empresa || '';
     E.enlace = abs(d.enlace);
     // Sin imagenes no hay imagen: dejar la de la entrega anterior enseñaria la propuesta de otro.
@@ -1295,6 +1299,8 @@
       titulo: E.titulo, canva_url: E.url, texto: E.texto || '',
       // El rotulo de la esquina y el texto corto de WhatsApp viajan con la entrega (004).
       rotulo: E.meta || '', texto_corto: E.corto || '',
+      // Y el estilo del título (007), para que al abrirla en otra computadora salga igual.
+      tipografia: st.tipografia || '', tam_titulo: st.tamTitulo || '',
       // Los espacios de ESTA entrega (004), no el `on` de las plantillas A-G.
       servicios: (E.incluidos || []).join(','),
     };
@@ -1520,6 +1526,32 @@
       : "No se pudo copiar");
   }
 
+  // Estilo del título (007): la pareja de tipografías y el tamaño del título principal. Solo
+  // fuentes de sistema: Gmail no carga fuentes de internet. El aviso lo da el motor: si tuvo que
+  // bajar el tamaño para que la palabra más larga quepa en el móvil, se dice aquí.
+  const TIPOGRAFIAS = { centauro: 'Centauro (la de hoy)', impacto: 'Impacto · Impact + Georgia',
+    editorial: 'Editorial · Georgia itálica + Arial', moderna: 'Moderna · Arial Black + Verdana' };
+  const TAMANOS = { base: 'Base (el de hoy)', grande: 'Grande', maximo: 'Máximo' };
+  function buildEstilo() {
+    const g = el('div', 'grp'); g.appendChild(el('h2', null, 'Estilo del título'));
+    g.appendChild(inputEl('tipografia', 'Tipografía', 'opciones', TIPOGRAFIAS));
+    // La C no tiene título grande: el tamaño no cambiaría nada.
+    if (M.pick(st) !== 'C') g.appendChild(inputEl('tamTitulo', 'Tamaño del título', 'opciones', TAMANOS));
+    const aviso = el('p', 'hint'); aviso.id = 'aviso-estilo'; aviso.setAttribute('role', 'status');
+    g.appendChild(aviso);
+    avisoEstilo(aviso);
+    return g;
+  }
+  function avisoEstilo(aviso) {
+    aviso = aviso || document.getElementById('aviso-estilo');
+    if (!aviso) return;
+    const t = M.tamanoTitulo(st, M.pick(st));
+    aviso.hidden = !(t && t.ajustado);
+    aviso.textContent = t && t.ajustado
+      ? TAMANOS[st.tamTitulo] + ' se ajustó a ' + t.px + ' px para que la palabra más larga quepa en el móvil.'
+      : '';
+  }
+
   function buildPanel() {
     const p = $('#panel'); p.innerHTML = '';
     $('#copyWa').hidden = st.plantilla !== 'H';
@@ -1544,6 +1576,7 @@
     p.appendChild(buildBanco());
     const g1 = el('div', 'grp'); g1.appendChild(el('h2', null, 'Envío'));
     ENVIO.forEach(([k, l, ty]) => g1.appendChild(inputEl(k, l, ty))); p.appendChild(g1);
+    p.appendChild(buildEstilo());
     const g2 = el('div', 'grp'); g2.appendChild(el('h2', null, 'Bloques del mensaje · interruptor = mostrar / inhibir'));
     BLOQUES.filter(d => !d.soloPara || d.soloPara === M.pick(st))
       .forEach(d => g2.appendChild(blockEl(d))); p.appendChild(g2);
@@ -1571,6 +1604,7 @@
   function touch() { save(); clearTimeout(timer); timer = setTimeout(renderPreview, 120); }
   function renderPreview() {
     const key = M.pick(st);
+    avisoEstilo();
     let html = M.render(st, key);
     // En el compositor autonomo no hay carpeta img/: lo que no venga incrustado hay que
     // pedirlo a produccion, o la vista previa sale con las fotos rotas.

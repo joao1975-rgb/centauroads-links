@@ -20,8 +20,10 @@
     paper: '#FFFFFF', sand: '#F6F3EF', mist: '#EFEAF2', rule: '#E2DDE8',
     text: '#1F1B24', muted: '#6E6879', textDark: '#EEEDF2', mutedDark: '#A29EB1',
   };
-  const FH = "'Montserrat','Trebuchet MS',Arial,Helvetica,sans-serif";
-  const FB = "'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+  // `let`: la pareja de tipografías del correo (especificación 007) las cambia mientras se arma ese
+  // correo y render() las devuelve al terminar. Sin pareja elegida, son estas.
+  let FH = "'Montserrat','Trebuchet MS',Arial,Helvetica,sans-serif";
+  let FB = "'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 
   // ── Catálogo de servicios (decks de Canva ya validados) ──
   const SERVICIOS = [
@@ -1238,8 +1240,62 @@
     papel: '#FFFFFF', arena: '#F5F1EC', tinta: '#15111A', gris: '#5E5767', regla: '#E6E0E9',
     naranjaTinta: '#B35E0A', morado: '#85439A',
   };
-  const FS = "'DIN Condensed','Bahnschrift SemiBold Condensed','Bahnschrift Condensed',Bahnschrift," +
+  let FS = "'DIN Condensed','Bahnschrift SemiBold Condensed','Bahnschrift Condensed',Bahnschrift," +
     "'AvenirNextCondensed-Bold','Roboto Condensed',sans-serif-condensed,'Arial Narrow','Trebuchet MS',Arial,sans-serif";
+
+  // ── Estilo de los títulos (especificación 007) ──
+  // Parejas de tipografías de sistema: Gmail no carga fuentes de internet, así que solo valen las
+  // que ya tienen los equipos y teléfonos, cada una con sus respaldos. «centauro» no está aquí: es lo
+  // de hoy, cada plantilla con la suya. `estilo` va solo en el título principal. `ancho` es el ancho
+  // medio de carácter de la pila del título, en em, medido en navegador con margen: sirve para que
+  // una palabra larga quepa a lo ancho del móvil.
+  // Anchos medidos en Chromium el 2026-10-12 (peor caso entre palabras largas en minúsculas y en
+  // MAYÚSCULAS): condensada 0,49 · títulos de hoy 0,565 · Impact 0,498 · Georgia negrita itálica
+  // 0,719 · Arial Black 0,715; aquí, con ~8 % de margen. Impact no suele estar en los móviles: por eso
+  // su pila cae en condensadas que sí tienen (Avenir Next Condensed en iPhone, Roboto Condensed en
+  // Android) y no en una letra ancha que haría desbordar la palabra justo donde importa.
+  const PAREJAS = {
+    impacto: { titulo: "Impact,Haettenschweiler,'AvenirNextCondensed-Bold','Roboto Condensed',sans-serif-condensed,'Arial Narrow Bold',sans-serif",
+      texto: "Georgia,'Times New Roman',serif", estilo: 'text-transform:uppercase;', ancho: 0.56 },
+    editorial: { titulo: "Georgia,'Times New Roman',serif",
+      texto: 'Arial,Helvetica,sans-serif', estilo: 'font-style:italic;', ancho: 0.78 },
+    moderna: { titulo: "'Arial Black','Arial Bold',Gadget,sans-serif",
+      texto: 'Verdana,Geneva,sans-serif', estilo: '', ancho: 0.78 },
+  };
+  const ESCALAS = { base: 1, grande: 1.25, maximo: 1.5 };
+  const BASE_TITULO = { A: 54, B: 48, D: 46, E: 40, F: 36, G: 40, H: 34 };
+  // De dónde saca cada plantilla su título principal (A, B y D del bloque Título; E, F y G de su
+  // bloque del asesor; H de la entrega).
+  const TITULO_DE = { A: 'titulo', B: 'titulo', D: 'titulo', E: 'inventario', F: 'guia', G: 'phygital', H: 'entrega' };
+  // Las de hoy: la condensada (FS) en A, B y D; la de títulos (FH) en las demás.
+  const ANCHO_FS = 0.53, ANCHO_FH = 0.62;
+  const ANCHO_MOVIL = 327;   // 375 px de teléfono menos 24 de margen a cada lado
+  // Un valor que no es una de sus claves (o es «constructor», que todo objeto tiene) no cuenta.
+  const propia = (obj, k) => (Object.prototype.hasOwnProperty.call(obj, k) ? obj[k] : undefined);
+
+  function textoTitulo(st, k) {
+    const b = st.bloques && st.bloques[TITULO_DE[k]];
+    const t = b ? (TITULO_DE[k] === 'titulo' ? b.texto : b.titulo) : '';
+    return String(t || '').replace(/\*/g, '');
+  }
+  // El tamaño del título principal: el de la plantilla por la escala elegida. Si la palabra más
+  // larga no cabe en el móvil, baja lo justo, aunque sea por debajo del de hoy (hasta el 60 %): las
+  // parejas anchas (Arial Black, Georgia itálica) no caben ni al tamaño de hoy, y una palabra muy
+  // larga tampoco cabía con la letra de hoy (medido el 2026-10-12). Un título que ya cabe no cambia,
+  // así que los correos de siempre salen igual. Es un solo tamaño para escritorio y móvil: las reglas
+  // que lo cambiarían según la pantalla se pierden al pegar en Gmail.
+  function tamanoTitulo(st, k) {
+    const base = BASE_TITULO[k];
+    if (!base) return null;
+    const pedido = Math.round(base * (propia(ESCALAS, st.tamTitulo) || 1));
+    const pareja = propia(PAREJAS, st.tipografia);
+    const ancho = pareja ? pareja.ancho : (TITULO_DE[k] === 'titulo' ? ANCHO_FS : ANCHO_FH);
+    const palabra = textoTitulo(st, k).split(/\s+/).reduce(function (a, b) { return b.length > a.length ? b : a; }, '');
+    const cabe = palabra ? Math.floor(ANCHO_MOVIL / (palabra.length * ancho)) : pedido;
+    const px = Math.max(Math.round(base * 0.6), Math.min(pedido, cabe));
+    return { px: px, base: base, ajustado: px < pedido };
+  }
+  const estiloTitulo = st => (propia(PAREJAS, st.tipografia) || {}).estilo || '';
 
   // Titular de señal: condensado, grande, interlineado apretado.
   const rotulo = (html, size, color, extra) =>
@@ -1317,7 +1373,7 @@
     P.push(row(marca(st, 'oscuro', 150), 'padding:26px 28px 0 28px;' + fondo));
     if (on(st, 'titulo')) {
       const b = B(st, 'titulo');
-      P.push(row(rotulo(esc(b.texto), 54, N.texto, 'letter-spacing:-.01em;') +
+      P.push(row(rotulo(esc(b.texto), tamanoTitulo(st, 'A').px, N.texto, 'letter-spacing:-.01em;' + estiloTitulo(st)) +
         cuerpo(esc(b.sub), 15, N.lila, 'padding:10px 0 0 0;'), 'padding:40px 28px 6px 28px;' + fondo));
     }
     let intro = '';
@@ -1352,7 +1408,7 @@
     P.push(row(marca(st, 'claro', 150), 'padding:28px 28px 0 28px;' + fondo));
     if (on(st, 'titulo')) {
       const b = B(st, 'titulo');
-      P.push(row(rotulo(esc(b.texto), 48, N.tinta, 'letter-spacing:-.01em;') +
+      P.push(row(rotulo(esc(b.texto), tamanoTitulo(st, 'B').px, N.tinta, 'letter-spacing:-.01em;' + estiloTitulo(st)) +
         cuerpo(esc(b.sub), 15, N.morado, 'padding:8px 0 0 0;'), 'padding:38px 28px 4px 28px;' + fondo));
     }
     let intro = '';
@@ -1440,7 +1496,7 @@
     }
     if (on(st, 'titulo')) {
       const b = B(st, 'titulo');
-      P.push(row(rotulo(esc(b.texto), 46, N.texto) + cuerpo(esc(b.sub), 15, N.lila, 'padding:8px 0 0 0;'), 'padding:30px 24px 4px 24px;' + fondo));
+      P.push(row(rotulo(esc(b.texto), tamanoTitulo(st, 'D').px, N.texto, estiloTitulo(st)) + cuerpo(esc(b.sub), 15, N.lila, 'padding:8px 0 0 0;'), 'padding:30px 24px 4px 24px;' + fondo));
     }
     let intro = '';
     if (on(st, 'saludo')) intro += cuerpo(nl2br(fill(B(st, 'saludo').texto, st)), 18, N.texto, 'padding:0 0 10px 0;');
@@ -1569,7 +1625,7 @@
     // Hero. El acento va en "Share of Voice" porque es el termino que la agencia busca.
     P.push(row(
       epigrafe(st, String(h(x.epigrafe)).replace(/\s*[·|–-]\s*$/, '')) +
-      '<div style="font-family:' + FH + ';font-size:40px;line-height:1.02;font-weight:800;letter-spacing:-.035em;color:' + k.texto + ';">' +
+      '<div style="font-family:' + FH + ';font-size:' + tamanoTitulo(st, 'E').px + 'px;line-height:1.02;font-weight:800;letter-spacing:-.035em;color:' + k.texto + ';' + estiloTitulo(st) + '">' +
         realce(h(x.titulo), acento, '</span>') + '</div>' +
       '<div style="font-family:' + FB + ';font-size:15px;line-height:1.6;color:' + k.apagado + ';padding:16px 0 0 0;">' +
         realce(h(x.entrada), '<b>', '</b>') + '</div>',
@@ -1704,7 +1760,7 @@
       'padding:26px 32px 22px 32px;background:' + k.panel + ';'));
 
     P.push(row(
-      '<div style="font-family:' + FH + ';font-size:36px;line-height:1.06;font-weight:800;letter-spacing:-.03em;color:' + k.texto + ';">' +
+      '<div style="font-family:' + FH + ';font-size:' + tamanoTitulo(st, 'F').px + 'px;line-height:1.06;font-weight:800;letter-spacing:-.03em;color:' + k.texto + ';' + estiloTitulo(st) + '">' +
         realce(h(g.titulo), '<span style="color:' + k.acento + ';">', '</span>') + '</div>' +
       '<div style="font-family:' + FB + ';font-size:15px;line-height:1.6;color:' + k.apagado + ';padding:16px 0 0 0;">' +
         realce(h(g.entrada), '<b>', '</b>') + '</div>',
@@ -1802,7 +1858,7 @@
 
     P.push(row(
       epigrafe(st, h(p.epigrafe)) +
-      '<div style="font-family:' + FH + ';font-size:40px;line-height:1.02;font-weight:800;letter-spacing:-.035em;color:' + k.texto + ';">' +
+      '<div style="font-family:' + FH + ';font-size:' + tamanoTitulo(st, 'G').px + 'px;line-height:1.02;font-weight:800;letter-spacing:-.035em;color:' + k.texto + ';' + estiloTitulo(st) + '">' +
         realce(h(p.titulo), '<span style="color:' + k.vivo + ';">', '</span>') + '</div>',
       pad + 'padding-bottom:24px;'));
 
@@ -1950,8 +2006,8 @@
     // Sin epigrafe sobre el titulo: el rotulo de la cabecera ya dice de que va esto, y dos
     // etiquetas seguidas antes del titular solo retrasan la lectura.
     P.push(row(
-      '<div style="font-family:' + FH + ';font-size:34px;line-height:1.08;font-weight:800;' +
-        'letter-spacing:-.03em;color:' + k.texto + ';">' + esc(e.titulo) + '</div>',
+      '<div style="font-family:' + FH + ';font-size:' + tamanoTitulo(st, 'H').px + 'px;line-height:1.08;font-weight:800;' +
+        'letter-spacing:-.03em;color:' + k.texto + ';' + estiloTitulo(st) + '">' + esc(e.titulo) + '</div>',
       pad + 'padding-bottom:22px;'));
 
     let cuerpo = '';
@@ -2058,11 +2114,21 @@
   const render = (st, key) => {
     const k = key || pick(st);
     const listo = soloSuyas(aplicaAsunto(aplicaPerfil(normaliza(st))), k);
-    // Solo la Personalizada mira su propio aspecto, y sobre una COPIA: `tema` sigue siendo
-    // el del catalogo y no se toca, que es lo que evita que el morado reaparezca alli.
-    return TEMPLATES[k].fn(k === 'H'
-      ? Object.assign({}, listo, { tema: temaEntregaDe(listo) })
-      : listo);
+    // La pareja de tipografías (007) cambia las tres pilas mientras se arma ESTE correo y se
+    // devuelven al terminar, pase lo que pase: el motor es síncrono, así que ningún otro correo ve
+    // la pareja de este. Sin pareja, no se toca nada.
+    const pareja = propia(PAREJAS, st.tipografia);
+    const antes = [FH, FS, FB];
+    if (pareja) { FH = pareja.titulo; FS = pareja.titulo; FB = pareja.texto; }
+    try {
+      // Solo la Personalizada mira su propio aspecto, y sobre una COPIA: `tema` sigue siendo
+      // el del catalogo y no se toca, que es lo que evita que el morado reaparezca alli.
+      return TEMPLATES[k].fn(k === 'H'
+        ? Object.assign({}, listo, { tema: temaEntregaDe(listo) })
+        : listo);
+    } finally {
+      FH = antes[0]; FS = antes[1]; FB = antes[2];
+    }
   };
 
   // ── ¿Cambia el correo si se toca este campo? ──
@@ -2236,5 +2302,5 @@
     return puestos;
   }
 
-  return { C, SERVICIOS, GRUPOS, TEMPLATES, IMG_SETS, PERFILES, ASUNTOS, asuntosDe, EFECTOS, efectoDe, pesoDe, rangoPeso, ROLES, CORREOS, cargoDe, correosDe, BANCO, bancoDe, fotosDe, comandoCarrusel, FICHA, CONTENT_VERSION, defaultState, catalogoActual, ponCatalogo, textosActuales, ponTextos, render, renderText, renderWhatsApp, linkFor, cambiaElCorreo, fechasPasadas, pick, aplicaPerfil, aplicaAsunto, normaliza };
+  return { C, SERVICIOS, GRUPOS, TEMPLATES, IMG_SETS, PERFILES, ASUNTOS, asuntosDe, EFECTOS, efectoDe, pesoDe, rangoPeso, ROLES, CORREOS, cargoDe, correosDe, BANCO, bancoDe, fotosDe, comandoCarrusel, FICHA, CONTENT_VERSION, defaultState, catalogoActual, ponCatalogo, textosActuales, ponTextos, tamanoTitulo, PAREJAS, render, renderText, renderWhatsApp, linkFor, cambiaElCorreo, fechasPasadas, pick, aplicaPerfil, aplicaAsunto, normaliza };
 });

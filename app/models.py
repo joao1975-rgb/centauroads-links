@@ -200,6 +200,9 @@ class Entrega(Base):
     # donde se armo la entrega, y al abrirla en otra sesion no estaban. Nulo = el de por defecto.
     rotulo = Column(String(120), nullable=True)
     texto_corto = Column(Text, nullable=True)
+    # El estilo del título (007): la pareja de tipografías y el tamaño. Nulo = lo de hoy.
+    tipografia = Column(String(20), nullable=True)
+    tam_titulo = Column(String(10), nullable=True)
     # Lo que va en la dirección pública de sus imágenes, `/media/e/<clave>/…` (revisión de
     # seguridad, 2026-10-06). Con el número, `/media/entregas/1/`, `/2/`… se recorrían todas en un
     # bucle. Nula = entrega anterior: sus correos ya enviados apuntan a la ruta por número, y esa

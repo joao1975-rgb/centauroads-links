@@ -68,11 +68,11 @@ cabe.
 **Acceptance Scenarios**:
 
 1. **Given** un correo nuevo, **When** no se toca nada, **Then** el título sale en Base, idéntico al de hoy.
-2. **Given** Grande o Máximo, **When** la palabra más larga del título no cabría a lo ancho de un teléfono
-   (327 px de texto), **Then** el motor baja el tamaño lo justo para que quepa —en escritorio y en móvil,
-   porque es un solo tamaño— y el compositor lo dice: «Máximo se ajustó a 62 px para que quepa en el
-   móvil».
-3. **Given** Base, **Then** el tamaño no se ajusta nunca (es el de hoy).
+2. **Given** cualquier tamaño, **When** la palabra más larga del título no cabría a lo ancho de un
+   teléfono (327 px de texto), **Then** el motor baja el tamaño lo justo para que quepa —en escritorio y
+   en móvil, porque es un solo tamaño—, hasta el 60 % del Base, y el compositor lo dice: «Máximo se ajustó
+   a 62 px para que quepa en el móvil».
+3. **Given** un título que cabe, **Then** el tamaño es exactamente el elegido (en Base, el de hoy).
 
 ---
 
@@ -93,8 +93,8 @@ entrega, para que al abrirla en otra computadora salga igual.
 
 - **Estado guardado de antes** (sin pareja ni tamaño): sale como hoy (Centauro, Base). No se sube
   `CONTENT_VERSION`.
-- **Título muy largo o de una sola palabra larga** en Máximo: se ajusta hasta que quepa; nunca por
-  debajo del tamaño Base. Si ni el Base cupiera, queda en Base: el mismo resultado que hoy.
+- **Título con una palabra muy larga**: se ajusta hasta que quepa, hasta el 60 % del Base. Más allá de
+  eso (una palabra desmesurada), queda en el 60 %.
 - **Texto plano y WhatsApp**: no cambian (no tienen tipografía).
 - **Bloques con su propio rótulo grande** (fases de la G, cifras de la E…): siguen con su tamaño; solo
   cambia su tipografía según la pareja.
@@ -106,8 +106,11 @@ entrega, para que al abrirla en otra computadora salga igual.
 - **FR-702**: La pareja MUST aplicarse al título y al texto de todo el correo, en las plantillas A–H.
 - **FR-703**: El tamaño MUST aplicarse solo al título principal: ×1 / ×1,25 / ×1,5 sobre el tamaño de
   esa plantilla.
-- **FR-704**: Con Grande o Máximo, si la palabra más larga no cabe en 327 px, el tamaño MUST bajar lo
-  justo para que quepa, sin bajar del Base, y el compositor MUST decirlo.
+- **FR-704**: Si la palabra más larga no cabe en 327 px, el tamaño MUST bajar lo justo para que quepa,
+  aunque sea por debajo del Base, hasta el 60 % del Base; y el compositor MUST decirlo. *(Cambiado el
+  2026-10-12 tras medir en navegador: con las parejas anchas —Arial Black, Georgia itálica— ni el tamaño
+  de hoy cabe en el móvil, y una palabra muy larga ya desbordaba con la letra de hoy. Un título que ya
+  cabe no cambia, así que los correos de siempre salen igual.)*
 - **FR-705**: Las tipografías MUST ser solo fuentes de sistema, con sus respaldos; ninguna fuente de
   internet.
 - **FR-706**: Sin elección (o con Centauro y Base), los 16 correos de referencia MUST salir idénticos
