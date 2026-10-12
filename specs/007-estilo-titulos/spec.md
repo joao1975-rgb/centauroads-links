@@ -38,7 +38,7 @@ y el texto de todo ese correo.
 
 | Pareja | Título | Texto |
 |---|---|---|
-| **Centauro** (por defecto) | La de hoy (Montserrat → Trebuchet MS, negrita) | La de hoy (Segoe UI → Roboto → Arial) |
+| **Centauro** (por defecto) | La de hoy en cada plantilla (condensada DIN/Bahnschrift en A, B y D; Montserrat → Trebuchet en E–H) | La de hoy (Segoe UI → Roboto → Arial) |
 | **Impacto** | Impact, en mayúsculas | Georgia |
 | **Editorial** | Georgia, negrita itálica | Arial |
 | **Moderna** | Arial Black | Verdana |
