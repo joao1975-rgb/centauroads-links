@@ -24,4 +24,4 @@
 ## Phase 4: Cierre
 
 - [x] T711 Demo en navegador: plantillas A, B, D, E, F, G, H × 4 parejas × Máximo a 600 y 375 px, 0 px de desborde y 0 errores de consola; capturas para la propietaria
-- [ ] T712 Suite completa, build (16 idénticas), README y nota de Obsidian
+- [x] T712 Suite completa, build (16 idénticas), README y nota de Obsidian
