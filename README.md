@@ -175,6 +175,19 @@ devuelven líneas; los comerciales las ven sin poder cambiarlas.
 - El compositor pide el catálogo al abrirse. Lo editado aquí llega a los compositores del equipo
   sin pisar lo que cada persona escribió a mano.
 
+### Estilo del título (en el compositor)
+
+Junto al título, dos selectores (especificación 007):
+
+- **Tipografía**: Centauro (la de hoy), Impacto (Impact en mayúsculas + Georgia), Editorial (Georgia
+  itálica + Arial) o Moderna (Arial Black + Verdana). Cambia título y texto de todo el correo. Solo
+  fuentes de sistema, con sus respaldos: Gmail no carga fuentes de internet.
+- **Tamaño del título**: Base (el de hoy en cada plantilla), Grande (×1,25) o Máximo (×1,5). Es un solo
+  tamaño para escritorio y móvil, así que si la palabra más larga no cabe a lo ancho de un teléfono
+  (327 px) el motor lo baja lo justo —hasta el 60 % del base— y el compositor lo avisa. Las parejas
+  anchas (Moderna, Editorial) se ajustan antes que Impacto, que es condensada.
+- En la H se guardan con la entrega.
+
 ### Textos de los perfiles (`/panel/textos`)
 
 Lo que dice el correo a cada tipo de cliente (Agencias, Cliente nuevo, Phygital y General) lo cambia
