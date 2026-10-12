@@ -543,6 +543,131 @@
     w.appendChild(b); return w;
   }
 
+  // ── Un producto a medida (008) ──
+  // No esta en el catalogo: todo es suyo. Vive en bloques.entrega.aMedida, en el orden en que se
+  // anadio, y en el servidor (se crea alli, por eso exige la entrega guardada). Se edita como un
+  // espacio: sus textos se guardan con espera y su carrusel con la misma galeria.
+  const MAXIMO_A_MEDIDA = 5;
+  let rol = '';   // el de quien usa el compositor; lo dice /api/auth/yo al arrancar
+  const deServidor = x => ({ id: x.linea, nombre: x.nombre || '', cobertura: x.cobertura || '',
+    canva: x.canva_url || '', carrusel: x.carrusel ? location.origin + x.carrusel : '' });
+  function aMedidaEl(p) {
+    const E = st.bloques.entrega;
+    const ruta = '/api/entregas/' + st.entregaId + '/espacios/' + encodeURIComponent(p.id);
+    const w = el('div', 'svc'); w.dataset.medida = p.id;
+    const h = el('div', 'svc-h');
+    const t = el('button', 'svc-t', p.nombre); t.type = 'button'; plegable(t, w); h.appendChild(t);
+    h.appendChild(el('span', 'marca-espacio propia', 'A medida')); w.appendChild(h);
+
+    const b = el('div', 'svc-b');
+    const est = estadoEl('');
+    const esperas = {};
+    const guarda = (k, v) => {
+      const cuerpo = {}; cuerpo[k === 'canva' ? 'canva_url' : k] = v;
+      api(ruta, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo) })
+        .then(() => { est.className = 'estado bien'; est.textContent = 'Guardado en esta entrega.'; })
+        .catch(e => falla(est, e));
+    };
+    const campo = (k, etiqueta, ayuda) => {
+      const wrap = el('label', 'fld'); wrap.appendChild(el('span', 'fld-l', etiqueta));
+      const i = el('input'); i.type = 'text'; i.value = p[k] || ''; i.placeholder = ayuda || '';
+      i.addEventListener('input', () => {
+        const v = i.value.trim();
+        if (k === 'nombre' && !v) { est.className = 'estado mal'; est.textContent = 'El producto necesita un nombre.'; return; }
+        // Un enlace que el servidor va a rechazar tampoco entra en el correo de esta pantalla.
+        if (k === 'canva' && v && !/^https?:\/\/\S+$/i.test(v)) {
+          est.className = 'estado mal'; est.textContent = 'El enlace tiene que empezar por https:// (o http://).'; return;
+        }
+        if (k === 'nombre') t.textContent = v;
+        p[k] = v; save(); touch();
+        clearTimeout(esperas[k]); esperas[k] = setTimeout(() => guarda(k, v), 700);
+      });
+      wrap.appendChild(i); return wrap;
+    };
+    b.appendChild(campo('nombre', 'Nombre'));
+    b.appendChild(campo('cobertura', 'Qué es o dónde (una línea)', 'Por ejemplo: pantalla en la feria, 3 días'));
+    b.appendChild(campo('canva', 'Enlace de su presentación', 'https://…'));
+
+    b.appendChild(el('p', 'fld-l', 'Imágenes de su presentación'));
+    galeria({
+      g: galeriaDe('medida:' + p.id),
+      ruta: () => ruta + '/paginas',
+      efecto: () => galeriaDe('medida:' + p.id).efecto || st.efectoEntrega || 'barrido',
+      ponEfecto: v => { galeriaDe('medida:' + p.id).efecto = v; },
+      hayCarrusel: () => !!p.carrusel,
+      alSubir: d => { if (d.paginas.length) { p.carrusel = location.origin + d.paginas[0].url; save(); touch(); } },
+      alArmar: d => {
+        const x = (d.espacios || []).filter(z => z.linea === p.id)[0];
+        if (x && x.carrusel) { p.carrusel = location.origin + x.carrusel; save(); touch(); }
+      },
+      claude: () => pideAClaude(p.canva),
+      invita: 'Suelta aquí el <b>PDF de la presentación de este producto</b>, o varias imágenes',
+    }).forEach(n => b.appendChild(n));
+
+    const fila = el('div', 'fila-bt');
+    fila.appendChild(botonEl('Quitar de la entrega', null, () => {
+      if (!confirm('¿Quitar «' + p.nombre + '» de esta entrega?\n\nDeja de salir en el correo. ' +
+        'Si ya lo enviaste, sus imágenes se siguen viendo.')) return;
+      api(ruta, { method: 'DELETE' }).then(() => {
+        E.aMedida = (E.aMedida || []).filter(x => x.id !== p.id);
+        save(); touch(); buildPanel();
+      }).catch(e => falla(est, e));
+    }));
+    // Solo un administrador da de alta lineas; a los demas el servidor les diria 403.
+    if (rol === 'admin') {
+      fila.appendChild(botonEl('Pasar al catálogo', null, () => {
+        if (!confirm('¿Pasar «' + p.nombre + '» al catálogo?\n\nSaldrá para todo el equipo, en todas ' +
+          'las plantillas, con este nombre, este texto, este enlace y la primera imagen como foto.' +
+          (p.canva ? '\n\nEnlace: ' + p.canva : '\n\nNo tiene enlace.'))) return;
+        est.className = 'estado'; est.textContent = 'Pasando al catálogo…';
+        api(ruta + '/catalogo', { method: 'POST' }).then(d => {
+          // En esta entrega pasa a ser ese espacio del catalogo, con su carrusel.
+          const x = (d.entrega.espacios || []).filter(z => z.linea === d.linea)[0];
+          E.aMedida = (E.aMedida || []).filter(z => z.id !== p.id);
+          if (E.incluidos.indexOf(d.linea) < 0) E.incluidos = E.incluidos.concat(d.linea);
+          if (x && x.carrusel) E.espacios[d.linea] = { carrusel: location.origin + x.carrusel };
+          save();
+          return cargaCatalogo().then(() => {
+            buildPanel(); renderPreview(); toast('«' + p.nombre + '» ya está en el catálogo');
+          });
+        }).catch(e => falla(est, e));
+      }));
+    }
+    b.appendChild(fila); b.appendChild(est);
+    w.appendChild(b); return w;
+  }
+  // El alta: pide el nombre y lo crea en el servidor. Sin entrega guardada no hay donde crearlo.
+  function anadirAMedidaEl() {
+    const E = st.bloques.entrega;
+    const w = el('div', 'medida-nuevo');
+    if (!st.entregaId) {
+      w.appendChild(el('p', 'hint', 'Para añadir un producto que no está en el catálogo, guarda antes la entrega (paso 2).'));
+      return w;
+    }
+    const lleno = (E.aMedida || []).length >= MAXIMO_A_MEDIDA;
+    const wrap = el('label', 'fld'); wrap.appendChild(el('span', 'fld-l', 'Otro producto, solo para esta entrega'));
+    const i = el('input'); i.type = 'text'; i.placeholder = 'Su nombre. Por ejemplo: Pantalla en evento';
+    i.maxLength = 120; i.disabled = lleno; wrap.appendChild(i); w.appendChild(wrap);
+    const est = estadoEl(lleno ? 'Ya hay ' + MAXIMO_A_MEDIDA + ' productos a medida: es el máximo por entrega. Quita uno para añadir otro.' : '');
+    const bt = botonEl('+ Añadir otro producto', null, () => {
+      const nombre = i.value.trim();
+      if (!nombre) { est.className = 'estado mal'; est.textContent = 'Escribe el nombre del producto.'; i.focus(); return; }
+      bt.disabled = true;
+      api('/api/entregas/' + st.entregaId + '/espacios', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre: nombre }),
+      }).then(d => {
+        const ya = (E.aMedida || []).map(x => x.id);
+        const nuevo = (d.espacios || []).filter(x => x.a_medida && ya.indexOf(x.linea) < 0).pop();
+        if (nuevo) E.aMedida = (E.aMedida || []).concat(deServidor(nuevo));
+        save(); touch(); buildPanel();
+      }).catch(e => { bt.disabled = false; falla(est, e); });
+    });
+    bt.disabled = lleno;
+    i.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); bt.click(); } });
+    const fila = el('div', 'fila-bt'); fila.appendChild(bt); w.appendChild(fila); w.appendChild(est);
+    return w;
+  }
+
   function servicioEl(s, i) {
     const w = el('div', 'svc'); w.classList.toggle('off', !s.on); w.dataset.servicio = s.id;
     const h = el('div', 'svc-h'); h.appendChild(switchEl('servicios.' + i + '.on', on => w.classList.toggle('off', !on), s.nombre));
@@ -763,7 +888,8 @@
       const marcada = f => !m.usar.length || m.usar.indexOf(f) >= 0;
       b.fotos.forEach(f => {
         const bt = el('button'); bt.type = 'button';
-        const im = el('img'); im.src = base + '/' + f; im.alt = f; im.loading = 'lazy';
+        // Una linea con foto subida (003, o pasada al catalogo en la 008) ya trae la direccion completa.
+        const im = el('img'); im.src = /^https?:\/\//.test(f) ? f : base + '/' + f; im.alt = f; im.loading = 'lazy';
         bt.appendChild(im); bt.appendChild(el('i', null, f.replace(/^svc_/, '')));
         const pinta = () => bt.setAttribute('aria-pressed', String(marcada(f)));
         pinta();
@@ -1259,7 +1385,8 @@
     E.img = abs(d.carrusel || d.portada || (d.paginas && d.paginas[0] ? d.paginas[0].url : ''));
     E.incluidos = d.servicios ? d.servicios.split(',').filter(Boolean) : [];
     E.espacios = {};
-    (d.espacios || []).forEach(x => {
+    E.aMedida = (d.espacios || []).filter(x => x.a_medida).map(deServidor);
+    (d.espacios || []).filter(x => !x.a_medida).forEach(x => {
       const pr = {};
       if (x.canva_url) pr.canva = x.canva_url;
       if (x.nombre) pr.nombre = x.nombre;
@@ -1561,6 +1688,9 @@
         'y las demás entregas siguen con el catálogo.'));
       M.SERVICIOS.filter(sv => typeof sv.plantillas !== 'string' || sv.plantillas.indexOf('H') >= 0)
         .forEach(sv => g.appendChild(espacioEl(sv)));
+      // Los que no estan en el catalogo (008), despues: asi salen tambien en el correo.
+      (st.bloques.entrega.aMedida || []).forEach(x => g.appendChild(aMedidaEl(x)));
+      g.appendChild(anadirAMedidaEl());
       p.appendChild(g);
       // El saludo se edita en «Para quién», junto al contacto; aquí queda la firma.
       const gb = el('div', 'grp'); gb.appendChild(el('h2', null, 'Firma'));
@@ -1733,13 +1863,22 @@
   // Catalogo de lineas de negocio (003). El del servidor manda: se pinta primero con el de serie
   // para no dejar la pantalla vacia y, en cuanto llega, se rehace con el vigente. Las fotos subidas
   // llegan como /media/...; el correo necesita la direccion completa, como en las entregas.
-  // Si no llega, se sigue con el de serie y se dice (FR-323).
-  if (HAY_SERVIDOR) {
-    api('/api/catalogo').then(cat => {
+  // Si no llega, se sigue con el de serie y se dice (FR-323). Tambien se vuelve a pedir tras pasar
+  // un producto a medida al catalogo (008).
+  function cargaCatalogo() {
+    return api('/api/catalogo').then(cat => {
       (cat.lineas || []).forEach(l => { if (/^\/[^/]/.test(l.img || '')) l.img = location.origin + l.img; });
       if (!M.ponCatalogo(cat)) return;
       st = M.normaliza(st); save(); buildPanel(); buildSeg(); renderPreview();
-    }).catch(() => toast('No se pudo cargar el catálogo de líneas: se usa el de serie', 5000));
+    });
+  }
+  if (HAY_SERVIDOR) {
+    cargaCatalogo().catch(() => toast('No se pudo cargar el catálogo de líneas: se usa el de serie', 5000));
+    // Quien soy decide si se ofrece «Pasar al catálogo» (008). Sin respuesta, no se ofrece.
+    api('/api/auth/yo').then(d => {
+      rol = d.rol || '';
+      if (rol === 'admin' && st.plantilla === 'H') buildPanel();
+    }).catch(() => {});
     // Textos de los perfiles (005): solo llegan los que el equipo cambio; el resto es el de serie.
     // Los asuntos del panel salen de M.asuntosDe, asi que hay que rehacerlo.
     api('/api/textos-perfil').then(cambios => {

@@ -7,11 +7,16 @@ entregas siguen leyendo el catálogo (FR-402). Un espacio sin nada propio no tie
 
 Las imágenes se suben y se arman con el mismo código que la principal (`galeria.py`), en la
 subcarpeta del espacio. Todo exige sesión, como el resto de `/api/entregas` (FR-418).
+
+Un **producto a medida** (008) es un espacio más que no está en el catálogo: su fila lleva un id
+`medida--…` y todos sus datos. Solo existe en su entrega; un administrador puede pasarlo al catálogo.
 """
 
 import json
 import logging
 import os
+import secrets
+import shutil
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
@@ -21,10 +26,12 @@ from sqlalchemy.orm import Session
 
 from ...database import get_db
 from ... import models
-from ...auth.dependencias import usuario_actual
+from ...auth.dependencias import solo_admin, usuario_actual
+from ..catalogo import fotos
+from ..catalogo.rutas import LETRAS, _id_desde, _valida
 from . import almacen, carrusel, galeria
 from .galeria import Seleccion
-from .rutas import EntregaSalida, _a_salida, _busca, valida_enlace
+from .rutas import A_MEDIDA, EntregaSalida, _a_salida, _busca, valida_enlace
 
 log = logging.getLogger("centaurads.entregas")
 router = APIRouter()
@@ -35,6 +42,11 @@ router = APIRouter()
 _SUBIDA = "subida.json"
 
 _TEXTOS = ("canva_url", "nombre", "cobertura")
+MAXIMO_A_MEDIDA = 5
+
+
+def es_a_medida(linea: str) -> bool:
+    return linea.startswith(A_MEDIDA)
 
 
 def _catalogo(db: Session, linea: str) -> models.LineaNegocio:
@@ -49,6 +61,35 @@ def _fila(db: Session, entrega_id: int, linea: str) -> Optional[models.EntregaEs
     return db.query(models.EntregaEspacio).filter(
         models.EntregaEspacio.entrega_id == entrega_id,
         models.EntregaEspacio.linea_id == linea).first()
+
+
+def _espacio(db: Session, entrega: models.Entrega, linea: str):
+    """
+    Una línea del catálogo, o un producto a medida **de esta entrega**; si no, 404. El de otra
+    entrega da el mismo 404 que uno inventado: sus imágenes viven en la carpeta de la otra.
+    """
+    if not es_a_medida(linea):
+        return _catalogo(db, linea)
+    fila = _fila(db, entrega.id, linea) if almacen.linea_valida(linea) else None
+    if not fila:
+        raise HTTPException(status_code=404, detail="Ese producto no está en esta entrega")
+    return fila
+
+
+def _textos_a_medida(datos: BaseModel, campos: Optional[set] = None) -> dict:
+    """Los textos de un producto a medida (los que llegan, o `campos`), limpios. Nombre vacío → 400."""
+    cambios = {}
+    for campo in (campos or datos.model_fields_set) & set(_TEXTOS):
+        valor = (getattr(datos, campo) or "").strip()
+        if campo == "nombre" and not valor:
+            raise HTTPException(status_code=400, detail="El producto necesita un nombre.")
+        if valor and campo == "canva_url":
+            try:
+                valor = valida_enlace(valor)
+            except ValueError as e:
+                raise HTTPException(status_code=400, detail=str(e))
+        cambios[campo] = valor or None
+    return cambios
 
 
 def _avisos(entrega_id: int, linea: str) -> list:
@@ -89,7 +130,7 @@ async def subir(entrega_id: int, linea: str, fichero: List[UploadFile] = File(..
                 usuario: models.PanelUser = Depends(usuario_actual)):
     """Como el de la principal, en la subcarpeta del espacio. Solo vacía esa subcarpeta."""
     entrega = _busca(db, entrega_id, usuario)
-    _catalogo(db, linea)
+    _espacio(db, entrega, linea)
     salida = await galeria.sube(entrega, fichero, linea)
     with open(os.path.join(almacen.carpeta(entrega.id, linea=linea), _SUBIDA), "w",
               encoding="utf-8") as f:
@@ -103,7 +144,7 @@ def elegir(entrega_id: int, linea: str, seleccion: Seleccion,
            usuario: models.PanelUser = Depends(usuario_actual)):
     """Arma el carrusel del espacio y lo apunta en su fila, con el efecto con que salió."""
     entrega = _busca(db, entrega_id, usuario)
-    _catalogo(db, linea)
+    _espacio(db, entrega, linea)
     elegidas = galeria.arma(entrega.id, seleccion, linea)
     avisos = _avisos(entrega.id, linea)
 
@@ -141,6 +182,14 @@ def guardar(entrega_id: int, linea: str, datos: EspacioEntrada,
     y, si el catálogo cambia después, ese campo sigue al catálogo como cualquier estándar.
     """
     entrega = _busca(db, entrega_id, usuario)
+    if es_a_medida(linea):
+        # Sin catálogo con el que comparar: lo que llega se guarda tal cual, y la fila no se borra
+        # por quedarse sin texto (quitarla es el DELETE).
+        fila = _espacio(db, entrega, linea)
+        for campo, valor in _textos_a_medida(datos).items():
+            setattr(fila, campo, valor)
+        db.commit()
+        return _a_salida(db, entrega)
     serie = _catalogo(db, linea)
     de_serie = {"canva_url": serie.canva, "nombre": serie.nombre, "cobertura": serie.cobertura}
 
@@ -174,12 +223,96 @@ def volver_al_estandar(entrega_id: int, linea: str,
                        usuario: models.PanelUser = Depends(usuario_actual)):
     """
     Borra la fila. Las imágenes **se quedan** en disco: un correo ya enviado puede apuntar a ellas
-    (FR-414), y se irán con la entrega.
+    (FR-414), y se irán con la entrega. Con un producto a medida, esto es quitarlo.
     """
     entrega = _busca(db, entrega_id, usuario)
-    _catalogo(db, linea)
+    _espacio(db, entrega, linea)
     fila = _fila(db, entrega.id, linea)
     if fila:
         db.delete(fila)
         db.commit()
     return _a_salida(db, entrega)
+
+
+class ProductoNuevo(BaseModel):
+    nombre: str = Field(default="", max_length=120)
+    cobertura: Optional[str] = Field(default=None, max_length=200)
+    canva_url: Optional[str] = Field(default=None, max_length=500)
+
+
+@router.post("/api/entregas/{entrega_id}/espacios", response_model=EntregaSalida, status_code=201)
+def anadir_a_medida(entrega_id: int, datos: ProductoNuevo,
+                    db: Session = Depends(get_db),
+                    usuario: models.PanelUser = Depends(usuario_actual)):
+    """Un producto que no está en el catálogo, solo para esta entrega (008). Sale tras los demás."""
+    entrega = _busca(db, entrega_id, usuario)
+    cambios = _textos_a_medida(datos, set(_TEXTOS))   # en el alta, el nombre cuenta aunque falte
+    # ponytail: dos altas a la vez pueden dejar 6; un tope estricto pediría bloquear la entrega.
+    cuantos = db.query(models.EntregaEspacio).filter(
+        models.EntregaEspacio.entrega_id == entrega.id,
+        models.EntregaEspacio.linea_id.startswith(A_MEDIDA)).count()
+    if cuantos >= MAXIMO_A_MEDIDA:
+        raise HTTPException(status_code=409, detail="Como mucho %d productos a medida por entrega."
+                            % MAXIMO_A_MEDIDA)
+    # Al azar y no correlativo: uno quitado deja sus imágenes en disco para los correos ya
+    # enviados, y uno nuevo no debe poder pisarlas reusando su número.
+    db.add(models.EntregaEspacio(entrega_id=entrega.id,
+                                 linea_id=A_MEDIDA + secrets.token_hex(6), **cambios))
+    db.commit()
+    return _a_salida(db, entrega)
+
+
+def _foto_de(fila: models.EntregaEspacio, nueva: str) -> str:
+    """La primera página de su carrusel como foto de la línea nueva; sin carrusel, sin foto."""
+    paginas = sorted(json.loads(fila.paginas or "[]"), key=lambda p: p["orden"])
+    if not paginas:
+        return ""
+    try:
+        with open(almacen.ruta_absoluta(paginas[0]["ruta"]), "rb") as f:
+            return fotos.guarda(nueva, fotos.prepara(f.read()))
+    except (OSError, fotos.FotoNoValida):
+        # Mejor una línea sin foto -que el correo ya sabe pintar- que no poder pasarla.
+        log.warning("Sin foto para la línea %s: no se pudo leer su primera página", nueva)
+        return ""
+
+
+@router.post("/api/entregas/{entrega_id}/espacios/{linea}/catalogo")
+def pasar_al_catalogo(entrega_id: int, linea: str,
+                      db: Session = Depends(get_db),
+                      usuario: models.PanelUser = Depends(solo_admin)):
+    """
+    Convierte un producto a medida en línea del catálogo, para todo el equipo (008, US3). En esta
+    entrega pasa a ser ese espacio, personalizado solo con su carrusel. Su carpeta se COPIA: la
+    vieja sigue para los correos ya enviados. Un solo commit: si algo falla, no se crea nada.
+    """
+    entrega = _busca(db, entrega_id, usuario)
+    fila = _espacio(db, entrega, linea)
+    if not es_a_medida(linea):
+        raise HTTPException(status_code=400,
+                            detail="Ese espacio ya está en el catálogo: solo se pasa un producto a medida.")
+    datos = _valida({"nombre": fila.nombre, "cobertura": fila.cobertura or "",
+                     "canva": fila.canva_url or ""}, db)   # 409 si el nombre ya está
+    nueva = _id_desde(datos["nombre"], db)
+    ultima = db.query(models.LineaNegocio).order_by(models.LineaNegocio.orden.desc()).first()
+    db.add(models.LineaNegocio(
+        id=nueva, orden=(ultima.orden + 1) if ultima else 0, plantillas=LETRAS, activa=True,
+        img=_foto_de(fila, nueva), alt=datos["nombre"], actualizado_por=usuario.email, **datos))
+
+    origen = almacen.carpeta(entrega.id, False, linea)
+    if os.path.isdir(origen):
+        shutil.copytree(origen, almacen.carpeta(entrega.id, False, nueva), symlinks=True,
+                        dirs_exist_ok=True)
+    fila.paginas = json.dumps([dict(p, ruta=almacen.ruta_relativa(
+        entrega.id, p["ruta"].rsplit("/", 1)[-1], nueva)) for p in json.loads(fila.paginas or "[]")])
+    fila.linea_id = nueva
+    fila.nombre = fila.cobertura = fila.canva_url = None   # = los del catálogo (R8)
+    servicios = [s for s in (entrega.servicios or "").split(",") if s]
+    entrega.servicios = ",".join(servicios + [nueva])
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Ya existe una línea con ese nombre.")
+    log.info("Producto %s de la entrega %s pasado al catálogo como %s por %s",
+             linea, entrega.id, nueva, usuario.email)
+    return {"linea": nueva, "entrega": _a_salida(db, entrega)}

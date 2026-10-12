@@ -999,10 +999,13 @@
     if (!tieneFoto(st, s)) return '';
     const src = fotoDe(st, s);
     const k = paleta(temaDe(st));
-    return '<a href="' + esc(linkFor(st, s)) + '"><img src="' + esc(src) + '" width="' + ancho + '"' +
+    const url = linkFor(st, s);
+    const img = '<img src="' + esc(src) + '" width="' + ancho + '"' +
       (alto ? ' height="' + alto + '"' : '') + ' alt="' + esc(svcAlt(st, s)) + '"' +
       ' style="display:block;width:' + ancho + 'px;max-width:100%;height:auto;border:0;border-radius:8px;' +
-      'color:' + k.texto + ';font-family:' + FB + ';font-size:13px;line-height:18px;"></a>';
+      'color:' + k.texto + ';font-family:' + FB + ';font-size:13px;line-height:18px;">';
+    // Sin enlace (un producto a medida que no lo tiene, 008), la foto no lleva a ninguna parte.
+    return url ? '<a href="' + esc(url) + '">' + img + '</a>' : img;
   }
 
   // Complementos: los servicios que el diseno del asesor no ensena con imagen se anaden
@@ -1017,7 +1020,7 @@
   function textoComplemento(st, s, k) {
     return '<div style="font-family:' + FH + ';font-size:14px;font-weight:800;color:' + k.texto + ';padding:8px 0 2px 0;">' + esc(s.nombre) + '</div>' +
       '<div style="font-family:' + FB + ';font-size:12px;line-height:17px;color:' + k.apagado + ';">' + esc(s.cobertura) + '</div>' +
-      '<div style="padding:0;"><a href="' + esc(linkFor(st, s)) + '" style="display:inline-block;padding:12px 0;font-family:' + FH + ';font-size:14px;line-height:20px;font-weight:800;color:' + k.acento + ';text-decoration:none;">Ver presentaci\u00f3n &rarr;</a></div>';
+      (linkFor(st, s) ? '<div style="padding:0;"><a href="' + esc(linkFor(st, s)) + '" style="display:inline-block;padding:12px 0;font-family:' + FH + ';font-size:14px;line-height:20px;font-weight:800;color:' + k.acento + ';text-decoration:none;">Ver presentaci\u00f3n &rarr;</a></div>' : '');
   }
 
   // opts.titulo === false quita el "Tambien disponible" de encima (la Guia no lo lleva).
@@ -1560,7 +1563,8 @@
       if (e.enlace || e.url) L.push(e.cta + ': ' + (e.enlace || e.url), '');
       if (activos(st).length) {
         L.push(e.acompanan + ':');
-        activos(st).forEach(s => L.push('\u2022 ' + s.nombre + ' \u2014 ' + s.cobertura + ' \u2014 ' + linkFor(st, s)));
+        // Un producto a medida puede no tener texto ni enlace (008): sin \u00ab \u2014 \u00bb sueltos.
+        activos(st).forEach(s => L.push('\u2022 ' + [s.nombre, s.cobertura, linkFor(st, s)].filter(Boolean).join(' \u2014 ')));
         L.push('');
       }
       if (on(st, 'firma')) L.push.apply(L, pieDeFirma(st));
@@ -2108,7 +2112,19 @@
       // Un campo vacio es "el del catalogo": no pisa nada.
       Object.keys(PROPIOS).forEach(function (c) { if (p[c]) s[PROPIOS[c]] = p[c]; });
       return s;
-    }) });
+    }).concat(aMedidaDe(e)) });
+  }
+  // Los productos a medida de la entrega (008): despues de los del catalogo, con la misma tarjeta.
+  // No tienen foto de serie; solo su carrusel. Uno sin nombre no sale.
+  function aMedidaDe(e) {
+    return (Array.isArray(e.aMedida) ? e.aMedida : []).filter(function (p) {
+      return p && String(p.nombre || '').trim();
+    }).map(function (p) {
+      const nombre = String(p.nombre).trim();
+      return { id: p.id, nombre: nombre, cobertura: p.cobertura || '', canva: p.canva || '',
+        carruselPropio: p.carrusel || '', img: '', alt: nombre, cover: '', altCover: nombre,
+        eyebrow: '', cta: '', nota: '', slug: '', on: true };
+    });
   }
 
   const render = (st, key) => {

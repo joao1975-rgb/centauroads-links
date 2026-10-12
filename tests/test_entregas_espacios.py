@@ -269,7 +269,7 @@ def test_guardar_textos_y_enlace_propios(cliente, entrega, linea):
                 nombre="Pantalla a medida", cobertura="Solo Chacao")
     assert r.status_code == 200, r.text
     esp = _espacio(r.json(), linea)
-    assert esp == {"linea": linea, "canva_url": "https://canva.link/propio",
+    assert esp == {"linea": linea, "a_medida": False, "canva_url": "https://canva.link/propio",
                    "nombre": "Pantalla a medida", "cobertura": "Solo Chacao",
                    "efecto": None, "carrusel": None, "paginas": []}
     # Solo cambia lo que llega: la cobertura y el enlace se quedan.

@@ -216,6 +216,14 @@ un administrador sin programar (especificación 005); los comerciales lo ven sin
   entrega**, su enlace, nombre, cobertura y su propio carrusel, armado con el mismo flujo que la
   presentación principal. «Volver al estándar» lo deja como el catálogo. Las plantillas A–G y las
   demás entregas no lo ven.
+- **Productos a medida** (especificación 008): «+ Añadir otro producto» pone, **solo en esa
+  entrega**, algo que no está en el catálogo (nombre obligatorio, una línea de texto, enlace y su
+  carrusel con la misma galería). Sale en el correo después de los espacios del catálogo; sin
+  enlace, sin «Ver presentación». Como mucho 5 por entrega; hay que guardar la entrega antes.
+  «Quitar» lo saca del correo (sus imágenes se quedan para los correos ya enviados).
+  **«Pasar al catálogo»** (solo administradores) crea la línea de negocio con su nombre, texto,
+  enlace y la primera imagen como foto, en todas las plantillas; si ya hay una línea con ese nombre,
+  no crea nada. En esa entrega pasa a ser ese espacio, con su carrusel.
 - El rótulo de la esquina y el texto corto de WhatsApp se guardan con la entrega.
 
 ---

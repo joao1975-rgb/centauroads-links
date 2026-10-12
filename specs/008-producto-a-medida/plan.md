@@ -36,7 +36,7 @@ dueño que la entrega.
 
 ### Identificador
 
-`medida--` + 8 hexadecimales al azar (`secrets.token_hex(4)`). El doble guion no lo puede producir
+`medida--` + 12 hexadecimales al azar (`secrets.token_hex(6)`). El doble guion no lo puede producir
 `_id_desde` del catálogo (colapsa los guiones) ni está en la siembra, así que nunca choca con una línea.
 Cumple la forma de `almacen.linea_valida`, así que carpetas, rutas de `/media` y la galería lo aceptan sin
 cambios. Al azar y no correlativo: un producto quitado deja sus imágenes en disco para los correos ya

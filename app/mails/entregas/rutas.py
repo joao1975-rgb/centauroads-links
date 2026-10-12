@@ -229,6 +229,11 @@ def _busca(db: Session, entrega_id: int, usuario: models.PanelUser) -> models.En
     return entrega
 
 
+# Los productos a medida de una entrega (008) son espacios con este prefijo. El catálogo no puede
+# producir un doble guion (`_id_desde` los colapsa), así que nunca choca con una línea.
+A_MEDIDA = "medida--"
+
+
 def _espacio_a_salida(entrega: models.Entrega, fila: models.EntregaEspacio) -> dict:
     """
     Un espacio personalizado tal como lo lee el compositor. Campos nulos = los del catálogo.
@@ -239,7 +244,7 @@ def _espacio_a_salida(entrega: models.Entrega, fila: models.EntregaEspacio) -> d
     linea = fila.linea_id
     elegidas = json.loads(fila.paginas or "[]")
     return {
-        "linea": linea,
+        "linea": linea, "a_medida": linea.startswith(A_MEDIDA),
         "canva_url": fila.canva_url, "nombre": fila.nombre, "cobertura": fila.cobertura,
         "efecto": fila.efecto,
         "carrusel": _existe(entrega, "carrusel.gif", linea) if fila.efecto else None,
