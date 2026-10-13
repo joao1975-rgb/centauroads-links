@@ -218,8 +218,9 @@ def test_rehacer_un_espacio_no_toca_la_principal_ni_otro_espacio(
     assert [p["url"] for p in salida["paginas"]] == [p["url"] for p in principal["paginas"]]
     assert _espacio(salida, otra_linea)["carrusel"] == otro["carrusel"]
     assert os.path.isfile(_fichero(entrega["id"], "p2.jpg", otra_linea))
-    # Un espacio no tiene portada: la tarjeta de WhatsApp es de la principal.
-    assert not os.path.exists(_fichero(entrega["id"], "og.jpg", linea))
+    # Desde la 010 el espacio tiene SU portada (la tarjeta de su enlace propio), en su carpeta; la de
+    # la principal no se toca (está en `marcas`).
+    assert os.path.isfile(_fichero(entrega["id"], "og.jpg", linea))
 
 
 def test_resubir_un_espacio_vacia_solo_su_subcarpeta(cliente, entrega, linea):

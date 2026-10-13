@@ -1607,13 +1607,9 @@
     if (e.enlace || e.url) L.push(e.enlace || e.url, '');
     if (on(st, 'saludo')) L.push(fill(B(st, 'saludo').texto, st));
     L.push(fill(e.corto, st), '');
-    // Los espacios que la acompanan, con su enlace (009). Van despues del texto: WhatsApp solo
-    // dibuja la tarjeta del PRIMER enlace, y esa tiene que ser la de la propuesta.
-    if (activos(st).length) {
-      L.push(e.acompanan + ':');
-      activos(st).forEach(s => L.push('\u2022 ' + s.nombre + (linkFor(st, s) ? ': ' + linkFor(st, s) : '')));
-      L.push('');
-    }
+    // Los espacios van APARTE, un mensaje cada uno con su enlace propio (010): WhatsApp dibuja la
+    // tarjeta solo del primer enlace de cada mensaje. Aqui solo se avisa, si va alguno.
+    if (bloquesWhatsApp(st0).length) L.push('Te env\u00edo aparte los espacios que la acompa\u00f1an.', '');
     const f = B(st, 'firma');
     L.push(f.nombre + ' \u00b7 ' + cargoDe(f));
     L.push(correosDe(f)[0] + ' \u00b7 ' + f.telefono);
@@ -2131,6 +2127,18 @@
     return activos(st).map(s => ({ id: s.id, nombre: s.nombre, cobertura: s.cobertura || '',
       enlace: linkFor(st, s), foto: s.carruselPropio || (tieneFoto(st, s) ? svcImg(st, s) : '') }));
   }
+  // Los bloques de WhatsApp de una entrega H (010): uno por espacio incluido y no excluido
+  // (`waFuera`), en su orden, con su nombre y su enlace propio `<enlace de la entrega>/<espacio>`,
+  // que da a WhatsApp una tarjeta con nuestra foto, nombre y ubicacion. Sin enlace guardado no hay
+  // enlace propio: ninguno.
+  function bloquesWhatsApp(st0) {
+    const e = (st0.bloques && st0.bloques.entrega) || {};
+    const enlace = String(e.enlace || '').trim().replace(/\/+$/, '');
+    if (!enlace) return [];
+    const fuera = Array.isArray(e.waFuera) ? e.waFuera : [];
+    return espaciosDeH(st0).filter(x => fuera.indexOf(x.id) < 0)
+      .map(x => ({ id: x.id, nombre: x.nombre, texto: x.nombre + '\n' + enlace + '/' + x.id }));
+  }
   // El orden que eligio quien arma la entrega (009). Estable: lo que no esta en `orden` va al final,
   // en el orden de siempre. Sin orden, la lista tal cual.
   function enOrden(e, lista) {
@@ -2345,5 +2353,5 @@
     return puestos;
   }
 
-  return { C, SERVICIOS, GRUPOS, TEMPLATES, IMG_SETS, PERFILES, ASUNTOS, asuntosDe, EFECTOS, efectoDe, pesoDe, rangoPeso, ROLES, CORREOS, cargoDe, correosDe, BANCO, bancoDe, fotosDe, comandoCarrusel, FICHA, CONTENT_VERSION, defaultState, catalogoActual, ponCatalogo, textosActuales, ponTextos, tamanoTitulo, PAREJAS, render, renderText, renderWhatsApp, espaciosDeH, linkFor, cambiaElCorreo, fechasPasadas, pick, aplicaPerfil, aplicaAsunto, normaliza };
+  return { C, SERVICIOS, GRUPOS, TEMPLATES, IMG_SETS, PERFILES, ASUNTOS, asuntosDe, EFECTOS, efectoDe, pesoDe, rangoPeso, ROLES, CORREOS, cargoDe, correosDe, BANCO, bancoDe, fotosDe, comandoCarrusel, FICHA, CONTENT_VERSION, defaultState, catalogoActual, ponCatalogo, textosActuales, ponTextos, tamanoTitulo, PAREJAS, render, renderText, renderWhatsApp, espaciosDeH, bloquesWhatsApp, linkFor, cambiaElCorreo, fechasPasadas, pick, aplicaPerfil, aplicaAsunto, normaliza };
 });

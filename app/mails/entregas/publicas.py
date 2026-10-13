@@ -12,6 +12,7 @@ propuesta, sin pagar un clic de peaje para leer un resumen de lo que ya dice el 
 """
 
 import html
+import json
 import logging
 import os
 import re
@@ -175,7 +176,7 @@ _PAGINA = """<!DOCTYPE html>
   <h1>{titulo}</h1>
   <p>{bajada}</p>
   {imagen}
-  <a class="ir" href="{destino}" rel="noopener">Ver la propuesta &rarr;</a>
+  <a class="ir" href="{destino}" rel="noopener">{boton} &rarr;</a>
   <footer>Visibilidad que conecta &middot; Caracas, Venezuela</footer>
 </main></body></html>"""
 
@@ -195,6 +196,56 @@ def _es_robot(agente: str) -> bool:
     return any(r in a for r in _ROBOTS)
 
 
+def _de_slug(db: Session, slug: str):
+    """El enlace activo y su entrega, o 404."""
+    enlace = db.query(models.Link).filter(
+        models.Link.slug == slug, models.Link.is_active.is_(True)).first()
+    entrega = enlace and db.query(models.Entrega).filter(models.Entrega.link_id == enlace.id).first()
+    if not entrega:
+        raise HTTPException(status_code=404, detail="No encontrado")
+    return enlace, entrega
+
+
+def _ip(request: Request) -> str:
+    ip = request.headers.get("X-Forwarded-For")
+    return ip.split(",")[0].strip() if ip else (
+        request.headers.get("X-Real-IP") or (request.client.host if request.client else "unknown"))
+
+
+# Lo que se guarda de cada apertura, recortado: la petición es anónima y sus cabeceras no tienen
+# tope (revisión de seguridad de la 010).
+_agente = lambda request: request.headers.get("user-agent", "")[:300]
+_distintivo = lambda request: (request.query_params.get("c") or "")[:64] or None
+
+
+def _cuenta_clic(db: Session, enlace: models.Link, request: Request) -> None:
+    """El clic de la entrega, como el acortador. Lo que se añada a la sesión se guarda con él."""
+    db.add(models.Click(
+        link_id=enlace.id, ip=_ip(request)[:50],
+        user_agent=_agente(request),
+        referer=request.headers.get("referer", "")[:500],
+        contact_token=_distintivo(request),
+    ))
+    enlace.click_count = (enlace.click_count or 0) + 1
+    enlace.last_clicked_at = datetime.now(timezone.utc)
+    db.commit()
+
+
+def _base(request: Request) -> str:
+    """
+    La raíz pública para las imágenes de la tarjeta. El esquema sale de lo que diga el proxy, no de
+    lo que crea uvicorn: TLS lo termina EasyPanel, así que `base_url` dice "http://" para una página
+    que el cliente pidió por https. La tarjeta anunciaba entonces su imagen en claro, y WhatsApp
+    descarta el contenido mixto: la tarjeta salía sin foto. Sin la cabecera —en local— se queda lo
+    de siempre.
+    """
+    base = str(request.base_url).rstrip("/")
+    proto = (request.headers.get("X-Forwarded-Proto") or "").split(",")[0].strip().lower()
+    if proto in ("http", "https"):
+        base = "%s://%s" % (proto, base.split("://", 1)[-1])
+    return base
+
+
 @router.get("/p/{slug}", response_class=HTMLResponse)
 def previa(slug: str, request: Request, db: Session = Depends(get_db)):
     """
@@ -204,32 +255,14 @@ def previa(slug: str, request: Request, db: Session = Depends(get_db)):
     página se sirve de todos modos: el cliente no puede quedarse sin su propuesta porque a
     nosotros nos falle la contabilidad.
     """
-    enlace = db.query(models.Link).filter(
-        models.Link.slug == slug, models.Link.is_active.is_(True)).first()
-    if not enlace:
-        raise HTTPException(status_code=404, detail="No encontrado")
-    entrega = db.query(models.Entrega).filter(models.Entrega.link_id == enlace.id).first()
-    if not entrega:
-        raise HTTPException(status_code=404, detail="No encontrado")
+    enlace, entrega = _de_slug(db, slug)
 
     # Una persona: se cuenta su apertura y se la manda a su propuesta. Que WhatsApp mire el
     # enlace al pegarlo no es que el cliente lo haya abierto -contarlo inflaba las estadísticas y
     # disparaba el aviso de interés por algo que hizo quien envía-, así que el robot no cuenta.
     if not _es_robot(request.headers.get("user-agent", "")):
         try:
-            ip = request.headers.get("X-Forwarded-For")
-            ip = ip.split(",")[0].strip() if ip else (
-                request.headers.get("X-Real-IP")
-                or (request.client.host if request.client else "unknown"))
-            db.add(models.Click(
-                link_id=enlace.id, ip=ip,
-                user_agent=request.headers.get("user-agent", ""),
-                referer=request.headers.get("referer", ""),
-                contact_token=request.query_params.get("c") or None,
-            ))
-            enlace.click_count = (enlace.click_count or 0) + 1
-            enlace.last_clicked_at = datetime.now(timezone.utc)
-            db.commit()
+            _cuenta_clic(db, enlace, request)
         except Exception:
             db.rollback()
             log.exception("no se pudo registrar la apertura de %s", slug)
@@ -242,19 +275,96 @@ def previa(slug: str, request: Request, db: Session = Depends(get_db)):
     bajada = " ".join(_rellena(entrega.texto, entrega.contacto).split())[:200] or \
         "La propuesta que preparamos para tu marca."
     portada = _existe(entrega, "og.jpg")
-    # El esquema sale de lo que diga el proxy, no de lo que crea uvicorn: TLS lo termina
-    # EasyPanel, así que `base_url` dice "http://" para una página que el cliente pidió por
-    # https. La tarjeta anunciaba entonces su imagen en claro, y WhatsApp descarta el contenido
-    # mixto: la tarjeta salía sin foto. Sin la cabecera —en local— se queda lo de siempre.
-    base = str(request.base_url).rstrip("/")
-    proto = (request.headers.get("X-Forwarded-Proto") or "").split(",")[0].strip().lower()
-    if proto in ("http", "https"):
-        base = "%s://%s" % (proto, base.split("://", 1)[-1])
+    base = _base(request)
     return HTMLResponse(_PAGINA.format(
         titulo=e(entrega.titulo),
         bajada=e(bajada),
         destino=e(entrega.canva_url),
+        boton="Ver la propuesta",
         og_imagen=('<meta property="og:image" content="%s%s">' % (e(base), e(portada))
                    if portada else ""),
         imagen=('<img src="%s" alt="%s">' % (e(portada), e(entrega.titulo))) if portada else "",
+    ))
+
+
+# Los productos a medida (008) llevan este prefijo. No se importa de rutas.py: rutas importa de aquí.
+_A_MEDIDA = "medida--"
+
+
+def _espacio_de(db: Session, entrega: models.Entrega, espacio: str) -> Optional[dict]:
+    """
+    El espacio `espacio` de ESTA entrega, ya resuelto (nombre, línea, destino e imagen), o None.
+
+    Es de la entrega si es un producto a medida suyo (fila propia) o una línea activa del catálogo
+    incluida en sus servicios. Lo propio de la entrega (004) manda sobre el catálogo; la imagen es
+    la primera página elegida de su carrusel, si lo tiene, o la foto de la línea.
+    """
+    if not almacen.linea_valida(espacio):
+        return None
+    fila = db.query(models.EntregaEspacio).filter(
+        models.EntregaEspacio.entrega_id == entrega.id,
+        models.EntregaEspacio.linea_id == espacio).first()
+    linea = None
+    if espacio.startswith(_A_MEDIDA):
+        if not fila:
+            return None
+    else:
+        if espacio not in (entrega.servicios or "").split(","):
+            return None
+        linea = db.get(models.LineaNegocio, espacio)
+        if not linea or not linea.activa:
+            return None
+    propio = lambda campo: (getattr(fila, campo) or "").strip() if fila else ""
+    imagen = ""
+    paginas = sorted(json.loads(fila.paginas or "[]"), key=lambda p: p["orden"]) if fila else []
+    if paginas:
+        # Su portada ligera (og.jpg, desde la 010); un carrusel armado antes, su primera página.
+        imagen = _existe(entrega, "og.jpg", espacio) or \
+            _url_media(entrega, paginas[0]["ruta"].rsplit("/", 1)[-1], espacio)
+    elif linea and (linea.img or "").strip():
+        img = linea.img.strip()
+        imagen = img if re.match(r"^(https?:)?//|^/", img) else "/static/email/" + img
+    return {
+        "nombre": propio("nombre") or (linea.nombre if linea else ""),
+        "cobertura": propio("cobertura") or (linea.cobertura if linea else ""),
+        "destino": propio("canva_url") or ((linea.canva or "").strip() if linea else "") or entrega.canva_url,
+        "imagen": imagen,
+    }
+
+
+@router.get("/p/{slug}/{espacio}", response_class=HTMLResponse)
+def previa_espacio(slug: str, espacio: str, request: Request, db: Session = Depends(get_db)):
+    """
+    El enlace propio de un espacio de la entrega (010). WhatsApp dibuja la tarjeta solo del PRIMER
+    enlace de cada mensaje, así que cada servicio va en su mensaje con este enlace: su tarjeta lleva
+    nuestra foto, su nombre y su ubicación, en vez del título interno del diseño de Canva.
+
+    Como `/p/{slug}`: el robot lee la tarjeta; la persona se apunta y pasa a su presentación.
+    """
+    enlace, entrega = _de_slug(db, slug)
+    datos = _espacio_de(db, entrega, espacio)
+    if not datos:
+        raise HTTPException(status_code=404, detail="No encontrado")
+
+    if not _es_robot(request.headers.get("user-agent", "")):
+        try:
+            db.add(models.AperturaEspacio(
+                entrega_id=entrega.id, linea=espacio, ip=_ip(request)[:50],
+                user_agent=_agente(request), contact_token=_distintivo(request)))
+            _cuenta_clic(db, enlace, request)
+        except Exception:
+            db.rollback()
+            log.exception("no se pudo registrar la apertura de %s/%s", slug, espacio)
+        return RedirectResponse(datos["destino"], status_code=307)
+
+    e = html.escape
+    imagen = datos["imagen"]
+    absoluta = imagen if re.match(r"^https?://", imagen) else (_base(request) + imagen if imagen else "")
+    return HTMLResponse(_PAGINA.format(
+        titulo=e(datos["nombre"]),
+        bajada=e(datos["cobertura"]),
+        destino=e(datos["destino"]),
+        boton="Ver la presentación",
+        og_imagen=('<meta property="og:image" content="%s">' % e(absoluta)) if absoluta else "",
+        imagen=('<img src="%s" alt="%s">' % (e(imagen), e(datos["nombre"]))) if imagen else "",
     ))

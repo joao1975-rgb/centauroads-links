@@ -80,9 +80,9 @@ foto, el nombre y la ubicación** del servicio.
 
 ## Tasks
 
-- [ ] T1001 Pruebas de la ruta: robot (título, línea, imagen absoluta del catálogo, del carrusel propio y de un a medida), persona (307 al destino correcto; apertura registrada con su espacio; clic de la entrega), 404 para ajeno/otra entrega/inventado/enlace inactivo — `tests/test_whatsapp_bloques.py`
-- [ ] T1002 Pruebas del motor: mensaje principal sin lista y con la línea solo si hay bloques; `bloquesWhatsApp` en orden, sin excluidos, con el enlace propio; vacío sin enlace — `tests/test_whatsapp_bloques_motor.py`
-- [ ] T1003 Ruta pública y tabla `aperturas_espacios` — `app/mails/entregas/publicas.py`, `app/models.py`
-- [ ] T1004 Motor — `prototipos/mail/render.js`
-- [ ] T1005 Compositor: grupo «Enviar por WhatsApp» — `prototipos/mail/compositor.html`
-- [ ] T1006 Demo: tarjeta de robot por servicio (HTML con og:*), copiar bloques en orden, 0 errores; suite, build (16 idénticas), README y Obsidian
+- [x] T1001 Pruebas de la ruta: robot (título, línea, imagen absoluta del catálogo, del carrusel propio y de un a medida), persona (307 al destino correcto; apertura registrada con su espacio; clic de la entrega), 404 para ajeno/otra entrega/inventado/enlace inactivo — `tests/test_whatsapp_bloques.py`
+- [x] T1002 Pruebas del motor: mensaje principal sin lista y con la línea solo si hay bloques; `bloquesWhatsApp` en orden, sin excluidos, con el enlace propio; vacío sin enlace — `tests/test_whatsapp_bloques_motor.py`
+- [x] T1003 Ruta pública y tabla `aperturas_espacios` — `app/mails/entregas/publicas.py`, `app/models.py`
+- [x] T1004 Motor — `prototipos/mail/render.js`
+- [x] T1005 Compositor: grupo «Enviar por WhatsApp» — `prototipos/mail/compositor.html`
+- [x] T1006 Demo: tarjeta de robot por servicio (HTML con og:*), copiar bloques en orden, 0 errores; suite, build (16 idénticas), README y Obsidian

@@ -266,6 +266,23 @@ class EntregaPagina(Base):
     entrega = relationship("Entrega", back_populates="paginas")
 
 
+class AperturaEspacio(Base):
+    """
+    Una persona abrió el enlace propio de un espacio de una entrega, `/p/<slug>/<espacio>` (010).
+    Aparte de `clicks`, que es del acortador: aquí va QUÉ servicio abrió. El clic de la entrega se
+    cuenta igual que en `/p/<slug>`.
+    """
+    __tablename__ = "aperturas_espacios"
+
+    id = Column(Integer, primary_key=True, index=True)
+    entrega_id = Column(Integer, ForeignKey("entregas.id"), nullable=False, index=True)
+    linea = Column(String(60), nullable=False)
+    contact_token = Column(String(64), nullable=True)
+    ip = Column(String(50), default="")
+    user_agent = Column(Text, default="")
+    creado = Column(DateTime, default=ahora)
+
+
 class EntregaEspacio(Base):
     """
     Un espacio acompañante **personalizado** en una entrega (especificación 004). Un espacio

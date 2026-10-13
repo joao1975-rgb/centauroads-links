@@ -199,8 +199,8 @@ def test_texto_y_whatsapp_de_la_h_usan_lo_propio(propios):
     t = propios["textoH"]
     assert NOMBRE_LED in t and CANVA_LED in t and COBERTURA_LED in t
     assert NOMBRE_LED not in propios["textoA"] and CANVA_LED not in propios["textoA"]
-    # WhatsApp lista los espacios con su enlace (009): el propio de esta entrega, no el del catálogo.
-    assert NOMBRE_LED + ": " + CANVA_LED in propios["waH"]
+    # WhatsApp ya no lista los espacios (010): van en bloques aparte con su enlace propio.
+    assert CANVA_LED not in propios["waH"]
 
 
 def test_el_estado_de_la_persona_no_se_modifica(propios, incluidos):

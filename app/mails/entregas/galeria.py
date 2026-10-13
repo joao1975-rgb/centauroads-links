@@ -98,8 +98,9 @@ def arma(entrega_id: int, seleccion: Seleccion, linea: Optional[str] = None,
     """
     Arma `carrusel.gif` con las páginas elegidas, en ese orden. Devuelve `[(indice, imagen)]`.
 
-    `con_portada` es solo para la principal: la tarjeta de WhatsApp (`og.jpg`) es de la entrega,
-    no de cada espacio.
+    `con_portada` guarda también `og.jpg`, la imagen ligera de la tarjeta de WhatsApp: la de la
+    entrega o, con `linea`, la del enlace propio de ese espacio (010). Una página a 1200 px puede
+    pasar de lo que WhatsApp acepta para la vista previa.
     """
     from PIL import Image
 
@@ -125,7 +126,7 @@ def arma(entrega_id: int, seleccion: Seleccion, linea: Optional[str] = None,
     tira = carrusel.arma(imagenes, efecto=seleccion.efecto)
     almacen.guarda(entrega_id, "carrusel.gif", tira.datos, linea)
     if con_portada:
-        almacen.guarda(entrega_id, "og.jpg", carrusel.portada(imagenes[0]))
+        almacen.guarda(entrega_id, "og.jpg", carrusel.portada(imagenes[0]), linea)
     if not tira.dentro_de_presupuesto:
         log.warning("entrega %d%s: carrusel de %d KB, por encima del presupuesto",
                     entrega_id, " (espacio %s)" % linea if linea else "",

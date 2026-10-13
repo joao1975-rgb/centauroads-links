@@ -169,6 +169,13 @@
   .svc-h { display:flex; align-items:center; gap:8px; }
   .marca-espacio { font-size:11px; color:var(--faint); white-space:nowrap; }
   .marca-espacio.propia { color:var(--purple-l); font-weight:700; }
+  .wa-bloques { margin:14px 0 10px; }
+  .wa-fila { display:flex; align-items:center; gap:10px; padding:7px 10px; border:1px solid var(--border);
+    border-radius:10px; margin:0 0 6px; background:var(--card); }
+  .wa-fila img, .wa-fila .sin { width:52px; height:34px; object-fit:cover; border-radius:6px; background:var(--hover); flex:none; }
+  .wa-fila .n { flex:1; font-size:13px; } .wa-fila .n small { display:block; color:var(--faint); font-size:11px; }
+  .wa-fila.off { opacity:.55; }
+  .wa-bloques .btn.primary { width:100%; margin-top:6px; }
   .flechas { display:flex; gap:2px; }
   .flechas button { width:26px; height:26px; border:1px solid var(--line); border-radius:6px;
     background:transparent; color:var(--dim); font-size:13px; line-height:1; cursor:pointer; }
@@ -254,7 +261,7 @@
 <div class="toast" id="toast" role="status"></div>
 
 <script>window.ASSET_BASE=".";</script>
-<script src="render.js?v=fe4ec665319a"></script>
+<script src="render.js?v=ba14f807e996"></script>
 <script>
 (function () {
   'use strict';
@@ -1334,6 +1341,7 @@
     fila5.appendChild(botonEl('Copiar para WhatsApp', null, copiaWhatsApp));
     fila5.appendChild(botonEl('Copiar imagen de servicios', null, copiaImagenWa));
     p5.appendChild(fila5);
+    p5.appendChild(enviarWaEl());
     if (HAY_SERVIDOR) {
       const est5 = estadoEl('');
       const fila6 = el('div', 'fila-bt');
@@ -1740,6 +1748,78 @@
   // Copiar texto plano, con el mismo respaldo que ya usaban los demas botones. El portapapeles
   // moderno exige que la pagina tenga el foco, y en algunos navegadores ademas permiso; el
   // metodo clasico funciona donde el otro no. Estaba al lado desde el principio y no lo use.
+  // ── WhatsApp por bloques (010) ──
+  // WhatsApp dibuja la tarjeta solo del PRIMER enlace de cada mensaje. El principal lleva la de la
+  // propuesta; cada espacio va en su propio mensaje con su enlace propio (/p/<slug>/<espacio>), cuya
+  // tarjeta tiene su foto, su nombre y su ubicacion. Se eligen con casillas (E.waFuera) y «Copiar el
+  // siguiente» los copia en orden, uno por pulsacion. La lista se rehace con cada cambio (touch).
+  let waSiguiente = 0, refrescaWa = null;
+  function enviarWaEl() {
+    const E = st.bloques.entrega;
+    const caja = el('div', 'wa-bloques');
+    caja.appendChild(el('p', 'fld-l', 'Enviar por WhatsApp, un mensaje por espacio'));
+    if (!HAY_SERVIDOR || !st.entregaId || !E.enlace) {
+      caja.appendChild(el('p', 'hint', 'Guarda la entrega (paso 02) para preparar un mensaje por cada espacio, con su imagen.'));
+      refrescaWa = null; return caja;
+    }
+    caja.appendChild(el('p', 'hint', 'Pega cada uno en el chat, espera a que aparezca su tarjeta y envíalo.'));
+    const lista = el('div'); caja.appendChild(lista);
+    const est = estadoEl('');
+    const cola = () => [{ id: '', nombre: 'Mensaje principal', texto: null }].concat(M.bloquesWhatsApp(st));
+    const copia = async (b) => {
+      if (faltaEnlaceH() || faltaGuardarH()) return false;
+      const ok = await copiaTexto(b.texto === null ? M.renderWhatsApp(prod()) : b.texto);
+      toast(ok ? 'Copiado «' + b.nombre + '»: pégalo en el chat, espera a que salga su tarjeta y envíalo.'
+               : 'No se pudo copiar', 5000);
+      return ok;
+    };
+    const siguiente = botonEl('', 'primary', async () => {
+      const c = cola();
+      if (waSiguiente >= c.length) waSiguiente = 0;
+      if (!(await copia(c[waSiguiente]))) return;
+      waSiguiente += 1;
+      est.className = 'estado bien';
+      est.textContent = waSiguiente >= c.length ? 'Copiados los ' + c.length + '. Ya está todo.'
+        : 'Copiado el ' + waSiguiente + ' de ' + c.length + '. Pégalo, envíalo y pulsa otra vez.';
+      if (waSiguiente >= c.length) waSiguiente = 0;
+      pinta();
+    });
+    function pinta() {
+      const fuera = Array.isArray(E.waFuera) ? E.waFuera : [];
+      lista.textContent = '';
+      const principal = el('div', 'wa-fila');
+      principal.appendChild(el('span', 'n', '1 · Mensaje principal'));
+      principal.appendChild(botonEl('Copiar', null, () => copia(cola()[0])));
+      lista.appendChild(principal);
+      let n = 1;
+      M.espaciosDeH(st).forEach(x => {
+        const va = fuera.indexOf(x.id) < 0;
+        const f = el('div', 'wa-fila' + (va ? '' : ' off'));
+        const c = document.createElement('input'); c.type = 'checkbox'; c.checked = va;
+        c.setAttribute('aria-label', 'Enviar ' + x.nombre);
+        c.addEventListener('change', () => {
+          E.waFuera = c.checked ? fuera.filter(id => id !== x.id) : fuera.concat(x.id);
+          waSiguiente = 0; save(); pinta();
+        });
+        f.appendChild(c);
+        if (x.foto) { const im = el('img'); im.src = x.foto; im.alt = ''; f.appendChild(im); }
+        else f.appendChild(el('span', 'sin'));
+        const nom = el('span', 'n', x.nombre);
+        nom.appendChild(el('small', null, va ? (++n) + ' · su imagen y su enlace' : 'no se envía'));
+        f.appendChild(nom);
+        const b = botonEl('Copiar', null, () => copia(M.bloquesWhatsApp(st).filter(z => z.id === x.id)[0]));
+        b.disabled = !va; f.appendChild(b);
+        lista.appendChild(f);
+      });
+      const total = cola().length;
+      if (waSiguiente >= total) waSiguiente = 0;
+      siguiente.textContent = 'Copiar el siguiente · ' + (waSiguiente + 1) + ' de ' + total;
+    }
+    caja.appendChild(siguiente); caja.appendChild(est);
+    refrescaWa = pinta; pinta();
+    return caja;
+  }
+
   async function copiaTexto(texto) {
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -1921,6 +2001,7 @@
   function touch() {
     save(); clearTimeout(timer); timer = setTimeout(renderPreview, 120);
     programaGuardado(); pintaAvisoImagenes();   // 009
+    if (refrescaWa) refrescaWa();               // 010: los bloques siguen a los espacios
   }
   function renderPreview() {
     const key = M.pick(st);

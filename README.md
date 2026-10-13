@@ -224,8 +224,12 @@ un administrador sin programar (especificación 005); los comerciales lo ven sin
   avisa de que siguen siendo las de la presentación anterior.
 - **Orden de los espacios** (009): ↑ y ↓ junto a cada espacio (del catálogo o a medida). Es de cada
   entrega (`orden_espacios`) y lo siguen el correo, el texto plano y WhatsApp.
-- **WhatsApp** (009): tras el texto corto, «Lo que la acompaña» con cada espacio y su enlace. El de
-  la propuesta va primero: WhatsApp solo dibuja la tarjeta del primer enlace.
+- **WhatsApp por bloques** (010): WhatsApp solo dibuja la tarjeta del PRIMER enlace de cada
+  mensaje. El mensaje principal lleva la de la propuesta (sin lista de enlaces); cada espacio va en
+  su propio mensaje con su **enlace propio** `/p/<slug>/<espacio>`, cuya tarjeta lleva su foto (la
+  portada ligera de su carrusel o la del catálogo), su nombre y su ubicación, y lleva a la
+  presentación de ese espacio. En el paso 05 se eligen con casillas y «Copiar el siguiente · n de N»
+  los copia en orden. Cada apertura se apunta con su espacio (`aperturas_espacios`).
   **«Copiar imagen de servicios»** copia una sola imagen con la portada y el nombre de cada espacio,
   en el orden de la entrega, para pegarla en WhatsApp como foto.
 - **Productos a medida** (especificación 008): «+ Añadir otro producto» pone, **solo en esa
@@ -255,6 +259,7 @@ un administrador sin programar (especificación 005); los comerciales lo ven sin
 | `/media/e/{clave}/…` | Imágenes de una entrega (y de sus espacios), con una clave que no se adivina | público |
 | `/media/entregas/{id}/…` | Imágenes de las entregas **anteriores** a la clave, para no romper correos enviados | público |
 | `/p/{slug}` | Enlace propio de una entrega: tarjeta para WhatsApp y robots, redirección a Canva para personas | público |
+| `/p/{slug}/{espacio}` | Enlace propio de un espacio de la entrega (010): su tarjeta para WhatsApp; las personas van a su presentación | público |
 | `/admin` | Panel del acortador | clave `X-Admin-Key` |
 | `/{slug}` | Enlace corto → destino | público |
 | `/health` | Estado del servicio | público |

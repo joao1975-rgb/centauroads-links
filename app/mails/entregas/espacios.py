@@ -145,7 +145,8 @@ def elegir(entrega_id: int, linea: str, seleccion: Seleccion,
     """Arma el carrusel del espacio y lo apunta en su fila, con el efecto con que salió."""
     entrega = _busca(db, entrega_id, usuario)
     _espacio(db, entrega, linea)
-    elegidas = galeria.arma(entrega.id, seleccion, linea)
+    # Con su portada ligera: es la imagen de la tarjeta de su enlace propio en WhatsApp (010).
+    elegidas = galeria.arma(entrega.id, seleccion, linea, con_portada=True)
     avisos = _avisos(entrega.id, linea)
 
     paginas = json.dumps([{

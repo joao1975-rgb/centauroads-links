@@ -82,8 +82,8 @@ def test_sin_orden_sale_el_de_siempre(r):
 def test_el_orden_manda_en_el_texto_plano_y_whatsapp(r):
     n = r["nombres"]
     esperado = ["PRODUCTO PROPIO", n["totem"], n["vallas"], n["led"]]
-    for canal in ("texto", "wa"):
-        assert _orden(r[canal], esperado) == esperado, canal
+    # WhatsApp ya no lista los espacios (010): van en bloques aparte, que siguen el mismo orden.
+    assert _orden(r["texto"], esperado) == esperado
 
 
 def test_a_g_no_cambian(r):
@@ -97,12 +97,10 @@ def test_el_estado_no_se_toca(r):
 
 # --- WhatsApp ------------------------------------------------------------------------------------
 
-def test_whatsapp_lista_los_espacios_con_su_enlace(r):
-    wa, n = r["wa"], r["nombres"]
+def test_whatsapp_ya_no_lista_los_espacios(r):
+    # La lista de la 009 (FR-906) la deroga la 010: cada espacio va en su propio mensaje.
     for s in ("vallas", "led", "totem"):
-        assert "• %s: %s" % (n[s], r["canva_" + s]) in wa, s
-    assert "• PRODUCTO PROPIO\n" in wa + "\n"   # sin enlace, solo el nombre
-    assert n["mercedes"] not in wa                    # no incluido
+        assert r["canva_" + s] not in r["wa"], s
 
 
 def test_whatsapp_el_enlace_de_la_propuesta_sigue_primero(r):
