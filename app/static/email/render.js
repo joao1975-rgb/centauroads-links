@@ -2123,6 +2123,14 @@
       return s;
     }).concat(aMedidaDe(e))) });
   }
+  // Los espacios que acompanan una entrega H, ya resueltos (009): en su orden, con lo propio de
+  // la entrega, su enlace y una foto fija (su carrusel propio si lo tiene). Para la imagen de
+  // WhatsApp del compositor: WhatsApp solo dibuja la tarjeta del primer enlace de cada mensaje.
+  function espaciosDeH(st0) {
+    const st = soloSuyas(aplicaPerfil(normaliza(st0)), 'H');
+    return activos(st).map(s => ({ id: s.id, nombre: s.nombre, cobertura: s.cobertura || '',
+      enlace: linkFor(st, s), foto: s.carruselPropio || (tieneFoto(st, s) ? svcImg(st, s) : '') }));
+  }
   // El orden que eligio quien arma la entrega (009). Estable: lo que no esta en `orden` va al final,
   // en el orden de siempre. Sin orden, la lista tal cual.
   function enOrden(e, lista) {
@@ -2337,5 +2345,5 @@
     return puestos;
   }
 
-  return { C, SERVICIOS, GRUPOS, TEMPLATES, IMG_SETS, PERFILES, ASUNTOS, asuntosDe, EFECTOS, efectoDe, pesoDe, rangoPeso, ROLES, CORREOS, cargoDe, correosDe, BANCO, bancoDe, fotosDe, comandoCarrusel, FICHA, CONTENT_VERSION, defaultState, catalogoActual, ponCatalogo, textosActuales, ponTextos, tamanoTitulo, PAREJAS, render, renderText, renderWhatsApp, linkFor, cambiaElCorreo, fechasPasadas, pick, aplicaPerfil, aplicaAsunto, normaliza };
+  return { C, SERVICIOS, GRUPOS, TEMPLATES, IMG_SETS, PERFILES, ASUNTOS, asuntosDe, EFECTOS, efectoDe, pesoDe, rangoPeso, ROLES, CORREOS, cargoDe, correosDe, BANCO, bancoDe, fotosDe, comandoCarrusel, FICHA, CONTENT_VERSION, defaultState, catalogoActual, ponCatalogo, textosActuales, ponTextos, tamanoTitulo, PAREJAS, render, renderText, renderWhatsApp, espaciosDeH, linkFor, cambiaElCorreo, fechasPasadas, pick, aplicaPerfil, aplicaAsunto, normaliza };
 });

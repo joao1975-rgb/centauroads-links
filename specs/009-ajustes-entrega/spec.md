@@ -90,3 +90,19 @@ El enlace de la propuesta sigue siendo el primero, para que la vista previa sea 
 - [x] T905 Compositor: guardado automático, indicador, guarda de copiado y aviso de imágenes viejas — `prototipos/mail/compositor.html`
 - [x] T906 Compositor: flechas de orden — `prototipos/mail/compositor.html`
 - [x] T907 Demo en navegador (cambiar enlace → `/p/` lleva al nuevo sin pulsar Guardar; ordenar; WhatsApp), suite, build (16 idénticas), README y Obsidian
+
+## Addendum (2026-10-13) — US5: la imagen de los servicios para WhatsApp
+
+Tras probar la 009, la propietaria preguntó por qué los enlaces de los servicios no salen con su imagen
+en WhatsApp. Comprobado: los cuatro enlaces de Canva tienen `og:image`, pero WhatsApp solo dibuja la
+tarjeta del **primer** enlace de cada mensaje. Decisión (preguntas): **una imagen con todos**.
+
+- **FR-908**: En la H, «Copiar imagen de servicios» (barra y paso 05) MUST copiar una imagen PNG
+  (1080 px de ancho) con la portada, el nombre y la línea de texto de cada espacio que la acompaña, en el
+  orden de la entrega y con lo propio de la entrega (carrusel, nombre); para pegar en WhatsApp como foto.
+- Motor: `espaciosDeH(st)` exporta los espacios ya resueltos `{id, nombre, cobertura, enlace, foto}`.
+- La foto que no carga sale como hueco con la inicial; sin espacios, se avisa y no se copia.
+
+- [x] T908 Pruebas del motor de `espaciosDeH` (orden, lo propio, foto, enlace) — `tests/test_ajustes_entrega_motor.py`
+- [x] T909 Motor `espaciosDeH` y compositor `mosaicoWa`/`copiaImagenWa` con botones — `render.js`, `compositor.html`
+- [x] T910 Demo: imagen copiada del portapapeles (1080×1472 con 5 espacios), sin errores

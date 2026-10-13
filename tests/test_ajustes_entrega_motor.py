@@ -38,6 +38,10 @@ out.intacto = JSON.stringify(st) === antes;
 out.otras = {};
 'ABCDEFG'.split('').forEach(k => { const a = ordenado(); a.plantilla = k; const b = base(); b.plantilla = k;
   out.otras[k] = [M.render(a, k), M.render(b, k)]; });
+out.espaciosH = M.espaciosDeH(st);
+out.imgs = {}; M.defaultState().servicios.forEach(s => { out.imgs[s.id] = s.img; });
+const conCarrusel = ordenado(); conCarrusel.bloques.entrega.espacios = { totem: { carrusel: 'https://x.test/totem.gif', nombre: 'TOTEM PROPIO' } };
+out.espaciosPropios = M.espaciosDeH(conCarrusel);
 out.roles = Object.keys(M.ROLES).map(k => [k, M.ROLES[k]]);
 out.cargoDefecto = M.cargoDe(M.defaultState().bloques.firma);
 out.cargoAsesor = M.cargoDe(Object.assign({}, M.defaultState().bloques.firma, { rol: 'asesor' }));
@@ -116,3 +120,18 @@ def test_el_cargo_tiene_exactamente_tres_opciones(r):
 def test_el_cargo_por_defecto_no_cambia(r):
     assert r["cargoDefecto"] == "Alianzas Comerciales · Centauro ADS"
     assert r["cargoAsesor"] == "Asesor Comercial · Centauro ADS"
+
+
+# --- La imagen de WhatsApp (los espacios ya resueltos) ---------------------------------------------
+
+def test_espacios_de_h_en_su_orden_con_foto_y_enlace(r):
+    e = r["espaciosH"]
+    assert [x["id"] for x in e] == ["medida--aaaa00000001", "totem", "vallas", "led"]
+    propio, totem = e[0], e[1]
+    assert propio["nombre"] == "PRODUCTO PROPIO" and propio["foto"] == "" and propio["enlace"] == ""
+    assert totem["foto"].endswith(r["imgs"]["totem"]) and totem["enlace"] == r["canva_totem"]
+
+
+def test_espacios_de_h_usan_lo_propio_de_la_entrega(r):
+    totem = [x for x in r["espaciosPropios"] if x["id"] == "totem"][0]
+    assert totem["nombre"] == "TOTEM PROPIO" and totem["foto"] == "https://x.test/totem.gif"

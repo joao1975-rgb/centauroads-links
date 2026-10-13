@@ -231,6 +231,7 @@
     <button class="btn" id="copyText" type="button">Copiar texto</button>
     <button class="btn" id="copyHtml" type="button">Copiar HTML</button>
     <button class="btn" id="copyWa" type="button" hidden>Copiar para WhatsApp</button>
+    <button class="btn" id="copyWaImg" type="button" hidden>Copiar imagen de servicios</button>
     <button class="btn primary" id="copyGmail" type="button">Copiar para pegar en Gmail</button>
   </div>
 </header>
@@ -1331,6 +1332,7 @@
     const fila5 = el('div', 'fila-bt');
     fila5.appendChild(botonEl('Copiar para Gmail', 'primary', () => $('#copyGmail').click()));
     fila5.appendChild(botonEl('Copiar para WhatsApp', null, copiaWhatsApp));
+    fila5.appendChild(botonEl('Copiar imagen de servicios', null, copiaImagenWa));
     p5.appendChild(fila5);
     if (HAY_SERVIDOR) {
       const est5 = estadoEl('');
@@ -1753,6 +1755,74 @@
     t.remove(); return ok;
   }
 
+  // ── La imagen de los servicios para WhatsApp (009) ──
+  // WhatsApp solo dibuja la tarjeta del PRIMER enlace de un mensaje, asi que los servicios que
+  // acompanan la propuesta salian como texto. Esto dibuja UNA imagen con la portada y el nombre de
+  // cada uno, en el orden de la entrega, y la copia: se pega en WhatsApp como foto. Las fotos son del
+  // mismo dominio (./svc_*.jpg, /media/...), asi que el lienzo no queda bloqueado; una que no carga
+  // sale como hueco con su inicial.
+  function cargaImg(src) {
+    return new Promise(res => {
+      if (!src) return res(null);
+      const im = new Image(); im.crossOrigin = 'anonymous';
+      im.onload = () => res(im); im.onerror = () => res(null);
+      im.src = new URL(src, location.href).href;
+    });
+  }
+  function recorta(g, texto, ancho) {
+    let t = String(texto || '');
+    if (g.measureText(t).width <= ancho) return t;
+    while (t && g.measureText(t + '…').width > ancho) t = t.slice(0, -1);
+    return t + '…';
+  }
+  async function mosaicoWa(lista, titulo) {
+    const imgs = await Promise.all(lista.map(x => cargaImg(x.foto)));
+    const W = 1080, PAD = 56, GAP = 32, COLS = lista.length === 1 ? 1 : 2, CAB = titulo ? 170 : 120, TXT = 104;
+    const cw = Math.floor((W - PAD * 2 - GAP * (COLS - 1)) / COLS), ch = Math.round(cw * 0.62);
+    const filas = Math.ceil(lista.length / COLS);
+    const H = CAB + filas * (ch + TXT) + (filas - 1) * GAP + PAD;
+    const c = document.createElement('canvas'); c.width = W; c.height = H;
+    const g = c.getContext('2d'), letra = '"Segoe UI", Roboto, Arial, sans-serif';
+    g.fillStyle = '#1A1124'; g.fillRect(0, 0, W, H);
+    g.fillStyle = '#F79131'; g.font = '700 24px ' + letra; g.fillText('LO QUE LA ACOMPAÑA', PAD, 78);
+    g.fillStyle = '#A667BD'; g.textAlign = 'right'; g.fillText('Centauro ADS', W - PAD, 78); g.textAlign = 'left';
+    if (titulo) { g.fillStyle = '#FFFFFF'; g.font = '700 36px ' + letra; g.fillText(recorta(g, titulo, W - PAD * 2), PAD, 128); }
+    lista.forEach((x, i) => {
+      const fila = Math.floor(i / COLS), solo = COLS === 2 && i === lista.length - 1 && lista.length % 2 === 1;
+      const X = solo ? Math.round((W - cw) / 2) : PAD + (i % COLS) * (cw + GAP);
+      const Y = CAB + fila * (ch + TXT + GAP);
+      g.save(); g.beginPath();
+      if (g.roundRect) g.roundRect(X, Y, cw, ch, 18); else g.rect(X, Y, cw, ch);
+      g.clip();
+      const im = imgs[i];
+      if (im) {
+        // Como object-fit: cover, centrada.
+        const k = Math.max(cw / im.width, ch / im.height), w = im.width * k, h = im.height * k;
+        g.drawImage(im, X + (cw - w) / 2, Y + (ch - h) / 2, w, h);
+      } else {
+        g.fillStyle = '#2C2140'; g.fillRect(X, Y, cw, ch);
+        g.fillStyle = '#85439A'; g.font = '800 96px ' + letra; g.textAlign = 'center';
+        g.fillText(String(x.nombre || '?').charAt(0).toUpperCase(), X + cw / 2, Y + ch / 2 + 34); g.textAlign = 'left';
+      }
+      g.restore();
+      g.fillStyle = '#FFFFFF'; g.font = '700 28px ' + letra; g.fillText(recorta(g, x.nombre, cw), X, Y + ch + 44);
+      if (x.cobertura) { g.fillStyle = '#CFC6DD'; g.font = '400 21px ' + letra; g.fillText(recorta(g, x.cobertura, cw), X, Y + ch + 78); }
+    });
+    return new Promise((res, rej) => c.toBlob(b => b ? res(b) : rej(new Error('no se pudo dibujar la imagen')), 'image/png'));
+  }
+  async function copiaImagenWa() {
+    const lista = M.espaciosDeH(st);
+    if (!lista.length) { toast('No hay servicios que acompañen esta entrega: no hay imagen que copiar.', 4000); return; }
+    if (!(navigator.clipboard && window.ClipboardItem)) { toast('Este navegador no deja copiar imágenes: usa Chrome o Edge.', 5000); return; }
+    try {
+      // La imagen va como promesa: el navegador conserva el permiso del clic mientras se dibuja.
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': mosaicoWa(lista, st.bloques.entrega.titulo) })]);
+      toast('Imagen copiada: pégala en el chat de WhatsApp (Ctrl+V) y envíala.', 5000);
+    } catch (e) {
+      toast('No se pudo copiar la imagen: ' + ((e && e.message) || 'el navegador lo bloqueó'), 5000);
+    }
+  }
+
   async function copiaWhatsApp() {
     if (faltaEnlaceH() || faltaGuardarH()) return;
     const texto = M.renderWhatsApp(prod());
@@ -1790,6 +1860,7 @@
   function buildPanel() {
     const p = $('#panel'); p.innerHTML = '';
     $('#copyWa').hidden = st.plantilla !== 'H';
+    $('#copyWaImg').hidden = st.plantilla !== 'H';
     if (st.plantilla === 'H') {
       p.appendChild(buildEntrega());
       const g = el('div', 'grp'); g.appendChild(el('h2', null, 'Espacios que la acompañan'));
@@ -1965,6 +2036,7 @@
   // nada al pulsarlo. El del paso 05 si funcionaba, asi que el fallo dependia de por donde
   // entrara cada quien.
   $('#copyWa').addEventListener('click', copiaWhatsApp);
+  $('#copyWaImg').addEventListener('click', copiaImagenWa);
   $('#copyText').addEventListener('click', async () => {
     if (faltaEnlaceH() || faltaGuardarH()) return;
     try { await navigator.clipboard.writeText(M.renderText(prod())); toast('Versión en texto plano copiada'); } catch (e) { toast('No se pudo copiar el texto'); }

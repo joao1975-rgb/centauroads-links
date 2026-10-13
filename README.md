@@ -226,6 +226,8 @@ un administrador sin programar (especificación 005); los comerciales lo ven sin
   entrega (`orden_espacios`) y lo siguen el correo, el texto plano y WhatsApp.
 - **WhatsApp** (009): tras el texto corto, «Lo que la acompaña» con cada espacio y su enlace. El de
   la propuesta va primero: WhatsApp solo dibuja la tarjeta del primer enlace.
+  **«Copiar imagen de servicios»** copia una sola imagen con la portada y el nombre de cada espacio,
+  en el orden de la entrega, para pegarla en WhatsApp como foto.
 - **Productos a medida** (especificación 008): «+ Añadir otro producto» pone, **solo en esa
   entrega**, algo que no está en el catálogo (nombre obligatorio, una línea de texto, enlace y su
   carrusel con la misma galería). Sale en el correo después de los espacios del catálogo; sin
