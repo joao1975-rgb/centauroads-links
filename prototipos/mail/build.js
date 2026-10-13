@@ -88,7 +88,11 @@ if (kbOut > 15 * 1024) {
     '<script src="render.js"></script>',
     '<script>window.ASSET_BASE=".";</script>\n<script src="render.js?v=' + huella + '"></script>');
   if (publicado === crudo) { console.error('FALLO publicable: no encontre la etiqueta de render.js'); process.exit(1); }
-  fs.writeFileSync(path.join(destino, 'compositor.html'), publicado, 'utf8');
+  // El logo de la cabecera va como img/logo.jpg (bien en local). Publicado, /static/email/img/ no
+  // existe y el navegador lo pedia -404- antes de que el script corrigiera la direccion.
+  const sinCarpetaImg = publicado.replace('<img src="img/logo.jpg"', '<img src="logo.jpg"');
+  if (sinCarpetaImg === publicado) { console.error('FALLO publicable: no encontre el logo de la cabecera'); process.exit(1); }
+  fs.writeFileSync(path.join(destino, 'compositor.html'), sinCarpetaImg, 'utf8');
   fs.copyFileSync(path.join(here, 'render.js'), path.join(destino, 'render.js'));
   const kb = (fs.statSync(path.join(destino, 'compositor.html')).size +
               fs.statSync(path.join(destino, 'render.js')).size) / 1024;

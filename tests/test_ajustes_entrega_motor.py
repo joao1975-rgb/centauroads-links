@@ -147,3 +147,14 @@ def test_el_compositor_publicado_enlaza_el_motor_con_su_huella():
     huella = hashlib.sha256((publicado / "render.js").read_bytes()).hexdigest()[:12]
     assert '<script src="render.js?v=%s"></script>' % huella in (publicado / "compositor.html").read_text(encoding="utf-8")
     assert (publicado / "render.js").read_bytes() == MOTOR.read_bytes()
+
+
+def test_el_compositor_publicado_no_pide_imagenes_a_una_carpeta_que_no_existe():
+    """
+    Escrito como `img/logo.jpg`, el navegador pedía /static/email/img/logo.jpg (404) antes de que el
+    script lo corrigiera. Publicado, las imágenes están en la misma carpeta que el compositor.
+    """
+    publicado = MOTOR.parents[2] / "app" / "static" / "email"
+    html = (publicado / "compositor.html").read_text(encoding="utf-8")
+    assert 'src="img/' not in html
+    assert '<img src="logo.jpg"' in html and (publicado / "logo.jpg").is_file()
