@@ -79,9 +79,14 @@ if (kbOut > 15 * 1024) {
   const crudo = fs.readFileSync(path.join(here, 'compositor.html'), 'utf8');
   // Servido desde /static/email/, 'img/x.jpg' resolveria a /static/email/img/x.jpg, que no
   // existe. Con '.' resuelve a /static/email/x.jpg, que es donde estan de verdad.
+  // El motor va con su huella (`render.js?v=...`): el servidor no dice cuanto guardarlo, y un
+  // navegador con el render.js anterior y el compositor nuevo dejaba botones sin funcion -el de
+  // la imagen de servicios no hacia nada (2026-10-13)-. Con la huella, motor nuevo = URL nueva.
+  const huella = require('crypto').createHash('sha256')
+    .update(fs.readFileSync(path.join(here, 'render.js'))).digest('hex').slice(0, 12);
   const publicado = crudo.replace(
     '<script src="render.js"></script>',
-    '<script>window.ASSET_BASE=".";</script>\n<script src="render.js"></script>');
+    '<script>window.ASSET_BASE=".";</script>\n<script src="render.js?v=' + huella + '"></script>');
   if (publicado === crudo) { console.error('FALLO publicable: no encontre la etiqueta de render.js'); process.exit(1); }
   fs.writeFileSync(path.join(destino, 'compositor.html'), publicado, 'utf8');
   fs.copyFileSync(path.join(here, 'render.js'), path.join(destino, 'render.js'));

@@ -135,3 +135,17 @@ def test_espacios_de_h_en_su_orden_con_foto_y_enlace(r):
 def test_espacios_de_h_usan_lo_propio_de_la_entrega(r):
     totem = [x for x in r["espaciosPropios"] if x["id"] == "totem"][0]
     assert totem["nombre"] == "TOTEM PROPIO" and totem["foto"] == "https://x.test/totem.gif"
+
+
+# --- La publicación enlaza el motor con su huella (2026-10-13) --------------------------------------
+
+def test_el_compositor_publicado_enlaza_el_motor_con_su_huella():
+    """
+    Sin la huella, un navegador con el render.js anterior y el compositor nuevo dejaba el botón de la
+    imagen de servicios sin hacer nada: el servidor no dice cuánto guardar el motor.
+    """
+    import hashlib
+    publicado = MOTOR.parents[2] / "app" / "static" / "email"
+    huella = hashlib.sha256((publicado / "render.js").read_bytes()).hexdigest()[:12]
+    assert '<script src="render.js?v=%s"></script>' % huella in (publicado / "compositor.html").read_text(encoding="utf-8")
+    assert (publicado / "render.js").read_bytes() == MOTOR.read_bytes()

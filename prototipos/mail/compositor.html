@@ -1810,10 +1810,15 @@
     return new Promise((res, rej) => c.toBlob(b => b ? res(b) : rej(new Error('no se pudo dibujar la imagen')), 'image/png'));
   }
   async function copiaImagenWa() {
-    const lista = M.espaciosDeH(st);
-    if (!lista.length) { toast('No hay servicios que acompañen esta entrega: no hay imagen que copiar.', 4000); return; }
+    // Un motor viejo guardado por el navegador no tiene espaciosDeH: antes el clic no hacia nada.
+    if (typeof M.espaciosDeH !== 'function') {
+      toast('El navegador tiene guardada una versión anterior: recarga la página (Ctrl+F5) y vuelve a pulsar.', 6000);
+      return;
+    }
     if (!(navigator.clipboard && window.ClipboardItem)) { toast('Este navegador no deja copiar imágenes: usa Chrome o Edge.', 5000); return; }
     try {
+      const lista = M.espaciosDeH(st);
+      if (!lista.length) { toast('No hay servicios que acompañen esta entrega: no hay imagen que copiar.', 4000); return; }
       // La imagen va como promesa: el navegador conserva el permiso del clic mientras se dibuja.
       await navigator.clipboard.write([new ClipboardItem({ 'image/png': mosaicoWa(lista, st.bloques.entrega.titulo) })]);
       toast('Imagen copiada: pégala en el chat de WhatsApp (Ctrl+V) y envíala.', 5000);
