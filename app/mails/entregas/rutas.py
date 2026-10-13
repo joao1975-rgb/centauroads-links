@@ -46,6 +46,8 @@ log = logging.getLogger("centaurads.entregas")
 # El estilo del título (007): los mismos valores que PAREJAS y ESCALAS de render.js.
 TIPOGRAFIAS = {"centauro", "impacto", "editorial", "moderna"}
 TAMANOS_TITULO = {"base", "grande", "maximo"}
+# Espacios en el orden de una entrega (009): los del catálogo y los a medida, con holgura.
+MAXIMO_ORDEN = 60
 router = APIRouter()
 
 _ALFABETO = "abcdefghijkmnopqrstuvwxyz23456789"   # sin l/1/0/o: estos enlaces se leen en voz alta
@@ -119,6 +121,19 @@ class EntregaEntrada(BaseModel):
         return v
 
     servicios: str = ""
+    # El orden de sus espacios (009): ids separados por comas. Nulo = no se toca; "" = el de siempre.
+    orden_espacios: Optional[str] = Field(default=None, max_length=2000)
+
+    @field_validator("orden_espacios")
+    @classmethod
+    def _orden_con_ids(cls, v: Optional[str]) -> Optional[str]:
+        if not v:
+            return v
+        ids = v.split(",")
+        if len(ids) > MAXIMO_ORDEN or not all(almacen.linea_valida(i) for i in ids):
+            raise ValueError("orden de espacios no válido")
+        return v
+
     contact_id: Optional[int] = None
     contacto: Optional[ContactoRapido] = None
     sender_account_id: Optional[int] = None
@@ -136,6 +151,7 @@ class EntregaSalida(BaseModel):
     tipografia: Optional[str] = None
     tam_titulo: Optional[str] = None
     servicios: str
+    orden_espacios: str = ""
     estado: str
     contact_id: int
     contacto_nombre: str
@@ -269,6 +285,7 @@ def _a_salida(db: Session, entrega: models.Entrega) -> EntregaSalida:
         tipografia=entrega.tipografia,
         tam_titulo=entrega.tam_titulo,
         servicios=entrega.servicios,
+        orden_espacios=entrega.orden_espacios or "",
         estado=entrega.estado,
         contact_id=entrega.contact_id,
         contacto_nombre=entrega.contacto.nombre if entrega.contacto else "",
@@ -448,6 +465,7 @@ def crear(datos: EntregaEntrada,
         tipografia=datos.tipografia or None,
         tam_titulo=datos.tam_titulo or None,
         servicios=datos.servicios or "",
+        orden_espacios=datos.orden_espacios or None,
         sender_account_id=datos.sender_account_id,
         firma_cargo=datos.firma_cargo,
         panel_user_id=usuario.id,
@@ -497,6 +515,8 @@ def actualizar(entrega_id: int, datos: EntregaEntrada,
     if datos.tam_titulo is not None:
         entrega.tam_titulo = datos.tam_titulo or None
     entrega.servicios = datos.servicios or ""
+    if datos.orden_espacios is not None:
+        entrega.orden_espacios = datos.orden_espacios or None
     entrega.firma_cargo = datos.firma_cargo
     if datos.canva_url and datos.canva_url != entrega.canva_url:
         entrega.canva_url = datos.canva_url.strip()

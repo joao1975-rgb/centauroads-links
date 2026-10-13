@@ -103,5 +103,8 @@ def test_texto_plano_sin_partes_vacias(r):
     assert not any(l.endswith("— ") or "—  —" in l for l in lineas)
 
 
-def test_whatsapp_no_cambia(r):
-    assert r["waH"] == r["waSin"]
+def test_whatsapp_los_lista_tras_los_del_catalogo(r):
+    # Desde la 009 WhatsApp lista los espacios: el de enlace con él; el que no, solo su nombre.
+    assert "• PRODUCTO UNO: https://x.test/uno" in r["waH"]
+    assert "• PRODUCTO DOS\n" in r["waH"]
+    assert "COBERTURA SIN NOMBRE" not in r["waH"]

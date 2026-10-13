@@ -192,10 +192,11 @@ def test_los_otros_canales_mandan_el_enlace_propio(html, canal):
     assert "canva.link/ejemplo" not in html[canal]
 
 
-def test_whatsapp_lleva_la_version_corta_y_un_solo_enlace():
+def test_whatsapp_lleva_la_version_corta_y_primero_el_enlace_propio():
     """
-    FR-118: por WhatsApp va la versión corta, no el texto del correo. Y un solo enlace: cada
-    enlace de más es una tarjeta menos, porque WhatsApp dibuja la del primero y nada más.
+    FR-118: por WhatsApp va la versión corta, no el texto del correo. WhatsApp dibuja la tarjeta del
+    PRIMER enlace, y esa tiene que ser la de la propuesta. Desde la 009 (decisión de la propietaria,
+    2026-10-12) el mensaje lista además los espacios que la acompañan con sus enlaces, después.
     """
     import json as _json
     import shutil as _shutil
@@ -211,7 +212,8 @@ def test_whatsapp_lleva_la_version_corta_y_un_solo_enlace():
     wa = _json.loads(salida.stdout)["whatsapp"]
     assert "version corta" in wa
     assert "no pinta nada" not in wa, "por WhatsApp se está mandando el texto largo del correo"
-    assert wa.count("https://") == 1, "más de un enlace: WhatsApp solo dibuja la tarjeta del primero"
+    primero = wa[wa.index("http"):].split()[0]
+    assert "/p/abc123" in primero, "el primer enlace no es el de la propuesta: la tarjeta sería otra"
 
 
 # --- Los tres aspectos ------------------------------------------------------------------

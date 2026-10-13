@@ -53,7 +53,9 @@ def test_en_la_h_los_espacios_no_tocan_el_estado_de_a_g(html):
 
 
 def test_la_entrega_se_guarda_con_sus_espacios(html):
-    guarda = _funcion(html, "guardaEntrega")
+    # Desde la 009 el cuerpo lo arma cuerpoEntrega(), que tambien usa el guardado automatico.
+    assert "const cuerpo = cuerpoEntrega();" in _funcion(html, "guardaEntrega")
+    guarda = _funcion(html, "cuerpoEntrega")
     assert "servicios: (E.incluidos || []).join(',')" in guarda
     assert "x.on" not in guarda
 
@@ -84,7 +86,7 @@ def test_empezar_una_nueva_no_escribe_encima_de_la_anterior(html):
 
 
 def test_el_rotulo_y_el_texto_corto_se_guardan_y_se_abren(html):
-    guarda = _funcion(html, "guardaEntrega")
+    guarda = _funcion(html, "cuerpoEntrega")
     assert "rotulo: E.meta || ''" in guarda and "texto_corto: E.corto || ''" in guarda
     abre = _funcion(html, "abreEntrega")
     assert "E.meta = d.rotulo || base.meta" in abre and "E.corto = d.texto_corto || base.corto" in abre

@@ -50,6 +50,8 @@ COLUMNAS_NUEVAS = {
         # El estilo del título (007). Nulas = lo de hoy.
         ("tipografia", "VARCHAR(20)"),
         ("tam_titulo", "VARCHAR(10)"),
+        # El orden de sus espacios (009). Nula = el de siempre.
+        ("orden_espacios", "VARCHAR(2000)"),
     ],
     # «Borrar» un contacto lo retira de la lista sin perder sus entregas (2026-10-07).
     "contacts": [

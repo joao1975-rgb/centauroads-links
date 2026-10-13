@@ -1,0 +1,118 @@
+"""
+Ajustes de la entrega H en el motor (especificación 009, T901).
+
+- El orden de los espacios (`bloques.entrega.orden`) manda en el correo, el texto plano y WhatsApp de
+  la H; A–G no lo ven. Lo que no está en el orden va al final, en el orden de siempre.
+- El WhatsApp de la H lista los espacios incluidos con su enlace; el de la propuesta sigue primero.
+- El cargo: Asesor Comercial, Alianzas Comerciales y Directora; por defecto, Alianzas Comerciales.
+"""
+
+import json
+import shutil
+import subprocess
+from pathlib import Path
+
+import pytest
+
+MOTOR = Path(__file__).resolve().parents[1] / "prototipos" / "mail" / "render.js"
+ENLACE = "https://mails.centauroads.com/p/abc123"
+
+GUION = r"""
+const M = require(process.argv[2]);
+const base = () => {
+  const st = M.defaultState(); st.plantilla = 'H'; st.perfil = 'general';
+  st.bloques.entrega.enlace = 'ENLACE';
+  st.bloques.entrega.incluidos = ['vallas', 'led', 'totem'];
+  st.bloques.entrega.aMedida = [{ id: 'medida--aaaa00000001', nombre: 'PRODUCTO PROPIO', cobertura: '',
+    canva: '', carrusel: '' }];
+  return st;
+};
+const ordenado = () => { const st = base();
+  st.bloques.entrega.orden = ['medida--aaaa00000001', 'totem', 'no-existe', 'vallas']; return st; };
+const out = {};
+out.nombres = {}; M.defaultState().servicios.forEach(s => { out.nombres[s.id] = s.nombre; out['canva_' + s.id] = s.canva; });
+const st = ordenado(), antes = JSON.stringify(st);
+out.h = M.render(st, 'H'); out.texto = M.renderText(st); out.wa = M.renderWhatsApp(st);
+out.hSin = M.render(base(), 'H'); out.waSin = M.renderWhatsApp(base());
+out.intacto = JSON.stringify(st) === antes;
+out.otras = {};
+'ABCDEFG'.split('').forEach(k => { const a = ordenado(); a.plantilla = k; const b = base(); b.plantilla = k;
+  out.otras[k] = [M.render(a, k), M.render(b, k)]; });
+out.roles = Object.keys(M.ROLES).map(k => [k, M.ROLES[k]]);
+out.cargoDefecto = M.cargoDe(M.defaultState().bloques.firma);
+out.cargoAsesor = M.cargoDe(Object.assign({}, M.defaultState().bloques.firma, { rol: 'asesor' }));
+process.stdout.write(JSON.stringify(out).split('ENLACE').join(process.argv[3]));
+"""
+
+
+@pytest.fixture(scope="module")
+def r(tmp_path_factory):
+    if shutil.which("node") is None:
+        pytest.skip("node no está disponible")
+    guion = tmp_path_factory.mktemp("ajustes") / "_a.js"
+    guion.write_text(GUION, encoding="utf-8")
+    p = subprocess.run(["node", str(guion), str(MOTOR), ENLACE], capture_output=True, text=True,
+                       encoding="utf-8", timeout=120)
+    assert p.returncode == 0, "el motor falló:\n" + p.stderr
+    return json.loads(p.stdout)
+
+
+def _orden(texto, nombres):
+    return sorted(nombres, key=texto.index)
+
+
+# --- El orden ------------------------------------------------------------------------------------
+
+def test_el_orden_manda_en_el_correo_de_la_h(r):
+    n = r["nombres"]
+    assert _orden(r["h"], ["PRODUCTO PROPIO", n["totem"], n["vallas"], n["led"]]) == \
+        ["PRODUCTO PROPIO", n["totem"], n["vallas"], n["led"]]
+
+
+def test_sin_orden_sale_el_de_siempre(r):
+    n = r["nombres"]
+    assert _orden(r["hSin"], [n["vallas"], n["led"], n["totem"], "PRODUCTO PROPIO"]) == \
+        [n["vallas"], n["led"], n["totem"], "PRODUCTO PROPIO"]
+
+
+def test_el_orden_manda_en_el_texto_plano_y_whatsapp(r):
+    n = r["nombres"]
+    esperado = ["PRODUCTO PROPIO", n["totem"], n["vallas"], n["led"]]
+    for canal in ("texto", "wa"):
+        assert _orden(r[canal], esperado) == esperado, canal
+
+
+def test_a_g_no_cambian(r):
+    for k, (con, sin) in r["otras"].items():
+        assert con == sin, k
+
+
+def test_el_estado_no_se_toca(r):
+    assert r["intacto"]
+
+
+# --- WhatsApp ------------------------------------------------------------------------------------
+
+def test_whatsapp_lista_los_espacios_con_su_enlace(r):
+    wa, n = r["wa"], r["nombres"]
+    for s in ("vallas", "led", "totem"):
+        assert "• %s: %s" % (n[s], r["canva_" + s]) in wa, s
+    assert "• PRODUCTO PROPIO\n" in wa + "\n"   # sin enlace, solo el nombre
+    assert n["mercedes"] not in wa                    # no incluido
+
+
+def test_whatsapp_el_enlace_de_la_propuesta_sigue_primero(r):
+    assert r["wa"].split("\n")[0] == ENLACE
+    assert r["wa"].index("https://") == 0
+
+
+# --- El cargo ------------------------------------------------------------------------------------
+
+def test_el_cargo_tiene_exactamente_tres_opciones(r):
+    assert r["roles"] == [["asesor", "Asesor Comercial"], ["alianzas", "Alianzas Comerciales"],
+                          ["directora", "Directora"]]
+
+
+def test_el_cargo_por_defecto_no_cambia(r):
+    assert r["cargoDefecto"] == "Alianzas Comerciales · Centauro ADS"
+    assert r["cargoAsesor"] == "Asesor Comercial · Centauro ADS"

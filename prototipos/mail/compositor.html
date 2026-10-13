@@ -169,6 +169,10 @@
   .svc-h { display:flex; align-items:center; gap:8px; }
   .marca-espacio { font-size:11px; color:var(--faint); white-space:nowrap; }
   .marca-espacio.propia { color:var(--purple-l); font-weight:700; }
+  .flechas { display:flex; gap:2px; }
+  .flechas button { width:26px; height:26px; border:1px solid var(--line); border-radius:6px;
+    background:transparent; color:var(--dim); font-size:13px; line-height:1; cursor:pointer; }
+  .flechas button:hover, .flechas button:focus-visible { color:var(--text); border-color:var(--control); }
   .svc-t { flex:1; text-align:left; font-size:13px; padding:4px 0; color:var(--text); }
   .svc-b { display:none; padding-top:6px; }
   .svc.open .svc-b { display:block; }
@@ -469,7 +473,7 @@
       marca.textContent = lista.length ? 'Personalizado: ' + lista.join(', ') : 'Estándar';
       marca.classList.toggle('propia', lista.length > 0);
     };
-    pintaMarca(); h.appendChild(marca); w.appendChild(h);
+    pintaMarca(); h.appendChild(marca); h.appendChild(flechasEl(w, sv.nombre)); w.appendChild(h);
 
     const b = el('div', 'svc-b');
     const est = estadoEl('');
@@ -543,6 +547,27 @@
     w.appendChild(b); return w;
   }
 
+  // ── Subir y bajar un espacio en ESTA entrega (009) ──
+  // Mueve la fila y reescribe E.orden con lo que se ve; el correo, el texto y WhatsApp siguen ese
+  // orden, y el guardado automatico lo lleva al servidor con la entrega.
+  const idFila = w => w.dataset.servicio || w.dataset.medida;
+  function flechasEl(w, nombre) {
+    const f = el('span', 'flechas');
+    [['↑', -1, 'Subir '], ['↓', 1, 'Bajar ']].forEach(([txt, dir, que]) => {
+      const b = el('button', null, txt); b.type = 'button';
+      b.setAttribute('aria-label', que + nombre); b.title = que + nombre;
+      b.addEventListener('click', () => {
+        const otra = dir < 0 ? w.previousElementSibling : w.nextElementSibling;
+        if (!otra || !otra.classList.contains('svc')) return;
+        w.parentNode.insertBefore(w, dir < 0 ? otra : otra.nextElementSibling);
+        st.bloques.entrega.orden = Array.from(w.parentNode.children).filter(x => x.classList.contains('svc')).map(idFila);
+        b.focus(); touch();
+      });
+      f.appendChild(b);
+    });
+    return f;
+  }
+
   // ── Un producto a medida (008) ──
   // No esta en el catalogo: todo es suyo. Vive en bloques.entrega.aMedida, en el orden en que se
   // anadio, y en el servidor (se crea alli, por eso exige la entrega guardada). Se edita como un
@@ -557,7 +582,8 @@
     const w = el('div', 'svc'); w.dataset.medida = p.id;
     const h = el('div', 'svc-h');
     const t = el('button', 'svc-t', p.nombre); t.type = 'button'; plegable(t, w); h.appendChild(t);
-    h.appendChild(el('span', 'marca-espacio propia', 'A medida')); w.appendChild(h);
+    h.appendChild(el('span', 'marca-espacio propia', 'A medida')); h.appendChild(flechasEl(w, p.nombre));
+    w.appendChild(h);
 
     const b = el('div', 'svc-b');
     const est = estadoEl('');
@@ -1067,6 +1093,10 @@
     // 01 - La presentacion
     const p1 = pasoEl('01', 'La presentación', !!E.url);
     p1.appendChild(inputEl('bloques.entrega.url', 'Enlace de Canva del cliente', 'text'));
+    avisoImagenesEl = el('p', 'estado mal', 'Cambiaste el enlace: las imágenes (portada y carrusel) siguen ' +
+      'siendo las de la presentación anterior. Sube el PDF de la nueva en el paso 03.');
+    p1.appendChild(avisoImagenesEl); pintaAvisoImagenes();
+    estadoGuardadoEl = estadoEl(''); p1.appendChild(estadoGuardadoEl); programaGuardado();
     p1.appendChild(inputEl('bloques.entrega.titulo', 'Título de la propuesta', 'text'));
     p1.appendChild(buildEstilo());
     p1.appendChild(inputEl('bloques.entrega.meta', 'Rótulo de la esquina', 'text'));
@@ -1240,10 +1270,10 @@
         // En cuanto hay paginas, el correo ensena la primera. Antes se quedaba con el marcador de
         // posicion hasta elegir dos, y mientras tanto mostraba una foto del catalogo como si fuera
         // la propuesta del cliente.
-        alSubir: d => { if (d.paginas.length) { st.bloques.entrega.img = location.origin + d.paginas[0].url; save(); touch(); } },
+        alSubir: d => { if (d.paginas.length) { st.bloques.entrega.img = location.origin + d.paginas[0].url; st.bloques.entrega.urlImagenes = st.bloques.entrega.url; save(); touch(); } },
         // La imagen del correo pasa a ser la del servidor, en direccion absoluta: es lo que
         // descargara el proxy de Gmail.
-        alArmar: d => { st.bloques.entrega.img = location.origin + (d.carrusel || d.portada || ''); save(); touch(); },
+        alArmar: d => { st.bloques.entrega.img = location.origin + (d.carrusel || d.portada || ''); st.bloques.entrega.urlImagenes = st.bloques.entrega.url; save(); touch(); },
         claude: () => pideAClaude(st.bloques.entrega.url),
       }).forEach(n => p3.appendChild(n));
     } else {
@@ -1383,7 +1413,10 @@
     E.enlace = abs(d.enlace);
     // Sin imagenes no hay imagen: dejar la de la entrega anterior enseñaria la propuesta de otro.
     E.img = abs(d.carrusel || d.portada || (d.paginas && d.paginas[0] ? d.paginas[0].url : ''));
+    // Las imagenes que tiene son de la presentacion guardada (009): si el enlace cambia, se avisa.
+    E.urlImagenes = E.img ? d.canva_url : '';
     E.incluidos = d.servicios ? d.servicios.split(',').filter(Boolean) : [];
+    E.orden = d.orden_espacios ? d.orden_espacios.split(',').filter(Boolean) : [];
     E.espacios = {};
     E.aMedida = (d.espacios || []).filter(x => x.a_medida).map(deServidor);
     (d.espacios || []).filter(x => !x.a_medida).forEach(x => {
@@ -1399,7 +1432,10 @@
     st.plantilla = 'H';
     // Las miniaturas eran de otra entrega: se vuelven a subir si hace falta; el carrusel ya armado sigue.
     Object.keys(galerias).forEach(k => delete galerias[k]);
-    save(); buildSeg(); buildPanel(); renderPreview();
+    // Lo que la entrega no traia (un rotulo vacio...) sale con el de por defecto: se guarda ya, para
+    // que el cliente reciba lo mismo que se ve.
+    guardado = firmaDe(d);
+    save(); buildSeg(); buildPanel(); renderPreview(); programaGuardado();
     toast('Entrega #' + d.id + ' abierta');
   }
 
@@ -1407,7 +1443,7 @@
   function nuevaEntrega() {
     const base = M.defaultState();
     st.bloques.entrega = base.bloques.entrega;
-    delete st.entregaId; delete st.contactId;
+    delete st.entregaId; delete st.contactId; guardado = null;
     st.destinatario = base.destinatario;
     contactoNuevo = false;
     nuevoDatos.nombre = nuevoDatos.empresa = nuevoDatos.email = '';
@@ -1416,20 +1452,91 @@
     toast('Entrega nueva: guárdala en el paso 2 para crearla.');
   }
 
-  function guardaEntrega(campos, est) {
+  // ── Guardado automatico de la entrega (009) ──
+  // El cliente recibe /p/<slug>, que lleva a lo GUARDADO; la pantalla ensena lo ESCRITO. En la
+  // entrega #5 se pego un enlace nuevo despues de guardar, nadie volvio a pulsar Guardar y la
+  // propuesta llevo a la presentacion anterior. Con la entrega ya guardada y su contacto elegido,
+  // lo que cambia se guarda solo; y no se copia nada mientras quede algo sin guardar.
+  let guardado = null;   // la firma de lo ultimo que confirmo el servidor
+  let esperaGuardar = null, guardando = false;
+  let estadoGuardadoEl = null, avisoImagenesEl = null;
+  function cuerpoEntrega() {
     const E = st.bloques.entrega;
-    if (!E.url || !E.titulo) {
-      est.className = 'estado mal'; est.textContent = 'Faltan el enlace y el título (paso 1).'; return;
-    }
-    const cuerpo = {
+    return {
       titulo: E.titulo, canva_url: E.url, texto: E.texto || '',
       // El rotulo de la esquina y el texto corto de WhatsApp viajan con la entrega (004).
       rotulo: E.meta || '', texto_corto: E.corto || '',
       // Y el estilo del título (007), para que al abrirla en otra computadora salga igual.
       tipografia: st.tipografia || '', tam_titulo: st.tamTitulo || '',
-      // Los espacios de ESTA entrega (004), no el `on` de las plantillas A-G.
+      // Los espacios de ESTA entrega (004), no el `on` de las plantillas A-G, y su orden (009).
       servicios: (E.incluidos || []).join(','),
+      orden_espacios: (E.orden || []).join(','),
     };
+  }
+  // La misma forma para lo de la pantalla y lo del servidor, con lo que el servidor recorta.
+  const firma = (titulo, url, texto, rotulo, corto, tipo, tam, servicios, orden, contacto) =>
+    JSON.stringify([String(titulo || '').trim(), String(url || '').trim(), texto || '',
+      String(rotulo || '').trim(), String(corto || '').trim(), tipo || '', tam || '', servicios || '',
+      orden || '', contacto || null]);
+  const firmaDe = d => firma(d.titulo, d.canva_url, d.texto, d.rotulo, d.texto_corto, d.tipografia,
+    d.tam_titulo, d.servicios, d.orden_espacios, d.contact_id);
+  function firmaPantalla() {
+    const c = cuerpoEntrega();
+    return firma(c.titulo, c.canva_url, c.texto, c.rotulo, c.texto_corto, c.tipografia, c.tam_titulo,
+      c.servicios, c.orden_espacios, st.contactId);
+  }
+  const puedeAutoguardar = () => HAY_SERVIDOR && st.plantilla === 'H' && !!st.entregaId && !!st.contactId && !contactoNuevo;
+  const pendiente = () => puedeAutoguardar() && firmaPantalla() !== guardado;
+  function pintaGuardado(clase, texto) {
+    if (!estadoGuardadoEl) return;
+    estadoGuardadoEl.className = 'estado' + (clase ? ' ' + clase : '');
+    estadoGuardadoEl.textContent = texto;
+  }
+  function programaGuardado() {
+    if (!puedeAutoguardar()) { pintaGuardado('', ''); return; }
+    if (guardando) return;
+    if (!pendiente()) { clearTimeout(esperaGuardar); pintaGuardado('bien', 'Guardado: el cliente recibe lo que ves.'); return; }
+    pintaGuardado('', 'Sin guardar… (se guarda solo en un segundo)');
+    clearTimeout(esperaGuardar); esperaGuardar = setTimeout(autoguarda, 1000);
+  }
+  function autoguarda() {
+    clearTimeout(esperaGuardar);
+    if (!puedeAutoguardar() || guardando) return;
+    const E = st.bloques.entrega;
+    if (!String(E.url || '').trim() || !String(E.titulo || '').trim()) {
+      pintaGuardado('mal', 'Sin guardar: faltan el enlace o el título.'); return;
+    }
+    guardando = true; pintaGuardado('', 'Guardando…');
+    api('/api/entregas/' + st.entregaId, { method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(Object.assign(cuerpoEntrega(), { contact_id: st.contactId })) })
+      .then(d => {
+        guardando = false; guardado = firmaDe(d);
+        st.bloques.entrega.enlace = location.origin + d.enlace; save();
+        programaGuardado();   // si se siguio escribiendo mientras tanto, vuelve a empezar
+      })
+      .catch(e => {
+        guardando = false;
+        // Un 422 trae una lista, no un texto: lo que suele fallar es el enlace.
+        const m = e && typeof e.message === 'string' && !/object/.test(e.message) ? e.message
+          : 'revisa el enlace (tiene que empezar por https://)';
+        pintaGuardado('mal', 'Sin guardar: ' + m);
+      });
+  }
+  // Cambiar el enlace no cambia las imagenes: la tarjeta de WhatsApp y el carrusel siguen siendo
+  // los de la presentacion anterior. Es lo otro que paso en la entrega #5.
+  function pintaAvisoImagenes() {
+    if (!avisoImagenesEl) return;
+    const E = st.bloques.entrega;
+    const viejas = !!E.img && !!E.urlImagenes && String(E.urlImagenes).trim() !== String(E.url || '').trim();
+    avisoImagenesEl.hidden = !viejas;
+  }
+
+  function guardaEntrega(campos, est) {
+    const E = st.bloques.entrega;
+    if (!E.url || !E.titulo) {
+      est.className = 'estado mal'; est.textContent = 'Faltan el enlace y el título (paso 1).'; return;
+    }
+    const cuerpo = cuerpoEntrega();
     if (contactoNuevo) {
       // Nombre y empresa son obligatorios: el correo los dice en el saludo y en el texto, y una
       // propuesta personalizada que no nombra a quien va dirigida no esta personalizada.
@@ -1453,6 +1560,7 @@
                 headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo) })
       .then(d => {
         st.entregaId = d.id; st.contactId = d.contact_id;
+        guardado = firmaDe(d);
         // Ya esta dado de alta: el desplegable lo listara como uno mas.
         contactoNuevo = false;
         nuevoDatos.nombre = nuevoDatos.empresa = nuevoDatos.email = '';
@@ -1645,10 +1753,10 @@
   }
 
   async function copiaWhatsApp() {
-    if (faltaEnlaceH()) return;
+    if (faltaEnlaceH() || faltaGuardarH()) return;
     const texto = M.renderWhatsApp(prod());
     toast(await copiaTexto(texto)
-      ? "WhatsApp copiado · un solo enlace, al principio"
+      ? "WhatsApp copiado · el enlace de la propuesta va primero"
       : "No se pudo copiar");
   }
 
@@ -1686,10 +1794,13 @@
       const g = el('div', 'grp'); g.appendChild(el('h2', null, 'Espacios que la acompañan'));
       g.appendChild(el('p', 'hint', 'Lo que cambies aquí vale solo para esta entrega: las plantillas A–G ' +
         'y las demás entregas siguen con el catálogo.'));
-      M.SERVICIOS.filter(sv => typeof sv.plantillas !== 'string' || sv.plantillas.indexOf('H') >= 0)
-        .forEach(sv => g.appendChild(espacioEl(sv)));
-      // Los que no estan en el catalogo (008), despues: asi salen tambien en el correo.
-      (st.bloques.entrega.aMedida || []).forEach(x => g.appendChild(aMedidaEl(x)));
+      // Los del catalogo y, despues, los que no estan en el (008), en el orden de esta entrega (009).
+      const filas = M.SERVICIOS.filter(sv => typeof sv.plantillas !== 'string' || sv.plantillas.indexOf('H') >= 0)
+        .map(sv => espacioEl(sv)).concat((st.bloques.entrega.aMedida || []).map(x => aMedidaEl(x)));
+      const orden = st.bloques.entrega.orden || [];
+      const pos = w => { const i = orden.indexOf(idFila(w)); return i < 0 ? orden.length : i; };
+      filas.map((w, i) => [w, i]).sort((a, b) => pos(a[0]) - pos(b[0]) || a[1] - b[1])
+        .forEach(x => g.appendChild(x[0]));
       g.appendChild(anadirAMedidaEl());
       p.appendChild(g);
       // El saludo se edita en «Para quién», junto al contacto; aquí queda la firma.
@@ -1730,7 +1841,10 @@
 
   const prod = () => { const p = JSON.parse(JSON.stringify(st)); p.assetBase = st.assetBaseProd || 'img'; return p; };
   let timer;
-  function touch() { save(); clearTimeout(timer); timer = setTimeout(renderPreview, 120); }
+  function touch() {
+    save(); clearTimeout(timer); timer = setTimeout(renderPreview, 120);
+    programaGuardado(); pintaAvisoImagenes();   // 009
+  }
   function renderPreview() {
     const key = M.pick(st);
     avisoEstilo();
@@ -1815,6 +1929,15 @@
     toast('Falta el enlace de la propuesta: el botón no llevaría a ninguna parte. Ponlo en el paso 01.', 5000);
     return true;
   }
+  // Ni se copia con algo sin guardar (009): el enlace del cliente llevaria a lo guardado, no a lo
+  // que se ve. Se guarda ya y se pide repetir; copiar despues de esperar al servidor lo bloquearia
+  // el navegador (el portapapeles exige el clic reciente).
+  function faltaGuardarH() {
+    if (!(pendiente() || guardando)) return false;
+    autoguarda();
+    toast('Guardando los últimos cambios para que el cliente reciba lo que ves. Vuelve a copiar en un momento.', 5000);
+    return true;
+  }
   async function copyRich(html, text) {
     try {
       if (navigator.clipboard && window.ClipboardItem) {
@@ -1829,12 +1952,12 @@
     sel.removeAllRanges(); d.remove(); return ok;
   }
   $('#copyGmail').addEventListener('click', async () => {
-    if (faltaEnlaceH()) return;
+    if (faltaEnlaceH() || faltaGuardarH()) return;
     const full = M.render(prod()); const body = (full.match(/<body[^>]*>([\s\S]*)<\/body>/) || [0, full])[1];
     toast((await copyRich(body, M.renderText(prod()))) ? 'Copiado: pega en un correo nuevo de Gmail (Ctrl+V)' : 'No se pudo copiar: el navegador bloqueó el portapapeles');
   });
   $('#copyHtml').addEventListener('click', async () => {
-    if (faltaEnlaceH()) return;
+    if (faltaEnlaceH() || faltaGuardarH()) return;
     try { await navigator.clipboard.writeText(M.render(prod())); toast('HTML completo copiado'); } catch (e) { toast('No se pudo copiar el HTML'); }
   });
     // El boton de la barra. Estaba puesto y sin conectar: se vaciaba el hueco visual y no hacia
@@ -1842,7 +1965,7 @@
   // entrara cada quien.
   $('#copyWa').addEventListener('click', copiaWhatsApp);
   $('#copyText').addEventListener('click', async () => {
-    if (faltaEnlaceH()) return;
+    if (faltaEnlaceH() || faltaGuardarH()) return;
     try { await navigator.clipboard.writeText(M.renderText(prod())); toast('Versión en texto plano copiada'); } catch (e) { toast('No se pudo copiar el texto'); }
   });
   $('#vDesk').addEventListener('click', () => { $('#stage').classList.remove('mobile'); $('#vDesk').setAttribute('aria-pressed', 'true'); $('#vMob').setAttribute('aria-pressed', 'false'); });
@@ -1874,6 +1997,18 @@
   }
   if (HAY_SERVIDOR) {
     cargaCatalogo().catch(() => toast('No se pudo cargar el catálogo de líneas: se usa el de serie', 5000));
+    // Una entrega que quedo abierta de otra vez (009): se lee lo guardado para saber si la pantalla
+    // coincide. Al arrancar no se guarda nada: esta pantalla puede ser vieja (otra computadora).
+    // Se guardara al primer cambio o al copiar, que es cuando quien redacta da lo que ve por bueno.
+    if (st.entregaId) api('/api/entregas/' + st.entregaId).then(d => {
+      guardado = firmaDe(d);
+      const E = st.bloques.entrega;
+      if (!E.urlImagenes && E.img) E.urlImagenes = d.canva_url;
+      pintaAvisoImagenes();
+      if (pendiente()) pintaGuardado('mal', 'Esta pantalla no coincide con la entrega guardada: se guardará ' +
+        'con el primer cambio o al copiar. Para ver la guardada, ábrela en el paso 02.');
+      else programaGuardado();
+    }).catch(() => {});
     // Quien soy decide si se ofrece «Pasar al catálogo» (008). Sin respuesta, no se ofrece.
     api('/api/auth/yo').then(d => {
       rol = d.rol || '';

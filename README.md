@@ -216,6 +216,16 @@ un administrador sin programar (especificación 005); los comerciales lo ven sin
   entrega**, su enlace, nombre, cobertura y su propio carrusel, armado con el mismo flujo que la
   presentación principal. «Volver al estándar» lo deja como el catálogo. Las plantillas A–G y las
   demás entregas no lo ven.
+- **Guardado automático** (especificación 009): con la entrega ya guardada y su contacto elegido,
+  lo que cambia en el paso 1 (enlace, título, textos, estilo) y en los espacios (incluidos y orden)
+  se guarda solo al segundo, y el paso 1 dice «Guardado» o «Sin guardar: <motivo>». El enlace del
+  cliente (`/p/<slug>`) lleva a lo **guardado**: por eso no se copia nada con cambios sin guardar
+  (se guarda y se pide repetir). Si el enlace de Canva cambia y la entrega ya tiene imágenes, se
+  avisa de que siguen siendo las de la presentación anterior.
+- **Orden de los espacios** (009): ↑ y ↓ junto a cada espacio (del catálogo o a medida). Es de cada
+  entrega (`orden_espacios`) y lo siguen el correo, el texto plano y WhatsApp.
+- **WhatsApp** (009): tras el texto corto, «Lo que la acompaña» con cada espacio y su enlace. El de
+  la propuesta va primero: WhatsApp solo dibuja la tarjeta del primer enlace.
 - **Productos a medida** (especificación 008): «+ Añadir otro producto» pone, **solo en esa
   entrega**, algo que no está en el catálogo (nombre obligatorio, una línea de texto, enlace y su
   carrusel con la misma galería). Sale en el correo después de los espacios del catálogo; sin

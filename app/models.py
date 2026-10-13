@@ -203,6 +203,8 @@ class Entrega(Base):
     # El estilo del título (007): la pareja de tipografías y el tamaño. Nulo = lo de hoy.
     tipografia = Column(String(20), nullable=True)
     tam_titulo = Column(String(10), nullable=True)
+    # El orden de sus espacios (009): ids separados por comas. Nulo = el de siempre.
+    orden_espacios = Column(String(2000), nullable=True)
     # Lo que va en la dirección pública de sus imágenes, `/media/e/<clave>/…` (revisión de
     # seguridad, 2026-10-06). Con el número, `/media/entregas/1/`, `/2/`… se recorrían todas en un
     # bucle. Nula = entrega anterior: sus correos ya enviados apuntan a la ruta por número, y esa

@@ -87,8 +87,10 @@
 
   // ── Ficha tecnica de cada espacio (datos reales de los decks de Canva) ──
   // Se usan en la tabla de disponibilidad del perfil de agencias y en los precios "desde".
-  // El cargo que va DEBAJO del nombre en la firma. Dos opciones, a peticion.
+  // El cargo que va DEBAJO del nombre en la firma. Estas tres y ninguna mas, a peticion (009).
+  // Por defecto sigue siendo Alianzas Comerciales.
   const ROLES = {
+    asesor:    'Asesor Comercial',
     alianzas:  'Alianzas Comerciales',
     directora: 'Directora',
   };
@@ -1605,6 +1607,13 @@
     if (e.enlace || e.url) L.push(e.enlace || e.url, '');
     if (on(st, 'saludo')) L.push(fill(B(st, 'saludo').texto, st));
     L.push(fill(e.corto, st), '');
+    // Los espacios que la acompanan, con su enlace (009). Van despues del texto: WhatsApp solo
+    // dibuja la tarjeta del PRIMER enlace, y esa tiene que ser la de la propuesta.
+    if (activos(st).length) {
+      L.push(e.acompanan + ':');
+      activos(st).forEach(s => L.push('\u2022 ' + s.nombre + (linkFor(st, s) ? ': ' + linkFor(st, s) : '')));
+      L.push('');
+    }
     const f = B(st, 'firma');
     L.push(f.nombre + ' \u00b7 ' + cargoDe(f));
     L.push(correosDe(f)[0] + ' \u00b7 ' + f.telefono);
@@ -2106,13 +2115,23 @@
     const e = st.bloques && st.bloques.entrega;
     if (!e || !Array.isArray(st.servicios)) return st;
     const incluidos = e.incluidos || [], espacios = e.espacios || {};
-    return Object.assign({}, st, { servicios: st.servicios.map(function (x) {
+    return Object.assign({}, st, { servicios: enOrden(e, st.servicios.map(function (x) {
       const s = Object.assign({}, x, { on: incluidos.indexOf(x.id) >= 0 });
       const p = espacios[x.id] || {};
       // Un campo vacio es "el del catalogo": no pisa nada.
       Object.keys(PROPIOS).forEach(function (c) { if (p[c]) s[PROPIOS[c]] = p[c]; });
       return s;
-    }).concat(aMedidaDe(e)) });
+    }).concat(aMedidaDe(e))) });
+  }
+  // El orden que eligio quien arma la entrega (009). Estable: lo que no esta en `orden` va al final,
+  // en el orden de siempre. Sin orden, la lista tal cual.
+  function enOrden(e, lista) {
+    const orden = Array.isArray(e.orden) ? e.orden : [];
+    if (!orden.length) return lista;
+    const pos = function (s) { const i = orden.indexOf(s.id); return i < 0 ? orden.length : i; };
+    return lista.map(function (s, i) { return [s, i]; })
+      .sort(function (a, b) { return pos(a[0]) - pos(b[0]) || a[1] - b[1]; })
+      .map(function (x) { return x[0]; });
   }
   // Los productos a medida de la entrega (008): despues de los del catalogo, con la misma tarjeta.
   // No tienen foto de serie; solo su carrusel. Uno sin nombre no sale.
