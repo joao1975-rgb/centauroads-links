@@ -1283,6 +1283,8 @@
         // descargara el proxy de Gmail.
         alArmar: d => { st.bloques.entrega.img = location.origin + (d.carrusel || d.portada || ''); st.bloques.entrega.urlImagenes = st.bloques.entrega.url; save(); touch(); },
         claude: () => pideAClaude(st.bloques.entrega.url),
+        // Una propuesta de vallas sin PDF propio puede usar las fotos de Vallas (011).
+        desde: { texto: 'Usar las imágenes de Vallas', urls: fotosDeVallas },
       }).forEach(n => p3.appendChild(n));
     } else {
       p3.appendChild(inputEl('bloques.entrega.img', 'Dirección de la imagen de portada', 'text'));
@@ -1602,6 +1604,25 @@
   //   op.hayCarrusel() si el correo ya lleva un carrusel armado de esta galeria
   //   op.alSubir(d) / op.alArmar(d)  que hacer con la respuesta del servidor
   //   op.claude       accion de «¿Sin el PDF?», si aplica
+  // Las fotos que la app ya tiene de Vallas (011): la del catalogo (o la subida en Lineas de
+  // negocio), las del banco con sus extras y la portada de su presentacion. Sin repetidas y como
+  // direcciones que el navegador puede pedir.
+  function fotosDeVallas() {
+    const sv = M.SERVICIOS.filter(x => x.id === 'vallas')[0];
+    if (!sv) return [];
+    const b = M.bancoDe(st, sv);
+    const base = (st.assetBase || 'img').replace(/\/$/, '');
+    const vistas = {};
+    return [sv.img].concat(b.fotos, b.extra, [sv.cover])
+      .map(f => String(f || '').trim()).filter(Boolean)
+      .map(f => /^(https?:)?\/\/|^\//.test(f) ? f : base + '/' + f)
+      .filter(u => {
+        const k = new URL(u, location.href).href;
+        if (vistas[k]) return false;
+        vistas[k] = true; return true;
+      });
+  }
+
   function galeria(op) {
     const g = op.g;
     const est = estadoEl('');
@@ -1721,6 +1742,37 @@
     efe.appendChild(selEfe);
 
     const nodos = [suelta, fichero];
+    // Usar imagenes que la app ya tiene, sin subir un PDF (011, la propuesta con las fotos de Vallas).
+    // Se descargan del propio servidor y entran por `sube`, el mismo camino que el arrastre.
+    if (op.desde) {
+      const filaD = el('div', 'fila-bt');
+      filaD.appendChild(botonEl(op.desde.texto, null, async () => {
+        if (!op.ruta()) {
+          est.className = 'estado mal';
+          est.textContent = 'Guarda la entrega en el paso 2 antes de usar estas imágenes.';
+          return;
+        }
+        if (op.hayCarrusel() && !confirm('La propuesta ya tiene imágenes. ¿Reemplazarlas?')) return;
+        const urls = op.desde.urls(), ficheros = [], fallidas = [];
+        est.className = 'estado'; est.textContent = 'Preparando ' + urls.length + ' imágenes…';
+        for (const u of urls) {
+          const nombre = decodeURIComponent(u.split('?')[0].split('/').pop()) || 'foto.jpg';
+          try {
+            const r = await fetch(u);
+            if (!r.ok) throw new Error(String(r.status));
+            const b = await r.blob();
+            ficheros.push(new File([b], nombre, { type: b.type || 'image/jpeg' }));
+          } catch (e) { fallidas.push(nombre); }
+        }
+        if (fallidas.length) toast('No se pudieron usar: ' + fallidas.join(', '), 5000);
+        if (!ficheros.length) {
+          est.className = 'estado mal'; est.textContent = 'No se pudo descargar ninguna de las imágenes.';
+          return;
+        }
+        sube(ficheros);
+      }));
+      nodos.push(filaD);
+    }
     if (op.claude) {
       const filaC = el('div', 'fila-bt');
       filaC.appendChild(botonEl('¿Sin el PDF? Pedírselo a Claude', null, op.claude));

@@ -232,6 +232,9 @@ un administrador sin programar (especificación 005); los comerciales lo ven sin
   los copia en orden. Cada apertura se apunta con su espacio (`aperturas_espacios`).
   **«Copiar imagen de servicios»** copia una sola imagen con la portada y el nombre de cada espacio,
   en el orden de la entrega, para pegarla en WhatsApp como foto.
+- **Imágenes de Vallas en la propuesta** (especificación 011): en el paso 03, «Usar las imágenes de
+  Vallas» sube como páginas elegibles la foto del catálogo de Vallas, las de su banco (y extras) y su
+  portada, sin repetidas; se eligen de 2 a 4 como con un PDF. Pide confirmación si ya hay imágenes.
 - **Productos a medida** (especificación 008): «+ Añadir otro producto» pone, **solo en esa
   entrega**, algo que no está en el catálogo (nombre obligatorio, una línea de texto, enlace y su
   carrusel con la misma galería). Sale en el correo después de los espacios del catálogo; sin

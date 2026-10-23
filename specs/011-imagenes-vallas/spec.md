@@ -66,7 +66,7 @@ el carrusel.
 
 ## Tasks
 
-- [ ] T1101 Prueba del compositor: el paso 03 de la H ofrece «Usar las imágenes de Vallas» solo en la galería principal; `fotosDeVallas()` sin repetidas y en orden — `tests/test_imagenes_vallas.py`
-- [ ] T1102 `fotosDeVallas()` y el botón `op.desde` de la galería — `prototipos/mail/compositor.html`
-- [ ] T1103 Demo en navegador: entrega guardada → botón → 4 miniaturas → elegir 2 → carrusel en el correo; confirmación al reemplazar; 0 errores de consola; capturas
-- [ ] T1104 Suite, build (16 idénticas), README y Obsidian
+- [x] T1101 Prueba del compositor: el paso 03 de la H ofrece «Usar las imágenes de Vallas» solo en la galería principal; `fotosDeVallas()` sin repetidas y en orden — `tests/test_imagenes_vallas.py`
+- [x] T1102 `fotosDeVallas()` y el botón `op.desde` de la galería — `prototipos/mail/compositor.html`
+- [x] T1103 Demo en navegador: entrega guardada → botón → 4 miniaturas → elegir 2 → carrusel en el correo; confirmación al reemplazar; 0 errores de consola; capturas
+- [x] T1104 Suite, build (16 idénticas), README y Obsidian
