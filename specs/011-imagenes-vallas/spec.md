@@ -70,3 +70,20 @@ el carrusel.
 - [x] T1102 `fotosDeVallas()` y el botón `op.desde` de la galería — `prototipos/mail/compositor.html`
 - [x] T1103 Demo en navegador: entrega guardada → botón → 4 miniaturas → elegir 2 → carrusel en el correo; confirmación al reemplazar; 0 errores de consola; capturas
 - [x] T1104 Suite, build (16 idénticas), README y Obsidian
+
+## Ajuste tras probarla en producción (2026-10-23)
+
+La propietaria vio dos fallos:
+1. El botón traía siempre las fotos estándar, no las páginas subidas al espacio Vallas de **esa** entrega.
+2. «No toma los efectos»: al abrir una entrega guardada las galerías empezaban vacías (sin páginas
+   elegidas), así que cambiar el efecto solo decía «Efecto guardado» y no rehacía el carrusel; y tras
+   el botón, las miniaturas quedaban sin elegir.
+
+- **FR-1105**: si el espacio Vallas de la entrega tiene páginas, el botón usa esas; si no, las estándar.
+- **FR-1106**: al abrir una entrega vuelven a su galería las páginas elegidas (propuesta, espacios y
+  productos a medida), en su orden y con su efecto: cambiar el efecto rehace el carrusel.
+- **FR-1107**: el botón deja el carrusel armado con todas las imágenes (hasta 4); se pueden quitar o reordenar.
+
+- [x] T1105 Pruebas — `tests/test_imagenes_vallas.py`
+- [x] T1106 `fotosDeVallas()` primero el espacio; `restaura()` al abrir; el botón elige y arma; «Volver al estándar» vacía la galería del espacio — `prototipos/mail/compositor.html`
+- [x] T1107 Demo: subir 3 a Vallas, elegir 2, reabrir → 2 elegidas, «persiana» rehace; botón → 2 miniaturas y carrusel armado; «fundido» lo cambia; 0 errores

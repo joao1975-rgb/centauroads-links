@@ -545,7 +545,7 @@
 
     const fila = el('div', 'fila-bt');
     fila.appendChild(botonEl('Volver al estándar', null, () => {
-      delete E.espacios[sv.id]; save(); touch();
+      delete E.espacios[sv.id]; delete galerias['espacio:' + sv.id]; save(); touch();
       if (st.entregaId) {
         api('/api/entregas/' + st.entregaId + '/espacios/' + encodeURIComponent(sv.id), { method: 'DELETE' })
           .catch(e => falla(est, e));
@@ -1443,8 +1443,23 @@
     st.entregaId = d.id; st.contactId = d.contact_id;
     if (d.contacto_nombre) st.destinatario = d.contacto_nombre;
     st.plantilla = 'H';
-    // Las miniaturas eran de otra entrega: se vuelven a subir si hace falta; el carrusel ya armado sigue.
+    // Las miniaturas eran de otra entrega. Vuelven las paginas ELEGIDAS de esta, en su orden: sin
+    // ellas, al abrir una entrega cambiar el efecto no rehacia nada, y el boton de Vallas no veia las
+    // paginas subidas a su espacio. Las no elegidas no se guardan: para otras, se vuelve a subir.
     Object.keys(galerias).forEach(k => delete galerias[k]);
+    const restaura = (clave, paginas, efecto) => {
+      const g = galeriaDe(clave);
+      (paginas || []).slice().sort((a, b) => a.orden - b.orden).forEach(pg => {
+        const m = /\/p(\d+)\.jpg/.exec(pg.url);
+        if (!m) return;
+        const i = Number(m[1]);
+        g.paginas.push({ indice: i, url: pg.url, rotulo: pg.rotulo || 'Página ' + (i + 1), aviso_precio: !!pg.aviso_precio });
+        g.elegidas.push(i);
+      });
+      if (efecto) g.efecto = efecto;
+    };
+    restaura('principal', d.paginas);
+    (d.espacios || []).forEach(x => restaura((x.a_medida ? 'medida:' : 'espacio:') + x.linea, x.paginas, x.efecto));
     // Lo que la entrega no traia (un rotulo vacio...) sale con el de por defecto: se guarda ya, para
     // que el cliente reciba lo mismo que se ve.
     guardado = firmaDe(d);
@@ -1608,7 +1623,10 @@
   // Las fotos que la app ya tiene de Vallas (011): la del catalogo (o la subida en Lineas de
   // negocio), las del banco con sus extras y la portada de su presentacion. Sin repetidas y como
   // direcciones que el navegador puede pedir.
+  // Pero si ESTA entrega ya tiene su presentacion de Vallas (las paginas de su espacio), son esas.
   function fotosDeVallas() {
+    const propias = galeriaDe('espacio:vallas').paginas.map(p => p.url);
+    if (propias.length) return propias;
     const sv = M.SERVICIOS.filter(x => x.id === 'vallas')[0];
     if (!sv) return [];
     const b = M.bancoDe(st, sv);
@@ -1655,13 +1673,14 @@
       est.textContent = 'Leyendo ' + (lista.length === 1 ? lista[0].name : lista.length + ' ficheros') + '…';
       const datos = new FormData();
       lista.forEach(f => datos.append('fichero', f));
-      api(ruta, { method: 'POST', body: datos })
+      return api(ruta, { method: 'POST', body: datos })
         .then(d => {
           g.paginas = d.paginas; g.elegidas = [];
           op.alSubir(d);
           est.className = 'estado';
           est.textContent = d.paginas.length + ' páginas. Elige de 2 a 4, en el orden que quieras.';
           pinta();
+          return true;
         })
         .catch(e => falla(est, e));
     }
@@ -1770,7 +1789,13 @@
           est.className = 'estado mal'; est.textContent = 'No se pudo descargar ninguna de las imágenes.';
           return;
         }
-        sube(ficheros);
+        // Un clic deja el carrusel hecho con todas (hasta 4): con las miniaturas sin elegir, cambiar
+        // el efecto no hacia nada y parecia roto. Se pueden quitar o reordenar como siempre.
+        if (await sube(ficheros)) {
+          g.elegidas = g.paginas.slice(0, 4).map(p => p.indice);
+          pinta();
+          if (g.elegidas.length >= 2) arma();
+        }
       }));
       nodos.push(filaD);
     }

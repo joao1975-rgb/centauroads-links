@@ -40,3 +40,22 @@ def test_las_fotos_de_vallas_salen_del_catalogo_el_banco_y_la_portada(html):
     f = _funcion(html, "fotosDeVallas")
     for pieza in ("M.SERVICIOS", "'vallas'", "M.bancoDe(", ".img", ".cover", ".extra", ".fotos"):
         assert pieza in f, pieza
+
+
+def test_el_boton_prefiere_las_paginas_de_vallas_de_esta_entrega(html):
+    f = _funcion(html, "fotosDeVallas")
+    assert f.index("galeriaDe('espacio:vallas')") < f.index("M.SERVICIOS")
+
+
+def test_al_abrir_una_entrega_vuelven_las_paginas_elegidas(html):
+    # Sin esto, tras abrir la entrega cambiar el efecto no rehacia el carrusel (elegidas vacias).
+    i = html.index("Object.keys(galerias).forEach(k => delete galerias[k]);")
+    bloque = html[i:i + 1500]
+    assert "restaura('principal', d.paginas)" in bloque
+    assert "'espacio:'" in bloque and "'medida:'" in bloque and "g.elegidas.push" in bloque
+
+
+def test_el_boton_deja_el_carrusel_armado(html):
+    g = _funcion(html, "galeria")
+    i = g.index("await sube(ficheros)")
+    assert "g.elegidas = g.paginas.slice(0, 4)" in g[i:i + 300] and "arma()" in g[i:i + 300]
