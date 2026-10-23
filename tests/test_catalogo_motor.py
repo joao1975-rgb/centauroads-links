@@ -35,7 +35,10 @@ const NUEVA = { id: 'alquiler', nombre: 'Alquiler de pantallas', eyebrow: 'Renta
 NUEVA.img = process.argv[4];
 const base = (k, pf) => { const st = M.defaultState(); st.plantilla = k; st.perfil = pf; st.cardAnim = true; return st; };
 const todos = () => { const o = {}; PERFILES.forEach(pf => PLANTILLAS.forEach(k => {
-  if (k === 'H' && pf !== 'general') return; o[k + '/' + pf] = M.render(base(k, pf), k); })); return o; };
+  if (k === 'H' && pf !== 'general') return;
+  // La guia (012) no lista el catalogo: lleva solo los productos de sus fases.
+  if (k === 'I') return;
+  o[k + '/' + pf] = M.render(base(k, pf), k); })); return o; };
 const out = {};
 if (escenario === 'serie') {
   out.antes = todos();

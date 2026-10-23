@@ -37,7 +37,7 @@ from sqlalchemy.orm import Session
 from ...database import get_db
 from ... import models
 from ...auth.dependencias import usuario_actual, exigir_cuenta
-from . import almacen, galeria
+from . import almacen, galeria, guia as guias
 from .galeria import Seleccion
 from .publicas import _existe, _url_media
 
@@ -138,6 +138,16 @@ class EntregaEntrada(BaseModel):
     contacto: Optional[ContactoRapido] = None
     sender_account_id: Optional[int] = None
     firma_cargo: Optional[str] = None
+    # La guía personalizada (012). Nulos = no se tocan: un compositor anterior no los borra.
+    formato: Optional[str] = None
+    guia: Optional[guias.Guia] = None
+
+    @field_validator("formato")
+    @classmethod
+    def _formato_conocido(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v not in guias.FORMATOS:
+            raise ValueError("formato desconocido")
+        return v
 
 
 class EntregaSalida(BaseModel):
@@ -162,6 +172,8 @@ class EntregaSalida(BaseModel):
     paginas: List[dict] = []
     # Los espacios personalizados en esta entrega (004). Uno estándar no sale: se lee del catálogo.
     espacios: List[dict] = []
+    formato: str = "H"
+    guia: Optional[dict] = None
 
 
 # ---------------------------------------------------------------------------
@@ -299,6 +311,8 @@ def _a_salida(db: Session, entrega: models.Entrega) -> EntregaSalida:
             "aviso_precio": p.aviso_precio, "origen": p.origen,
         } for p in entrega.paginas],
         espacios=[_espacio_a_salida(entrega, e) for e in espacios],
+        formato=entrega.formato or "H",
+        guia=guias.de_texto(entrega.guia),
     )
 
 
@@ -466,6 +480,8 @@ def crear(datos: EntregaEntrada,
         tam_titulo=datos.tam_titulo or None,
         servicios=datos.servicios or "",
         orden_espacios=datos.orden_espacios or None,
+        formato=datos.formato if datos.formato == "I" else None,
+        guia=guias.a_texto(datos.guia),
         sender_account_id=datos.sender_account_id,
         firma_cargo=datos.firma_cargo,
         panel_user_id=usuario.id,
@@ -517,6 +533,10 @@ def actualizar(entrega_id: int, datos: EntregaEntrada,
     entrega.servicios = datos.servicios or ""
     if datos.orden_espacios is not None:
         entrega.orden_espacios = datos.orden_espacios or None
+    if datos.formato is not None:
+        entrega.formato = datos.formato if datos.formato == "I" else None
+    if datos.guia is not None:
+        entrega.guia = guias.a_texto(datos.guia)
     entrega.firma_cargo = datos.firma_cargo
     if datos.canva_url and datos.canva_url != entrega.canva_url:
         entrega.canva_url = datos.canva_url.strip()
@@ -584,7 +604,7 @@ def marcar_entregada(entrega_id: int, canal: str = "email",
     entrega.entregada_en = datetime.now(timezone.utc)
     db.add(models.Delivery(
         link_id=entrega.link_id, channel=canal, contact_id=entrega.contact_id,
-        formato="H", sender_account_id=entrega.sender_account_id,
+        formato=entrega.formato or "H", sender_account_id=entrega.sender_account_id,
         panel_user_id=usuario.id,
     ))
     db.commit()

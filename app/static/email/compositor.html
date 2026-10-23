@@ -261,7 +261,7 @@
 <div class="toast" id="toast" role="status"></div>
 
 <script>window.ASSET_BASE=".";</script>
-<script src="render.js?v=ba14f807e996"></script>
+<script src="render.js?v=2f979a37b267"></script>
 <script>
 (function () {
   'use strict';
@@ -483,8 +483,25 @@
       marca.classList.toggle('propia', lista.length > 0);
     };
     pintaMarca(); h.appendChild(marca); h.appendChild(flechasEl(w, sv.nombre)); w.appendChild(h);
+    w.appendChild(cuerpoEspacio(sv, ['canva', 'nombre', 'cobertura'], k => {
+      pintaMarca();
+      if (k === 'nombre') t.textContent = propio().nombre || sv.nombre;
+    }, 'svc-b'));
+    return w;
+  }
 
-    const b = el('div', 'svc-b');
+  // Lo propio de un espacio en ESTA entrega: los campos pedidos, sus imagenes y «Volver al estandar».
+  // Lo usan los espacios de la H (004) y las fases de la guia (012), que solo piden el enlace.
+  const ETIQUETAS_ESPACIO = {
+    canva: 'Enlace de su presentación (vacío = el del catálogo)',
+    nombre: 'Nombre (vacío = el del catálogo)',
+    cobertura: 'Cobertura / ubicación (vacío = la del catálogo)',
+  };
+  function cuerpoEspacio(sv, campos, alCambiar, clase) {
+    const E = st.bloques.entrega;
+    if (!E.espacios) E.espacios = {};
+    const propio = () => E.espacios[sv.id] || {};
+    const b = el('div', clase);
     const est = estadoEl('');
     const esperas = {};
     // Lo que el servidor guarda de este espacio. Vacio o igual al catalogo = estandar (lo decide
@@ -505,26 +522,21 @@
       const pr = Object.assign({}, propio());
       if (!v || v === (sv[k] || '')) delete pr[k]; else pr[k] = v;
       if (Object.keys(pr).length) E.espacios[sv.id] = pr; else delete E.espacios[sv.id];
-      save(); touch(); pintaMarca();
+      save(); touch(); alCambiar(k);
       clearTimeout(esperas[k]); esperas[k] = setTimeout(() => guarda(k, v), 700);
     };
     const campo = (k, etiqueta) => {
       const wrap = el('label', 'fld'); wrap.appendChild(el('span', 'fld-l', etiqueta));
       const i = el('input'); i.type = 'text'; i.value = propio()[k] || ''; i.placeholder = sv[k] || '';
-      i.addEventListener('input', () => {
-        pon(k, i.value.trim());
-        if (k === 'nombre') t.textContent = i.value.trim() || sv.nombre;
-      });
+      i.addEventListener('input', () => pon(k, i.value.trim()));
       wrap.appendChild(i); return wrap;
     };
-    b.appendChild(campo('canva', 'Enlace de su presentación (vacío = el del catálogo)'));
-    b.appendChild(campo('nombre', 'Nombre (vacío = el del catálogo)'));
-    b.appendChild(campo('cobertura', 'Cobertura / ubicación (vacío = la del catálogo)'));
+    campos.forEach(k => b.appendChild(campo(k, ETIQUETAS_ESPACIO[k])));
 
     // Sus imagenes: la misma galeria que la presentacion principal, con sus propias rutas.
     const ponCarrusel = url => {
       E.espacios[sv.id] = Object.assign({}, propio(), { carrusel: url });
-      save(); touch(); pintaMarca();
+      save(); touch(); alCambiar('carrusel');
     };
     b.appendChild(el('p', 'fld-l', 'Imágenes de su presentación'));
     galeria({
@@ -553,6 +565,120 @@
       buildPanel();
     }));
     b.appendChild(fila); b.appendChild(est);
+    return b;
+  }
+
+  // ── La guia personalizada (012) ──
+  // La I es la F por cliente: sus textos (en bloques.entrega.guia) y de 1 a 3 fases, cada una con un
+  // producto y la presentacion de ese producto en esta entrega (sus espacios, 004). Lo demas es la H.
+  const esEntrega = k => k === 'H' || k === 'I';
+  const sinRealce = t => String(t || '').replace(/\*/g, '').trim();
+  // La guia de la entrega; la primera vez, con los textos de la F.
+  function guiaE() {
+    const E = st.bloques.entrega;
+    if (!E.guia) E.guia = M.guiaDe(st);
+    return E.guia;
+  }
+  // Lo que la H lee de la entrega sale de las fases: los espacios (las encendidas, en su orden) y el
+  // destino de /p/<slug> (la presentacion de la primera encendida: la propia o la del catalogo).
+  function sincronizaGuia() {
+    if (st.plantilla !== 'I' || !st.bloques.entrega.guia) return;
+    const E = st.bloques.entrega, l = M.lineasDeGuia(st);
+    E.incluidos = l.slice(); E.orden = l.slice();
+    const sv = l.length ? M.SERVICIOS.filter(x => x.id === l[0])[0] : null;
+    E.url = l.length ? (((E.espacios || {})[l[0]] || {}).canva || (sv && sv.canva) || '') : '';
+  }
+  // Una entrega en blanco de ese formato. La I arranca con el titulo, el rotulo y la guia de la F.
+  function entregaNueva(k) {
+    const base = M.defaultState();
+    const E = base.bloques.entrega;
+    if (k === 'I') {
+      E.titulo = base.bloques.guia.titulo; E.meta = base.bloques.guia.meta;
+      E.guia = M.guiaDe(base);
+    }
+    return E;
+  }
+  // H e I comparten bloques.entrega. Al pasar de una a otra, la que se deja queda aparte (con su
+  // entrega abierta) y vuelve al regresar: una guia nunca se guarda encima de una H, ni al reves.
+  function cambiaFormato(k) {
+    const de = st.entregaFormato || 'H';
+    if (!esEntrega(k) || k === de) return;
+    st.aparte = st.aparte || {};
+    st.aparte[de] = { entrega: st.bloques.entrega, entregaId: st.entregaId, contactId: st.contactId,
+      destinatario: st.destinatario, guardado: guardado };
+    const v = st.aparte[k];
+    delete st.aparte[k];
+    if (v) {
+      st.bloques.entrega = v.entrega; st.entregaId = v.entregaId; st.contactId = v.contactId;
+      st.destinatario = v.destinatario; guardado = v.guardado;
+    } else {
+      st.bloques.entrega = entregaNueva(k);
+      delete st.entregaId; delete st.contactId; guardado = null;
+    }
+    if (!st.entregaId) delete st.entregaId;
+    st.entregaFormato = k;
+    contactoNuevo = false;
+    Object.keys(galerias).forEach(x => delete galerias[x]);
+  }
+  // La guia tal como se compara con lo guardado: mismos campos, en el mismo orden, como texto.
+  const TEXTOS_GUIA = ['entrada', 'saludo', 'parrafo', 'caja_titulo', 'caja_texto', 'cta_texto', 'boton'];
+  const CAMPOS_FASE = ['fase', 'titulo', 'texto', 'etiqueta', 'detalle'];
+  function canonGuia(g) {
+    if (!g) return null;
+    const o = {};
+    TEXTOS_GUIA.forEach(k => { o[k] = String(g[k] || ''); });
+    o.fases = (g.fases || []).map(f => {
+      const x = { clave: f.clave, on: f.on !== false };
+      CAMPOS_FASE.forEach(k => { x[k] = String(f[k] || ''); });
+      x.linea = f.linea;
+      return x;
+    });
+    return o;
+  }
+  // Una fase: si sale, su orden, sus textos, su producto y la presentacion de ese producto.
+  function faseEl(f, i) {
+    const g = guiaE(), ruta = 'bloques.entrega.guia.fases.' + i + '.';
+    const w = el('div', 'svc'); w.dataset.fase = f.clave; w.classList.toggle('off', !f.on);
+    const h = el('div', 'svc-h');
+    h.appendChild(switchEl(ruta + 'on', v => w.classList.toggle('off', !v), sinRealce(f.titulo) || 'la fase'));
+    const t = el('button', 'svc-t', sinRealce(f.titulo) || 'Fase'); t.type = 'button'; plegable(t, w);
+    h.appendChild(t);
+    const fl = el('span', 'flechas');
+    [['↑', -1, 'Subir '], ['↓', 1, 'Bajar ']].forEach(([txt, dir, que]) => {
+      const b = el('button', null, txt); b.type = 'button';
+      b.setAttribute('aria-label', que + sinRealce(f.titulo)); b.title = que + sinRealce(f.titulo);
+      b.addEventListener('click', () => {
+        const j = i + dir;
+        if (j < 0 || j >= g.fases.length) return;
+        const x = g.fases[i]; g.fases[i] = g.fases[j]; g.fases[j] = x;
+        touch(); buildPanel();
+      });
+      fl.appendChild(b);
+    });
+    h.appendChild(fl); w.appendChild(h);
+
+    const b = el('div', 'svc-b');
+    [['fase', 'Epígrafe (p. ej. «Fase de atracción»)', 'text'], ['titulo', 'Título', 'text'],
+     ['texto', 'Texto', 'textarea'], ['etiqueta', 'Etiqueta del producto', 'text']].forEach(([k, l, ty]) =>
+      b.appendChild(inputEl(ruta + k, l, ty, k === 'titulo' ? v => { t.textContent = sinRealce(v) || 'Fase'; } : undefined)));
+    // El producto: uno por fase, y uno que ya usa otra fase no se ofrece (su presentacion es la misma).
+    const usados = g.fases.filter((x, j) => j !== i).map(x => x.linea);
+    const lab = el('label', 'fld'); lab.appendChild(el('span', 'fld-l', 'Producto'));
+    const sel = el('select');
+    const ofrece = M.SERVICIOS.filter(sv => (typeof sv.plantillas !== 'string' || sv.plantillas.indexOf('H') >= 0) &&
+      usados.indexOf(sv.id) < 0);
+    if (!ofrece.some(sv => sv.id === f.linea)) ofrece.unshift({ id: f.linea, nombre: f.linea + ' (ya no está en el catálogo)' });
+    ofrece.forEach(sv => { const o = el('option', null, sv.nombre); o.value = sv.id; sel.appendChild(o); });
+    sel.value = f.linea;
+    // El detalle era del producto anterior: se vacia y sale la ubicacion del nuevo hasta que se escriba.
+    sel.addEventListener('change', () => { f.linea = sel.value; f.detalle = ''; touch(); buildPanel(); });
+    lab.appendChild(sel); b.appendChild(lab);
+    b.appendChild(inputEl(ruta + 'detalle', 'Detalle (vacío = la ubicación del producto)', 'textarea'));
+    const sv = M.SERVICIOS.filter(x => x.id === f.linea)[0];
+    if (sv) {
+      b.appendChild(el('p', 'fld-l', 'Su presentación en esta entrega (vacío = la del catálogo)'));
+      b.appendChild(cuerpoEspacio(sv, ['canva'], () => {}, 'fase-pres'));
+    }
     w.appendChild(b); return w;
   }
 
@@ -1099,16 +1225,23 @@
     pintaAsp();
     frag.appendChild(asp);
 
-    // 01 - La presentacion
-    const p1 = pasoEl('01', 'La presentación', !!E.url);
-    p1.appendChild(inputEl('bloques.entrega.url', 'Enlace de Canva del cliente', 'text'));
-    avisoImagenesEl = el('p', 'estado mal', 'Cambiaste el enlace: las imágenes (portada y carrusel) siguen ' +
-      'siendo las de la presentación anterior. Sube el PDF de la nueva en el paso 03.');
-    p1.appendChild(avisoImagenesEl); pintaAvisoImagenes();
+    // 01 - La presentacion (en la guia, 012: sus textos; las presentaciones van en cada fase)
+    const esI = st.plantilla === 'I';
+    if (esI) guiaE();
+    const p1 = pasoEl('01', esI ? 'La guía' : 'La presentación', esI || !!E.url);
+    if (!esI) {
+      p1.appendChild(inputEl('bloques.entrega.url', 'Enlace de Canva del cliente', 'text'));
+      avisoImagenesEl = el('p', 'estado mal', 'Cambiaste el enlace: las imágenes (portada y carrusel) siguen ' +
+        'siendo las de la presentación anterior. Sube el PDF de la nueva en el paso 03.');
+      p1.appendChild(avisoImagenesEl); pintaAvisoImagenes();
+    } else {
+      avisoImagenesEl = null;
+    }
     estadoGuardadoEl = estadoEl(''); p1.appendChild(estadoGuardadoEl); programaGuardado();
-    p1.appendChild(inputEl('bloques.entrega.titulo', 'Título de la propuesta', 'text'));
+    p1.appendChild(inputEl('bloques.entrega.titulo', esI ? 'Título de la guía (*palabras* = en color)' : 'Título de la propuesta', 'text'));
     p1.appendChild(buildEstilo());
     p1.appendChild(inputEl('bloques.entrega.meta', 'Rótulo de la esquina', 'text'));
+    if (esI) p1.appendChild(inputEl('bloques.entrega.guia.entrada', 'Entrada (bajo el título)', 'textarea'));
 
     // El asunto. Por defecto es el titulo -son la misma frase- pero quien redacta manda, asi que
     // hay un modo para escribirlo aparte. Reconstruye el panel al cambiar para que el campo del
@@ -1128,7 +1261,7 @@
     modo.appendChild(selA);
     p1.appendChild(modo);
     if (st.asunto3 === 'propio') p1.appendChild(inputEl('asunto', 'Asunto', 'text'));
-    if (HAY_SERVIDOR) {
+    if (HAY_SERVIDOR && !esI) {
       const est = estadoEl('');
       const fila = el('div', 'fila-bt');
       fila.appendChild(botonEl('Comprobar el enlace', null, () => {
@@ -1255,17 +1388,42 @@
       });
       p2.appendChild(nuevoWrap);
       // El saludo, junto a quien lo recibe. Antes estaba plegado al final del panel y parecia fijo.
-      p2.appendChild(inputEl('bloques.saludo.texto', 'Saludo', 'textarea'));
+      // La guia (012) tiene el suyo, con su parrafo de presentacion.
+      if (esI) {
+        p2.appendChild(inputEl('bloques.entrega.guia.saludo', 'Saludo', 'text'));
+        p2.appendChild(inputEl('bloques.entrega.guia.parrafo', 'Párrafo de presentación', 'textarea'));
+      } else {
+        p2.appendChild(inputEl('bloques.saludo.texto', 'Saludo', 'textarea'));
+      }
       p2.appendChild(el('p', 'hint', '{destinatario} se cambia por el nombre del contacto elegido.'));
 
       const est2 = estadoEl(st.entregaId ? 'Entrega guardada (#' + st.entregaId + ').' : '',
                             st.entregaId ? 'bien' : '');
       const fila2 = el('div', 'fila-bt');
-      fila2.appendChild(botonEl(st.entregaId ? 'Actualizar Personalizada' : 'Guardar Personalizada',
+      const nombreF = esI ? 'Guía' : 'Personalizada';
+      fila2.appendChild(botonEl(st.entregaId ? 'Actualizar ' + nombreF : 'Guardar ' + nombreF,
                                 'primary', () => guardaEntrega(campos, est2)));
       p2.appendChild(fila2); p2.appendChild(est2);
     }
     frag.appendChild(p2);
+
+    // La guia (012): sus fases y su mensaje; llevarsela, como la H.
+    if (esI) {
+      const g = guiaE();
+      const p3i = pasoEl('03', 'Las fases', g.fases.some(f => f.on));
+      p3i.appendChild(el('p', 'hint', 'De 1 a 3. Apaga la que no haga falta y ordénalas con las flechas. ' +
+        'Cada una lleva un producto y su presentación: la propia de este cliente (enlace y PDF) o, si no, la del catálogo.'));
+      g.fases.forEach((f, i) => p3i.appendChild(faseEl(f, i)));
+      frag.appendChild(p3i);
+      const p4i = pasoEl('04', 'El mensaje', true);
+      [['caja_titulo', 'Recuadro final · título', 'text'], ['caja_texto', 'Recuadro final · texto', 'textarea'],
+       ['cta_texto', 'Texto antes del botón', 'textarea'], ['boton', 'Texto del botón', 'text']]
+        .forEach(([k, l, ty]) => p4i.appendChild(inputEl('bloques.entrega.guia.' + k, l, ty)));
+      p4i.appendChild(inputEl('bloques.entrega.corto', 'Versión corta (WhatsApp)', 'textarea'));
+      frag.appendChild(p4i);
+      frag.appendChild(pasoLlevartela());
+      return frag;
+    }
 
     // 03 - Las paginas
     const p3 = pasoEl('03', 'Las páginas', galeriaDe('principal').elegidas.length >= 2);
@@ -1333,8 +1491,12 @@
     });
     p4.appendChild(extra);
     frag.appendChild(p4);
+    frag.appendChild(pasoLlevartela());
+    return frag;
+  }
 
-    // 05 - Llevartela
+  // 05 - Llevartela (la H y la guia)
+  function pasoLlevartela() {
     const p5 = pasoEl('05', 'Llevártela', false);
     p5.appendChild(el('p', 'fld-l',
       'El envío es manual: esta herramienta no manda correos. Copia, pega en Gmail y envía tú.'));
@@ -1357,9 +1519,7 @@
       }));
       p5.appendChild(fila6); p5.appendChild(est5);
     }
-    frag.appendChild(p5);
-
-    return frag;
+    return p5;
   }
 
   // ── La entrega que se esta armando (004, US4) ──
@@ -1398,7 +1558,9 @@
       sel.textContent = '';
       sel.appendChild(el('option', null, lista.length ? 'Elige una…' : 'Aún no hay entregas guardadas')).value = '';
       lista.forEach(d => {
-        const o = el('option', null, '#' + d.id + ' · ' + d.titulo + ' — ' + d.contacto_nombre +
+        // Con su formato (012): abrir una guia lleva a la I, y una H a la H.
+        const o = el('option', null, '#' + d.id + ' · ' + (d.formato === 'I' ? 'Guía · ' : '') +
+          sinRealce(d.titulo) + ' — ' + d.contacto_nombre +
           (d.contacto_empresa ? ' (' + d.contacto_empresa + ')' : '') + (d.estado === 'entregada' ? ' · entregada' : ''));
         o.value = String(d.id);
         if (d.id === st.entregaId) o.selected = true;
@@ -1442,7 +1604,11 @@
     });
     st.entregaId = d.id; st.contactId = d.contact_id;
     if (d.contacto_nombre) st.destinatario = d.contacto_nombre;
-    st.plantilla = 'H';
+    // Su formato manda (012): una guia se abre en la I, con su guia; una H, en la H.
+    st.plantilla = d.formato === 'I' ? 'I' : 'H';
+    st.entregaFormato = st.plantilla;
+    if (st.aparte) delete st.aparte[st.plantilla];
+    if (d.guia) E.guia = d.guia; else delete E.guia;
     // Las miniaturas eran de otra entrega. Vuelven las paginas ELEGIDAS de esta, en su orden: sin
     // ellas, al abrir una entrega cambiar el efecto no rehacia nada, y el boton de Vallas no veia las
     // paginas subidas a su espacio. Las no elegidas no se guardan: para otras, se vuelve a subir.
@@ -1470,7 +1636,8 @@
   // La entrega vuelve al principio. El aspecto y el efecto, que son gusto de quien redacta, se quedan.
   function nuevaEntrega() {
     const base = M.defaultState();
-    st.bloques.entrega = base.bloques.entrega;
+    st.bloques.entrega = entregaNueva(st.plantilla === 'I' ? 'I' : 'H');
+    st.entregaFormato = st.plantilla === 'I' ? 'I' : 'H';
     delete st.entregaId; delete st.contactId; guardado = null;
     st.destinatario = base.destinatario;
     contactoNuevo = false;
@@ -1490,7 +1657,11 @@
   let estadoGuardadoEl = null, avisoImagenesEl = null;
   function cuerpoEntrega() {
     const E = st.bloques.entrega;
+    sincronizaGuia();
+    const esI = st.plantilla === 'I';
     return {
+      // La guia (012): su formato y su guia. Una H manda «H» y ninguna guia.
+      formato: esI ? 'I' : 'H', guia: esI ? canonGuia(guiaE()) : undefined,
       titulo: E.titulo, canva_url: E.url, texto: E.texto || '',
       // El rotulo de la esquina y el texto corto de WhatsApp viajan con la entrega (004).
       rotulo: E.meta || '', texto_corto: E.corto || '',
@@ -1502,18 +1673,20 @@
     };
   }
   // La misma forma para lo de la pantalla y lo del servidor, con lo que el servidor recorta.
-  const firma = (titulo, url, texto, rotulo, corto, tipo, tam, servicios, orden, contacto) =>
+  const firma = (titulo, url, texto, rotulo, corto, tipo, tam, servicios, orden, contacto, guia) =>
     JSON.stringify([String(titulo || '').trim(), String(url || '').trim(), texto || '',
       String(rotulo || '').trim(), String(corto || '').trim(), tipo || '', tam || '', servicios || '',
-      orden || '', contacto || null]);
+      orden || '', contacto || null, canonGuia(guia)]);
   const firmaDe = d => firma(d.titulo, d.canva_url, d.texto, d.rotulo, d.texto_corto, d.tipografia,
-    d.tam_titulo, d.servicios, d.orden_espacios, d.contact_id);
+    d.tam_titulo, d.servicios, d.orden_espacios, d.contact_id, d.guia);
   function firmaPantalla() {
     const c = cuerpoEntrega();
     return firma(c.titulo, c.canva_url, c.texto, c.rotulo, c.texto_corto, c.tipografia, c.tam_titulo,
-      c.servicios, c.orden_espacios, st.contactId);
+      c.servicios, c.orden_espacios, st.contactId, c.guia);
   }
-  const puedeAutoguardar = () => HAY_SERVIDOR && st.plantilla === 'H' && !!st.entregaId && !!st.contactId && !contactoNuevo;
+  // Solo sobre una entrega de SU formato (012): una guia no se guarda encima de una H.
+  const puedeAutoguardar = () => HAY_SERVIDOR && esEntrega(st.plantilla) &&
+    (st.entregaFormato || 'H') === st.plantilla && !!st.entregaId && !!st.contactId && !contactoNuevo;
   const pendiente = () => puedeAutoguardar() && firmaPantalla() !== guardado;
   function pintaGuardado(clase, texto) {
     if (!estadoGuardadoEl) return;
@@ -1531,8 +1704,11 @@
     clearTimeout(esperaGuardar);
     if (!puedeAutoguardar() || guardando) return;
     const E = st.bloques.entrega;
+    sincronizaGuia();
     if (!String(E.url || '').trim() || !String(E.titulo || '').trim()) {
-      pintaGuardado('mal', 'Sin guardar: faltan el enlace o el título.'); return;
+      pintaGuardado('mal', st.plantilla === 'I'
+        ? 'Sin guardar: hace falta el título y al menos una fase encendida.'
+        : 'Sin guardar: faltan el enlace o el título.'); return;
     }
     guardando = true; pintaGuardado('', 'Guardando…');
     api('/api/entregas/' + st.entregaId, { method: 'PUT', headers: { 'Content-Type': 'application/json' },
@@ -1561,8 +1737,12 @@
 
   function guardaEntrega(campos, est) {
     const E = st.bloques.entrega;
+    sincronizaGuia();
     if (!E.url || !E.titulo) {
-      est.className = 'estado mal'; est.textContent = 'Faltan el enlace y el título (paso 1).'; return;
+      est.className = 'estado mal';
+      est.textContent = st.plantilla === 'I' ? 'Hacen falta el título (paso 1) y al menos una fase encendida (paso 3).'
+        : 'Faltan el enlace y el título (paso 1).';
+      return;
     }
     const cuerpo = cuerpoEntrega();
     if (contactoNuevo) {
@@ -2021,8 +2201,16 @@
 
   function buildPanel() {
     const p = $('#panel'); p.innerHTML = '';
-    $('#copyWa').hidden = st.plantilla !== 'H';
-    $('#copyWaImg').hidden = st.plantilla !== 'H';
+    $('#copyWa').hidden = !esEntrega(st.plantilla);
+    $('#copyWaImg').hidden = !esEntrega(st.plantilla);
+    // La guia (012): su panel de entrega (con sus fases) y la firma; sin «Espacios que la acompañan».
+    if (st.plantilla === 'I') {
+      p.appendChild(buildEntrega());
+      const gb = el('div', 'grp'); gb.appendChild(el('h2', null, 'Firma'));
+      BLOQUES.filter(d => d.k === 'firma').forEach(d => gb.appendChild(blockEl(d)));
+      p.appendChild(gb);
+      return;
+    }
     if (st.plantilla === 'H') {
       p.appendChild(buildEntrega());
       const g = el('div', 'grp'); g.appendChild(el('h2', null, 'Espacios que la acompañan'));
@@ -2065,17 +2253,19 @@
       b.setAttribute('aria-pressed', String(st.plantilla === k));
       // buildPanel tambien: el modo Entrega tiene su propio panel, y hasta ahora todas las
       // plantillas compartian el mismo, asi que nadie lo reconstruia al cambiar de plantilla.
-      b.addEventListener('click', () => { st.plantilla = k; buildSeg(); buildPanel(); touch(); });
+      // Entre H e I, cada una con su entrega (012): la otra queda aparte y vuelve al regresar.
+      b.addEventListener('click', () => { cambiaFormato(k); st.plantilla = k; buildSeg(); buildPanel(); touch(); });
       seg.appendChild(b);
     });
     const d = el('button', 'dice', '⚄ Aleatoria'); d.type = 'button'; d.title = 'Elige otra plantilla al azar (rotación)';
-    d.addEventListener('click', () => { const ks = Object.keys(M.TEMPLATES).filter(k => k !== st.plantilla); st.plantilla = ks[Math.floor(Math.random() * ks.length)]; buildSeg(); buildPanel(); touch(); });
+    d.addEventListener('click', () => { const ks = Object.keys(M.TEMPLATES).filter(k => k !== st.plantilla); st.plantilla = ks[Math.floor(Math.random() * ks.length)]; cambiaFormato(st.plantilla); buildSeg(); buildPanel(); touch(); });
     seg.appendChild(d);
   }
 
   const prod = () => { const p = JSON.parse(JSON.stringify(st)); p.assetBase = st.assetBaseProd || 'img'; return p; };
   let timer;
   function touch() {
+    sincronizaGuia();                           // 012: los espacios y el enlace salen de las fases
     save(); clearTimeout(timer); timer = setTimeout(renderPreview, 120);
     programaGuardado(); pintaAvisoImagenes();   // 009
     if (refrescaWa) refrescaWa();               // 010: los bloques siguen a los espacios
@@ -2160,8 +2350,9 @@
   // lo vio la auditoria del 2026-10-03. Se avisa y no se copia.
   function faltaEnlaceH() {
     const e = (st.bloques && st.bloques.entrega) || {};
-    if (st.plantilla !== 'H' || String(e.enlace || e.url || '').trim()) return false;
-    toast('Falta el enlace de la propuesta: el botón no llevaría a ninguna parte. Ponlo en el paso 01.', 5000);
+    if (!esEntrega(st.plantilla) || String(e.enlace || e.url || '').trim()) return false;
+    toast(st.plantilla === 'I' ? 'Enciende al menos una fase: la guía no llevaría a ninguna parte.'
+      : 'Falta el enlace de la propuesta: el botón no llevaría a ninguna parte. Ponlo en el paso 01.', 5000);
     return true;
   }
   // Ni se copia con algo sin guardar (009): el enlace del cliente llevaria a lo guardado, no a lo

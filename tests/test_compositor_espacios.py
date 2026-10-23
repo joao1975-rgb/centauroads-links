@@ -39,7 +39,8 @@ def test_principal_y_espacios_usan_la_misma_galeria(html):
 
 
 def test_la_galeria_de_un_espacio_va_a_sus_propias_rutas(html):
-    espacio = _funcion(html, "espacioEl")
+    # Lo propio de un espacio vive en cuerpoEspacio desde la 012: lo comparten la H y las fases de la I.
+    espacio = _funcion(html, "cuerpoEspacio")
     assert "'/espacios/' + encodeURIComponent(sv.id) + '/paginas'" in espacio
     assert "method: 'DELETE'" in espacio
 
@@ -82,7 +83,9 @@ def test_empezar_una_nueva_no_escribe_encima_de_la_anterior(html):
     """Sin esto, guardar la entrega del siguiente cliente hacia PUT sobre la anterior."""
     nueva = _funcion(html, "nuevaEntrega")
     assert "delete st.entregaId" in nueva and "delete st.contactId" in nueva
-    assert "st.bloques.entrega = base.bloques.entrega" in nueva
+    # Una entrega en blanco de su formato (012): la de serie, y en la I con la guía de la F.
+    assert "st.bloques.entrega = entregaNueva(" in nueva
+    assert "const E = base.bloques.entrega;" in _funcion(html, "entregaNueva")
 
 
 def test_el_rotulo_y_el_texto_corto_se_guardan_y_se_abren(html):

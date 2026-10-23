@@ -20,7 +20,7 @@ const here = __dirname;
 // produccion: si img/ no esta, se leen de ahi.
 const imgLocal = path.join(here, 'img');
 const imgDir = fs.existsSync(imgLocal) ? imgLocal : path.join(here, '..', '..', 'app', 'static', 'email');
-const slug = { A: 'cartelera', B: 'catalogo', C: 'nota', D: 'movil', E: 'inventario', F: 'guia', G: 'phygital', H: 'personalizada' };
+const slug = { A: 'cartelera', B: 'catalogo', C: 'nota', D: 'movil', E: 'inventario', F: 'guia', G: 'phygital', H: 'personalizada', I: 'guiapropia' };
 
 // 1. Plantillas estáticas: con fotos reales (por defecto) y con portadas de Canva (sufijo -portadas)
 for (const key of Object.keys(M.TEMPLATES)) {

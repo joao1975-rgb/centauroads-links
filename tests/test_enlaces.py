@@ -77,6 +77,9 @@ def test_el_enlace_cambiado_sale_en_todas_las_plantillas(r):
     """
     viejo = "canva.link/fgsgrl8vj329ue0"
     for k, html in r["plantillas"].items():
+        # La guía (012) solo lleva los productos de sus fases, y Vallas no es de serie una de ellas.
+        if k == "I":
+            continue
         # H lleva los servicios en «Lo que la acompaña»: también ahí.
         assert CANVA_NUEVO in html, "la plantilla %s no usa el enlace cambiado" % k
         assert viejo not in html, "la plantilla %s sigue llevando el enlace viejo" % k

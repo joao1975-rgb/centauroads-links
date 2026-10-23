@@ -1211,10 +1211,11 @@
     // el mismo motivo: si no, la bandeja anuncia una cosa y el correo dice otra.
     //
     // `asunto3 = 'propio'` sigue mandando: quien redacta tiene la ultima palabra.
-    if (st.plantilla === 'H' && st.asunto3 !== 'propio') {
+    if ((st.plantilla === 'H' || st.plantilla === 'I') && st.asunto3 !== 'propio') {
       const h = JSON.parse(JSON.stringify(st));
       const e = h.bloques.entrega;
-      if (e.titulo) h.asunto = e.titulo;
+      // En la I el titulo lleva los realces de la F (*…*): en el asunto se verian tal cual.
+      if (e.titulo) h.asunto = st.plantilla === 'I' ? e.titulo.replace(/\*/g, '').trim() : e.titulo;
       const corto = fill(e.corto || '', h).replace(/[ \t\r\n]+/g, ' ').trim();
       if (corto) h.preheader = corto;
       return h;
@@ -1268,10 +1269,10 @@
       texto: 'Verdana,Geneva,sans-serif', estilo: '', ancho: 0.78 },
   };
   const ESCALAS = { base: 1, grande: 1.25, maximo: 1.5 };
-  const BASE_TITULO = { A: 54, B: 48, D: 46, E: 40, F: 36, G: 40, H: 34 };
+  const BASE_TITULO = { A: 54, B: 48, D: 46, E: 40, F: 36, G: 40, H: 34, I: 36 };
   // De dónde saca cada plantilla su título principal (A, B y D del bloque Título; E, F y G de su
   // bloque del asesor; H de la entrega).
-  const TITULO_DE = { A: 'titulo', B: 'titulo', D: 'titulo', E: 'inventario', F: 'guia', G: 'phygital', H: 'entrega' };
+  const TITULO_DE = { A: 'titulo', B: 'titulo', D: 'titulo', E: 'inventario', F: 'guia', G: 'phygital', H: 'entrega', I: 'entrega' };
   // Las de hoy: la condensada (FS) en A, B y D; la de títulos (FH) en las demás.
   const ANCHO_FS = 0.53, ANCHO_FH = 0.62;
   const ANCHO_MOVIL = 327;   // 375 px de teléfono menos 24 de margen a cada lado
@@ -1572,6 +1573,22 @@
       if (on(st, 'firma')) L.push.apply(L, pieDeFirma(st));
       return L.join('\n');
     }
+    if (st.plantilla === 'I') {
+      const e = B(st, 'entrega'), g = guiaDe(st), sin = t => fill(String(t || '').replace(/\*/g, ''), st);
+      L.push(sin(e.titulo).toUpperCase(), '');
+      if (g.entrada) L.push(sin(g.entrada), '');
+      [g.saludo, g.parrafo].filter(Boolean).forEach(t => L.push(sin(t), ''));
+      g.fases.filter(f => f.on).forEach((f, i) => {
+        L.push(String(i + 1).padStart(2, '0') + ' · ' + sin(f.titulo).toUpperCase(), sin(f.texto));
+        const s = activos(st).filter(x => x.id === f.linea)[0];
+        if (s) L.push('• ' + [s.nombre, linkFor(st, s)].filter(Boolean).join(' — '));
+        L.push('');
+      });
+      if (g.caja_titulo || g.caja_texto) L.push([sin(g.caja_titulo), sin(g.caja_texto)].filter(Boolean).join(': '), '');
+      if (g.cta_texto) L.push(sin(g.cta_texto), '');
+      if (on(st, 'firma')) L.push.apply(L, pieDeFirma(st));
+      return L.join('\n');
+    }
     if (on(st, 'saludo')) L.push(fill(B(st, 'saludo').texto, st), '');
     if (on(st, 'intro')) L.push(fill(B(st, 'intro').texto, st), '');
     if (on(st, 'titulo')) L.push(B(st, 'titulo').texto.toUpperCase(), '');
@@ -1604,12 +1621,15 @@
     const st = soloSuyas(aplicaAsunto(aplicaPerfil(normaliza(st0))), pick(st0));
     const e = B(st, 'entrega');
     const L = [];
+    const esI = st.plantilla === 'I';
     if (e.enlace || e.url) L.push(e.enlace || e.url, '');
-    if (on(st, 'saludo')) L.push(fill(B(st, 'saludo').texto, st));
+    if (esI) { const sal = guiaDe(st).saludo; if (sal) L.push(fill(sal.replace(/\*/g, ''), st)); }
+    else if (on(st, 'saludo')) L.push(fill(B(st, 'saludo').texto, st));
     L.push(fill(e.corto, st), '');
     // Los espacios van APARTE, un mensaje cada uno con su enlace propio (010): WhatsApp dibuja la
     // tarjeta solo del primer enlace de cada mensaje. Aqui solo se avisa, si va alguno.
-    if (bloquesWhatsApp(st0).length) L.push('Te env\u00edo aparte los espacios que la acompa\u00f1an.', '');
+    if (bloquesWhatsApp(st0).length) L.push(esI ? 'Te env\u00edo aparte cada fase con su presentaci\u00f3n.'
+      : 'Te env\u00edo aparte los espacios que la acompa\u00f1an.', '');
     const f = B(st, 'firma');
     L.push(f.nombre + ' \u00b7 ' + cargoDe(f));
     L.push(correosDe(f)[0] + ' \u00b7 ' + f.telefono);
@@ -1794,29 +1814,7 @@
     const FASES = [fase(1, 'totem'), fase(2, 'led'), fase(3, 'rider')];
     FASES.forEach(function (f) {
       const svc = st.servicios.filter(function (x) { return x.id === f.id && x.on; })[0];
-      P.push(row(
-        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
-        '<td width="54" valign="top" style="font-family:' + FH + ';font-size:34px;font-weight:800;color:' + k.acento + ';letter-spacing:-.03em;">' + f.n + '</td>' +
-        '<td valign="top">' +
-          '<div style="font-family:' + FH + ';font-size:12px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:' + k.vivo + ';">' + esc(f.fase) + '</div>' +
-          '<div style="font-family:' + FH + ';font-size:21px;font-weight:800;letter-spacing:-.02em;color:' + k.texto + ';padding:4px 0 8px 0;">' + esc(f.tit) + '</div>' +
-          '<div style="font-family:' + FB + ';font-size:14px;line-height:21px;color:' + k.apagado + ';">' + f.txt + '</div>' +
-        '</td></tr></table>' +
-        (svc ?
-          '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:14px 0 0 0;"><tr>' +
-          '<td bgcolor="' + k.panel2 + '" style="background:' + k.panel2 + ';border:1px solid ' + k.linea + ';border-radius:10px;padding:14px;">' +
-          // Foto y texto como bloques flotantes: en el movil el texto baja bajo la foto en vez
-          // de quedar en una columna de 70 px con una palabra por linea.
-          '<table role="presentation" width="180" align="left" cellpadding="0" cellspacing="0" border="0" style="width:180px;max-width:100%;"><tr>' +
-          '<td valign="top" style="font-size:0;line-height:0;padding:0 14px 10px 0;">' + fotoServicio(st, svc, 180) + '</td></tr></table>' +
-          '<table role="presentation" width="250" align="left" cellpadding="0" cellspacing="0" border="0" style="width:250px;max-width:100%;"><tr>' +
-          '<td valign="top">' +
-            '<div style="font-family:' + FH + ';font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:' + k.vivo + ';">' + esc(f.tag) + '</div>' +
-            '<div style="font-family:' + FH + ';font-size:15px;font-weight:800;color:' + k.texto + ';padding:5px 0 4px 0;">' + esc(f.svcTit) + '</div>' +
-            '<div style="font-family:' + FB + ';font-size:13px;line-height:18px;color:' + k.apagado + ';">' + esc(f.svcTxt) + '</div>' +
-            '<div style="padding:0;"><a href="' + esc(linkFor(st, svc)) + '" style="display:inline-block;padding:12px 0;font-family:' + FH + ';font-size:14px;line-height:20px;font-weight:800;color:' + k.acento + ';text-decoration:none;">Ver presentaci\u00f3n &rarr;</a></div>' +
-          '</td></tr></table></td></tr></table>' : ''),
-        pad + 'padding-bottom:28px;'));
+      P.push(row(filaFase(st, k, f, svc), pad + 'padding-bottom:28px;'));
     });
 
     P.push(row(
@@ -1846,6 +1844,124 @@
     if (on(st, 'pie')) {
       P.push(row('<div style="font-family:' + FB + ';font-size:13px;line-height:19px;color:' + k.apagado + ';">' +
         nl2br(B(st, 'pie').texto) + '</div>', 'padding:0 32px 24px 32px;background:' + k.panel + ';'));
+    }
+    return doc(st, P.join(''));
+  }
+
+  // Una fase de la guia: su numero, epigrafe, titulo y texto y, si tiene servicio, la caja con su
+  // foto (su carrusel), su etiqueta, nombre, detalle y «Ver presentacion». La comparten la F y la I.
+  function filaFase(st, k, f, svc) {
+    return (
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
+        '<td width="54" valign="top" style="font-family:' + FH + ';font-size:34px;font-weight:800;color:' + k.acento + ';letter-spacing:-.03em;">' + f.n + '</td>' +
+        '<td valign="top">' +
+          '<div style="font-family:' + FH + ';font-size:12px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:' + k.vivo + ';">' + esc(f.fase) + '</div>' +
+          '<div style="font-family:' + FH + ';font-size:21px;font-weight:800;letter-spacing:-.02em;color:' + k.texto + ';padding:4px 0 8px 0;">' + esc(f.tit) + '</div>' +
+          '<div style="font-family:' + FB + ';font-size:14px;line-height:21px;color:' + k.apagado + ';">' + f.txt + '</div>' +
+        '</td></tr></table>' +
+        (svc ?
+          '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:14px 0 0 0;"><tr>' +
+          '<td bgcolor="' + k.panel2 + '" style="background:' + k.panel2 + ';border:1px solid ' + k.linea + ';border-radius:10px;padding:14px;">' +
+          // Foto y texto como bloques flotantes: en el movil el texto baja bajo la foto en vez
+          // de quedar en una columna de 70 px con una palabra por linea.
+          '<table role="presentation" width="180" align="left" cellpadding="0" cellspacing="0" border="0" style="width:180px;max-width:100%;"><tr>' +
+          '<td valign="top" style="font-size:0;line-height:0;padding:0 14px 10px 0;">' + fotoServicio(st, svc, 180) + '</td></tr></table>' +
+          '<table role="presentation" width="250" align="left" cellpadding="0" cellspacing="0" border="0" style="width:250px;max-width:100%;"><tr>' +
+          '<td valign="top">' +
+            '<div style="font-family:' + FH + ';font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:' + k.vivo + ';">' + esc(f.tag) + '</div>' +
+            '<div style="font-family:' + FH + ';font-size:15px;font-weight:800;color:' + k.texto + ';padding:5px 0 4px 0;">' + esc(f.svcTit) + '</div>' +
+            '<div style="font-family:' + FB + ';font-size:13px;line-height:18px;color:' + k.apagado + ';">' + esc(f.svcTxt) + '</div>' +
+            '<div style="padding:0;"><a href="' + esc(linkFor(st, svc)) + '" style="display:inline-block;padding:12px 0;font-family:' + FH + ';font-size:14px;line-height:20px;font-weight:800;color:' + k.acento + ';text-decoration:none;">Ver presentaci\u00f3n &rarr;</a></div>' +
+          '</td></tr></table></td></tr></table>' : ''));
+  }
+
+  // -- Formato I - "Guia personalizada" (012) ------------------------------------------
+  // La F por cliente: sus textos y sus fases (1 a 3, en su orden), cada una con UN producto y la
+  // presentacion de ese producto en ESTA entrega (la propia, si se le subio, o la del catalogo).
+  // Lo demas -enlace, contacto, guardado, WhatsApp- es de la entrega, como en la H.
+  const FASES_GUIA = [['conozcan', 1, 'totem'], ['recuerden', 2, 'led'], ['compren', 3, 'rider']];
+  // La guia de la entrega; lo que no traiga, el de la F (sus textos y sus tres productos).
+  function guiaDe(st) {
+    const g = B(st, 'guia') || {}, p = (B(st, 'entrega') || {}).guia || {};
+    const de = (clave, deF) => typeof p[clave] === 'string' ? p[clave] : String(g[deF] || '');
+    return {
+      entrada: de('entrada', 'entrada'), saludo: de('saludo', 'saludo'), parrafo: de('parrafo', 'parrafo'),
+      caja_titulo: de('caja_titulo', 'cajaTitulo'), caja_texto: de('caja_texto', 'cajaTexto'),
+      cta_texto: de('cta_texto', 'ctaTexto'), boton: de('boton', 'boton'),
+      fases: Array.isArray(p.fases)
+        ? p.fases.map(function (f) { return Object.assign({}, f); })
+        : FASES_GUIA.map(function (x) {
+          const n = x[1];
+          return { clave: x[0], on: true, fase: g['fase' + n] || '', titulo: g['fase' + n + 'Titulo'] || '',
+            texto: g['fase' + n + 'Texto'] || '', etiqueta: g['fase' + n + 'Etiqueta'] || '',
+            detalle: g['fase' + n + 'Detalle'] || '', linea: x[2] };
+        }),
+    };
+  }
+  // Los productos de las fases encendidas, en su orden: son los «espacios» de la entrega.
+  const lineasDeGuia = st => guiaDe(st).fases.filter(function (f) { return f.on; })
+    .map(function (f) { return f.linea; });
+
+  function plantillaI(st) {
+    const tema = temaDe(st), k = paleta(tema), P = [];
+    const a = B(st, 'asesor'), e = B(st, 'entrega'), g = guiaDe(st);
+    const pad = 'padding-left:32px;padding-right:32px;background:' + k.panel + ';';
+    const h = t => huecos(t, { destinatario: st.destinatario || '[Nombre]', empresa: e.empresa || '[Empresa]' });
+
+    P.push(row(cabeceraAsesor(st, P, h(e.meta), e.empresa),
+      'padding:26px 32px 22px 32px;background:' + k.panel + ';'));
+    P.push(row(
+      '<div style="font-family:' + FH + ';font-size:' + tamanoTitulo(st, 'I').px + 'px;line-height:1.06;font-weight:800;letter-spacing:-.03em;color:' + k.texto + ';' + estiloTitulo(st) + '">' +
+        realce(h(e.titulo), '<span style="color:' + k.acento + ';">', '</span>') + '</div>' +
+      (g.entrada ? '<div style="font-family:' + FB + ';font-size:15px;line-height:1.6;color:' + k.apagado + ';padding:16px 0 0 0;">' +
+        realce(h(g.entrada), '<b>', '</b>') + '</div>' : ''),
+      pad + 'padding-top:12px;padding-bottom:26px;'));
+
+    if (g.saludo || g.parrafo) {
+      P.push(row(
+        (g.saludo ? '<div style="font-family:' + FB + ';font-size:15px;line-height:1.65;color:' + k.texto + ';">' +
+          realce(h(g.saludo), '<b>', '</b>') + '</div>' : '') +
+        (g.parrafo ? '<div style="font-family:' + FB + ';font-size:15px;line-height:1.65;color:' + k.apagado + ';padding:10px 0 0 0;">' +
+          realce(h(g.parrafo), '<b style="color:' + k.texto + ';">', '</b>') + '</div>' : ''),
+        pad + 'padding-bottom:26px;'));
+    }
+
+    // Numeradas por su sitio, no por su nombre: si se apaga la primera, la siguiente es la 01.
+    g.fases.filter(function (f) { return f.on; }).forEach(function (f, i) {
+      const svc = st.servicios.filter(function (x) { return x.id === f.linea && x.on; })[0];
+      // Epigrafe, titulo, etiqueta y detalle van sin realce (como en la F): fuera los asteriscos.
+      const llano = t => h(t).replace(/\*/g, '');
+      P.push(row(filaFase(st, k, {
+        n: String(i + 1).padStart(2, '0'), fase: llano(f.fase), tit: llano(f.titulo),
+        txt: realce(h(f.texto), '<b>', '</b>'), tag: llano(f.etiqueta),
+        // Sin detalle propio, la ubicacion del producto: un detalle escrito para otro no sirve.
+        svcTit: svc ? svc.nombre : '', svcTxt: llano(f.detalle) || (svc ? svc.cobertura || '' : ''),
+      }, svc), pad + 'padding-bottom:28px;'));
+    });
+
+    if (g.caja_titulo || g.caja_texto) {
+      P.push(row(
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
+        '<td bgcolor="' + k.panel2 + '" style="background:' + k.panel2 + ';border-left:3px solid ' + k.acento + ';padding:16px 18px;">' +
+        '<div style="font-family:' + FH + ';font-size:15px;font-weight:800;color:' + k.texto + ';">' + realce(h(g.caja_titulo), '<span style="color:' + k.acento + ';">', '</span>') + '</div>' +
+        '<div style="font-family:' + FB + ';font-size:14px;line-height:20px;color:' + k.apagado + ';padding:6px 0 0 0;">' +
+          realce(h(g.caja_texto), '<b>', '</b>') + '</div>' +
+        '</td></tr></table>', pad + 'padding-bottom:26px;'));
+    }
+
+    if (g.boton) {
+      P.push(row(
+        (g.cta_texto ? '<div style="font-family:' + FB + ';font-size:15px;line-height:1.6;color:' + k.texto + ';padding:0 0 14px 0;">' +
+          realce(h(g.cta_texto), '<b>', '</b>') + '</div>' : '') +
+        botonAsesor(st, h(g.boton), ctaHref(st, h(e.titulo))) +
+        '<div style="font-family:' + FB + ';font-size:12px;color:' + k.apagado + ';padding:12px 0 0 0;">' + esc(a.respuesta) + '</div>',
+        pad + 'padding-bottom:28px;'));
+    }
+
+    // Sin complementos ni pie: la propuesta son sus fases, y la firma ya lleva el contacto (como la H).
+    if (on(st, 'firma')) {
+      P.push(row(firma(st, tema),
+        'padding:24px 32px 26px 32px;background:' + k.panel + ';border-top:1px solid ' + k.linea + ';'));
     }
     return doc(st, P.join(''));
   }
@@ -2075,6 +2191,7 @@
     F: { nombre: 'Guía', desc: 'Asesor de diseño · para cliente nuevo. Tres fases en orden: que te conozcan, que te recuerden, que te compren. Claro u oscuro.', fn: plantillaF },
     G: { nombre: 'Phygital', desc: 'Asesor de diseño · la escena de las 9:00 AM. La calle capta, el móvil cierra. Claro u oscuro.', fn: plantillaG },
     H: { nombre: 'Personalizada', desc: 'Para entregar la presentación propia de un cliente: su enlace, sus imágenes y los servicios que la acompañan. Claro u oscuro.', fn: plantillaH },
+    I: { nombre: 'Guía personalizada', desc: 'La Guía para un cliente: sus textos y hasta tres fases, cada una con su producto y su presentación (la propia o la del catálogo). Claro u oscuro.', fn: plantillaI },
   };
   function pick(st) {
     if (st.plantilla && TEMPLATES[st.plantilla]) return st.plantilla;
@@ -2091,10 +2208,13 @@
   // En la H, ademas, los espacios son los de ESTA entrega (004), tambien en una copia.
   function soloSuyas(st, k) {
     if (k === 'H') st = espaciosDeLaEntrega(st);
+    // En la I (012), los espacios son los productos de sus fases encendidas, en su orden.
+    if (k === 'I') st = espaciosDeLaEntrega(conLaGuia(st));
+    const kp = k === 'I' ? 'H' : k;   // una linea que admite la H admite la I: las dos son entregas
     const fuera = {};
     let alguna = false;
     SERVICIOS.forEach(function (x) {
-      if (typeof x.plantillas === 'string' && x.plantillas.indexOf(k) < 0) { fuera[x.id] = true; alguna = true; }
+      if (typeof x.plantillas === 'string' && x.plantillas.indexOf(kp) < 0) { fuera[x.id] = true; alguna = true; }
     });
     if (!alguna || !Array.isArray(st.servicios)) return st;
     return Object.assign({}, st, { servicios: st.servicios.map(function (x) {
@@ -2106,6 +2226,11 @@
   // lo que se le cambio (`espacios`). Sobre una COPIA, como soloSuyas y aplicaPerfil: el estado
   // de la persona no se toca y A-G siguen con el catalogo y el `on` global. `carruselPropio`
   // solo lo pone esta funcion, por eso los correos de A-G no pueden cambiar.
+  function conLaGuia(st) {
+    const l = lineasDeGuia(st);
+    return Object.assign({}, st, { bloques: Object.assign({}, st.bloques, {
+      entrega: Object.assign({}, B(st, 'entrega'), { incluidos: l, orden: l }) }) });
+  }
   const PROPIOS = { canva: 'canva', nombre: 'nombre', cobertura: 'cobertura', carrusel: 'carruselPropio' };
   function espaciosDeLaEntrega(st) {
     const e = st.bloques && st.bloques.entrega;
@@ -2123,7 +2248,7 @@
   // la entrega, su enlace y una foto fija (su carrusel propio si lo tiene). Para la imagen de
   // WhatsApp del compositor: WhatsApp solo dibuja la tarjeta del primer enlace de cada mensaje.
   function espaciosDeH(st0) {
-    const st = soloSuyas(aplicaPerfil(normaliza(st0)), 'H');
+    const st = soloSuyas(aplicaPerfil(normaliza(st0)), st0.plantilla === 'I' ? 'I' : 'H');
     return activos(st).map(s => ({ id: s.id, nombre: s.nombre, cobertura: s.cobertura || '',
       enlace: linkFor(st, s), foto: s.carruselPropio || (tieneFoto(st, s) ? svcImg(st, s) : '') }));
   }
@@ -2136,8 +2261,13 @@
     const enlace = String(e.enlace || '').trim().replace(/\/+$/, '');
     if (!enlace) return [];
     const fuera = Array.isArray(e.waFuera) ? e.waFuera : [];
-    return espaciosDeH(st0).filter(x => fuera.indexOf(x.id) < 0)
-      .map(x => ({ id: x.id, nombre: x.nombre, texto: x.nombre + '\n' + enlace + '/' + x.id }));
+    // En la I (012) cada bloque es una fase: su titulo delante del producto.
+    const fases = {};
+    if (st0.plantilla === 'I') guiaDe(st0).fases.forEach(f => { fases[f.linea] = String(f.titulo || '').replace(/\*/g, '').trim(); });
+    return espaciosDeH(st0).filter(x => fuera.indexOf(x.id) < 0).map(x => {
+      const nombre = fases[x.id] ? fases[x.id] + ' · ' + x.nombre : x.nombre;
+      return { id: x.id, nombre: nombre, texto: nombre + '\n' + enlace + '/' + x.id };
+    });
   }
   // El orden que eligio quien arma la entrega (009). Estable: lo que no esta en `orden` va al final,
   // en el orden de siempre. Sin orden, la lista tal cual.
@@ -2174,7 +2304,7 @@
     try {
       // Solo la Personalizada mira su propio aspecto, y sobre una COPIA: `tema` sigue siendo
       // el del catalogo y no se toca, que es lo que evita que el morado reaparezca alli.
-      return TEMPLATES[k].fn(k === 'H'
+      return TEMPLATES[k].fn(k === 'H' || k === 'I'
         ? Object.assign({}, listo, { tema: temaEntregaDe(listo) })
         : listo);
     } finally {
@@ -2353,5 +2483,5 @@
     return puestos;
   }
 
-  return { C, SERVICIOS, GRUPOS, TEMPLATES, IMG_SETS, PERFILES, ASUNTOS, asuntosDe, EFECTOS, efectoDe, pesoDe, rangoPeso, ROLES, CORREOS, cargoDe, correosDe, BANCO, bancoDe, fotosDe, comandoCarrusel, FICHA, CONTENT_VERSION, defaultState, catalogoActual, ponCatalogo, textosActuales, ponTextos, tamanoTitulo, PAREJAS, render, renderText, renderWhatsApp, espaciosDeH, bloquesWhatsApp, linkFor, cambiaElCorreo, fechasPasadas, pick, aplicaPerfil, aplicaAsunto, normaliza };
+  return { C, SERVICIOS, GRUPOS, TEMPLATES, IMG_SETS, PERFILES, ASUNTOS, asuntosDe, EFECTOS, efectoDe, pesoDe, rangoPeso, ROLES, CORREOS, cargoDe, correosDe, BANCO, bancoDe, fotosDe, comandoCarrusel, FICHA, CONTENT_VERSION, defaultState, catalogoActual, ponCatalogo, textosActuales, ponTextos, tamanoTitulo, PAREJAS, render, renderText, renderWhatsApp, espaciosDeH, bloquesWhatsApp, guiaDe, lineasDeGuia, linkFor, cambiaElCorreo, fechasPasadas, pick, aplicaPerfil, aplicaAsunto, normaliza };
 });

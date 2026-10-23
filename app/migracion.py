@@ -52,6 +52,9 @@ COLUMNAS_NUEVAS = {
         ("tam_titulo", "VARCHAR(10)"),
         # El orden de sus espacios (009). Nula = el de siempre.
         ("orden_espacios", "VARCHAR(2000)"),
+        # La guía personalizada (012). Nulas = una H.
+        ("formato", "VARCHAR(2)"),
+        ("guia", "TEXT"),
     ],
     # «Borrar» un contacto lo retira de la lista sin perder sus entregas (2026-10-07).
     "contacts": [

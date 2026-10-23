@@ -235,6 +235,12 @@ un administrador sin programar (especificación 005); los comerciales lo ven sin
 - **Imágenes de Vallas en la propuesta** (especificación 011): en el paso 03, «Usar las imágenes de
   Vallas» sube como páginas elegibles la foto del catálogo de Vallas, las de su banco (y extras) y su
   portada, sin repetidas; se eligen de 2 a 4 como con un PDF. Pide confirmación si ya hay imágenes.
+- **Guía personalizada** (plantilla I, especificación 012): la F («Que te conozcan / Que te recuerden /
+  Que te compren») por cliente. Se guarda como una entrega (contacto, guardado automático, enlace
+  `/p/<slug>`, aperturas, WhatsApp por bloques). Sus textos y de 1 a 3 fases editables: se apagan y
+  se reordenan; cada una con un producto del catálogo (sin repetir) y su presentación propia (enlace
+  y PDF) o la del catálogo. `/p/<slug>` lleva a la presentación de la primera fase encendida. H e I
+  tienen cada una su entrega abierta: cambiar de pestaña no guarda una encima de la otra.
 - **Productos a medida** (especificación 008): «+ Añadir otro producto» pone, **solo en esa
   entrega**, algo que no está en el catálogo (nombre obligatorio, una línea de texto, enlace y su
   carrusel con la misma galería). Sale en el correo después de los espacios del catálogo; sin

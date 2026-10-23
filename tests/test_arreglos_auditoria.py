@@ -102,9 +102,9 @@ def test_cada_interruptor_tiene_su_nombre(panel):
 
 def test_los_desplegables_dicen_si_estan_abiertos(panel):
     assert "aria-expanded" in panel
-    # Bloques, servicios, espacios de la entrega (004), productos a medida (008) y catalogo: todos
-    # por plegable(), que anuncia aria-expanded.
-    assert panel.count("plegable(t, ") == 5
+    # Bloques, servicios, espacios de la entrega (004), productos a medida (008), catalogo y fases
+    # de la guia (012): todos por plegable(), que anuncia aria-expanded.
+    assert panel.count("plegable(t, ") == 6
 
 
 def test_los_mensajes_de_estado_se_anuncian(panel):

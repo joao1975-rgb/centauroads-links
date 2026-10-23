@@ -205,6 +205,10 @@ class Entrega(Base):
     tam_titulo = Column(String(10), nullable=True)
     # El orden de sus espacios (009): ids separados por comas. Nulo = el de siempre.
     orden_espacios = Column(String(2000), nullable=True)
+    # La guía personalizada (012): formato `I` y su guía (JSON, ver `mails/entregas/guia.py`).
+    # Nulos = una H, como todas las anteriores.
+    formato = Column(String(2), nullable=True)
+    guia = Column(Text, nullable=True)
     # Lo que va en la dirección pública de sus imágenes, `/media/e/<clave>/…` (revisión de
     # seguridad, 2026-10-06). Con el número, `/media/entregas/1/`, `/2/`… se recorrían todas en un
     # bucle. Nula = entrega anterior: sus correos ya enviados apuntan a la ruta por número, y esa
