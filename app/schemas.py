@@ -53,6 +53,9 @@ class ClickOut(BaseModel):
     user_agent: str
     referer: str
     clicked_at: datetime
+    # Solo los clics por /c/<slug> (enlace con click_id). Nulos en el resto.
+    click_id: Optional[str] = None
+    fingerprint: Optional[str] = None
 
     class Config:
         from_attributes = True

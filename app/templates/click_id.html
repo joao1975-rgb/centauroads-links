@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <title>Centauro ADS</title>
+    <noscript><meta http-equiv="refresh" content="0; url={{ ir_sin_js }}"></noscript>
+    <style>
+        body { margin: 0; background: #111116; color: #aaa; font-family: system-ui, sans-serif;
+               display: flex; align-items: center; justify-content: center; height: 100vh; }
+        .spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1);
+                   border-top-color: #FFB366; border-radius: 50%; animation: g .8s linear infinite;
+                   margin: 0 auto 16px; }
+        @keyframes g { to { transform: rotate(360deg); } }
+        a { color: #FFB366; }
+    </style>
+</head>
+<body>
+    <div style="text-align:center">
+        <div class="spinner"></div>
+        <a id="destino" href="{{ ir_sin_js }}">Abriendo destino…</a>
+    </div>
+    <script src="/static/click-id.js" data-ir="{{ ir }}"></script>
+    <script>
+        // Si el script no llegara a cargar, al destino igual: un enlace nunca se queda en blanco.
+        setTimeout(function () {
+            if (!window.__clickIdListo) window.location.replace(document.getElementById('destino').href);
+        }, 2500);
+    </script>
+</body>
+</html>

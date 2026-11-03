@@ -33,6 +33,9 @@ log = logging.getLogger("centaurads.migracion")
 COLUMNAS_NUEVAS = {
     "clicks": [
         ("contact_token", "VARCHAR(64)"),
+        # El enlace con click_id, /c/<slug>. Nulas en los clics anteriores y en los de /{slug}.
+        ("click_id", "VARCHAR(600)"),
+        ("fingerprint", "VARCHAR(40)"),
     ],
     "deliveries": [
         ("contact_id", "INTEGER"),
@@ -65,6 +68,7 @@ COLUMNAS_NUEVAS = {
 # Índices que conviene tener, creados aparte porque ALTER TABLE ADD COLUMN no los admite.
 INDICES = [
     ("ix_clicks_contact_token", "clicks", "contact_token"),
+    ("ix_clicks_fingerprint", "clicks", "fingerprint"),
     ("ix_deliveries_contact_id", "deliveries", "contact_id"),
     # Mismo nombre que el que pone create_all por `index=True`: una base nueva no lo duplica.
     ("ix_entregas_clave", "entregas", "clave"),

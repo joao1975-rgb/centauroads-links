@@ -913,6 +913,7 @@ function esc(str) {
                             <th style="min-width: 100px;">Dirección IP</th>
                             <th style="min-width: 150px;">Fuente (Origen)</th>
                             <th>Dispositivo (UserAgent)</th>
+                            <th style="min-width: 160px;">click_id / fingerprint</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -953,7 +954,7 @@ function esc(str) {
                 tbody.innerHTML = '';
                 
                 if (data.recent_clicks.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px; color:#888;">Sin clics detectados aún</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="5"style="text-align:center; padding: 20px; color:#888;">Sin clics detectados aún</td></tr>';
                 } else {
                     data.recent_clicks.forEach(c => {
                         const date = new Date(c.clicked_at + 'Z').toLocaleString('es-VE', { timeZone: 'America/Caracas', dateStyle: 'short', timeStyle: 'short' });
@@ -973,6 +974,20 @@ function esc(str) {
                         // Por propiedad y no dentro de una cadena: una comilla doble en el
                         // user_agent se salia del atributo.
                         tr.lastChild.title = c.user_agent || '';
+                        // Solo los clics por /c/<slug> los traen. También por textContent.
+                        const ids = celda('');
+                        ids.style.fontFamily = 'monospace';
+                        ids.style.fontSize = '0.8em';
+                        ids.style.wordBreak = 'break-all';
+                        if (c.click_id || c.fingerprint) {
+                            ids.textContent = c.click_id && c.click_id !== c.fingerprint
+                                ? c.click_id + '\n' + (c.fingerprint || '')
+                                : (c.fingerprint || c.click_id);
+                            ids.style.whiteSpace = 'pre-line';
+                        } else {
+                            ids.textContent = '---';
+                        }
+                        tr.appendChild(ids);
                         tbody.appendChild(tr);
                     });
                 }
