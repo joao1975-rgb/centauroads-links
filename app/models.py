@@ -66,6 +66,11 @@ class Click(Base):
     # caso legítimo: alguien entró por el enlace genérico o reenviado.
     contact_token = Column(String(64), nullable=True, index=True)
 
+    # Solo los clics por /c/<slug>: el click_id que se mandó al destino (fbc de Meta o huella) y la
+    # huella del dispositivo. Nulos en el resto de clics, que es la verdad: no se calcularon.
+    click_id = Column(String(600), nullable=True)
+    fingerprint = Column(String(40), nullable=True, index=True)
+
     link = relationship("Link", back_populates="clicks")
 
 

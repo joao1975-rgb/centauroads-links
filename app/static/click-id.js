@@ -1,17 +1,19 @@
 /*
  * click-id.js — el script de la página /c/<slug> del acortador.
  *
- * Calcula un identificador del clic y abre el destino del enlace con ?click_id=<valor>:
- *   - Si la persona llega desde un anuncio de Meta (?fbclid=...), el valor es el fbc de Meta,
- *     `fb.1.<milisegundos>.<fbclid>`, y se guarda en la cookie `_fbc` 90 días, como hace el píxel.
- *   - Si no trae fbclid pero ya tiene la cookie `_fbc` de una visita anterior, se usa esa.
- *   - Si no hay ninguna de las dos, el valor es la huella del dispositivo: `fp.<28 hex>`.
+ * Calcula dos valores y sigue a /c/<slug>/ir, que los guarda con el clic y abre el destino con
+ * ?click_id=<valor>&fingerprint=<huella>:
+ *   - fingerprint: siempre, la huella del dispositivo, `fp.<28 hex>` (mismo teléfono → mismo valor).
+ *   - click_id: si la persona llega desde un anuncio de Meta (?fbclid=...), el fbc de Meta,
+ *     `fb.1.<milisegundos>.<fbclid>`, que se guarda en la cookie `_fbc` 90 días, como hace el píxel.
+ *     Si no trae fbclid pero ya tiene la cookie `_fbc` de una visita anterior, esa. Si no hay
+ *     ninguna de las dos, la huella.
  *
  * La regla del fbc es la misma de meta-events (public/centauro-meta.js). Las señales de la huella
  * son las que ya recoge qr-tracking en su página /tracking (templates/tracking.html), quitando las
  * que cambian entre visitas del mismo teléfono (tamaño de ventana, conexión, modo oscuro).
  *
- * Uso: <script src="/static/click-id.js" data-destino="https://..."></script>
+ * Uso: <script src="/static/click-id.js" data-ir="/c/<slug>/ir"></script>
  */
 (function (root) {
   'use strict';
@@ -92,33 +94,34 @@
     return 'fp.' + hex14(cyrb53(texto, 1)) + hex14(cyrb53(texto, 2));
   }
 
-  // El destino con click_id añadido (o sustituido). Conserva el resto de parámetros y el #ancla.
-  function conClickId(destino, valor) {
-    var u = new URL(destino);
-    u.searchParams.set('click_id', valor);
+  // La dirección `ir` con los parámetros puestos (los vacíos no van). `base` resuelve las relativas.
+  function conParametros(ir, valores, base) {
+    var u = new URL(ir, base);
+    Object.keys(valores).forEach(function (k) {
+      if (valores[k]) u.searchParams.set(k, valores[k]);
+    });
     return u.toString();
   }
 
-  function calculaClickId(win) {
+  // { click_id, fingerprint }. Escribe la cookie _fbc cuando hay un fbc nuevo.
+  function calculaValores(win) {
     var doc = win.document;
+    var fp = huella(senales(win));
     var fbc = calculaFbc(win.location.search, leeCookie(doc, '_fbc'), Date.now());
-    if (fbc) {
-      if (fbc.nuevo) {
-        var segura = win.location.protocol === 'https:' ? '; Secure' : '';
-        doc.cookie = '_fbc=' + encodeURIComponent(fbc.valor) + '; path=/; max-age=' +
-          NOVENTA_DIAS + '; SameSite=Lax' + segura;
-      }
-      return fbc.valor;
+    if (fbc && fbc.nuevo) {
+      var segura = win.location.protocol === 'https:' ? '; Secure' : '';
+      doc.cookie = '_fbc=' + encodeURIComponent(fbc.valor) + '; path=/; max-age=' +
+        NOVENTA_DIAS + '; SameSite=Lax' + segura;
     }
-    return huella(senales(win));
+    return { click_id: fbc ? fbc.valor : fp, fingerprint: fp };
   }
 
   var api = {
     calculaFbc: calculaFbc,
     huella: huella,
     senales: senales,
-    conClickId: conClickId,
-    calculaClickId: calculaClickId
+    conParametros: conParametros,
+    calculaValores: calculaValores
   };
 
   if (typeof module !== 'undefined' && module.exports) {
@@ -126,15 +129,18 @@
     return;
   }
 
-  // En el navegador: calcular y salir hacia el destino.
+  // En el navegador: calcular y seguir a /c/<slug>/ir, que guarda el clic y abre el destino.
   var guion = root.document.currentScript;
-  var destino = guion && guion.getAttribute('data-destino');
-  if (!destino) return;
+  var ir = guion && guion.getAttribute('data-ir');
+  if (!ir) return;
   root.CentauroClickId = api;
-  var salida = destino;
+  var salida = ir;
   try {
-    salida = conClickId(destino, calculaClickId(root));
-  } catch (e) { /* si algo falla, al destino tal cual: nunca un enlace roto */ }
+    var v = calculaValores(root);
+    // La procedencia real la ve esta página; en /ir la cabecera Referer ya sería esta misma.
+    v.ref = (root.document.referrer || '').slice(0, 1000);
+    salida = conParametros(ir, v, root.location.href);
+  } catch (e) { /* si algo falla, al destino igual (sin valores): nunca un enlace roto */ }
   root.__clickIdListo = true;
   root.location.replace(salida);
 })(typeof window !== 'undefined' ? window : this);

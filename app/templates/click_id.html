@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex">
     <title>Centauro ADS</title>
-    <noscript><meta http-equiv="refresh" content="0; url={{ destino_sin_js }}"></noscript>
+    <noscript><meta http-equiv="refresh" content="0; url={{ ir_sin_js }}"></noscript>
     <style>
         body { margin: 0; background: #111116; color: #aaa; font-family: system-ui, sans-serif;
                display: flex; align-items: center; justify-content: center; height: 100vh; }
@@ -19,9 +19,9 @@
 <body>
     <div style="text-align:center">
         <div class="spinner"></div>
-        <a id="destino" href="{{ destino_sin_js }}">Abriendo destino…</a>
+        <a id="destino" href="{{ ir_sin_js }}">Abriendo destino…</a>
     </div>
-    <script src="/static/click-id.js" data-destino="{{ destino }}"></script>
+    <script src="/static/click-id.js" data-ir="{{ ir }}"></script>
     <script>
         // Si el script no llegara a cargar, al destino igual: un enlace nunca se queda en blanco.
         setTimeout(function () {

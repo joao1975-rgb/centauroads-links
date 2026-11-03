@@ -337,16 +337,24 @@ Por cada clic se registran IP, navegador, procedencia y fecha; se consultan en `
 
 Cualquier enlace corto sirve también con `/c/` delante, sin crear nada nuevo:
 `links.centauroads.com/mi-slug` → `links.centauroads.com/c/mi-slug`. Esa dirección carga
-`/static/click-id.js`, que calcula un identificador del clic y abre el destino con `?click_id=<valor>`:
+`/static/click-id.js`, que calcula dos valores, los guarda con el clic (paso `/c/{slug}/ir`) y abre
+el destino con `?click_id=<valor>&fingerprint=<huella>`:
+
+- `fingerprint`: siempre, la huella del dispositivo, `fp.<28 hex>` (mismo teléfono → mismo valor).
+- `click_id`:
 
 | Llega… | `click_id` |
 |---|---|
 | desde un anuncio de Meta (`?fbclid=…`) | el fbc de Meta, `fb.1.<milisegundos>.<fbclid>`; queda en la cookie `_fbc` 90 días |
 | sin `fbclid`, pero con la cookie `_fbc` de un clic anterior | ese mismo fbc |
-| sin ninguno de los dos | la huella del dispositivo, `fp.<28 hex>` (mismo teléfono → mismo valor) |
+| sin ninguno de los dos | la huella (igual que `fingerprint`) |
 
-- El clic cuenta en las estadísticas igual que en `/{slug}`, que **no cambia** (sigue siendo un 307 directo).
-- Sin JavaScript se abre el destino igualmente, con el fbc si había `fbclid`.
+- Los dos se ven en el panel, en «Estadísticas de Audiencia» (columna `click_id / fingerprint`), y
+  en `/api/links/{id}/stats`. Las columnas `clicks.click_id` y `clicks.fingerprint` las añade la
+  migración al arrancar; los clics anteriores quedan vacíos.
+- El clic cuenta en las estadísticas igual que en `/{slug}`, que **no cambia** (sigue siendo un 307
+  directo). Lo cuenta `/c/{slug}/ir`, no la página: los robots que solo leen la página no suman.
+- Sin JavaScript se abre el destino igualmente, con el fbc si había `fbclid` (sin huella).
 - La regla del fbc es la de `meta-events` (`public/centauro-meta.js`); las señales de la huella son
   las que recoge `qr-tracking` en `/tracking`, quitando las que cambian entre visitas.
 - En Meta Ads, el enlace del anuncio es el de `/c/`: Meta le añade el `fbclid` solo.

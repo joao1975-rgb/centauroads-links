@@ -399,6 +399,8 @@ async def link_stats(
                 user_agent=c.user_agent,
                 referer=c.referer,
                 clicked_at=c.clicked_at,
+                click_id=c.click_id,
+                fingerprint=c.fingerprint,
             )
             for c in sorted(clicks, key=lambda x: x.clicked_at, reverse=True)[:50]
         ],
