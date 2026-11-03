@@ -271,6 +271,7 @@ un administrador sin programar (especificación 005); los comerciales lo ven sin
 | `/p/{slug}/{espacio}` | Enlace propio de un espacio de la entrega (010): su tarjeta para WhatsApp; las personas van a su presentación | público |
 | `/admin` | Panel del acortador | clave `X-Admin-Key` |
 | `/{slug}` | Enlace corto → destino | público |
+| `/c/{slug}` | El mismo enlace corto, pero abre el destino con `?click_id=` (ver abajo) | público |
 | `/health` | Estado del servicio | público |
 
 ---
@@ -331,6 +332,24 @@ curl -X POST "http://localhost:8005/api/links" -H "X-Admin-Key: $ADMIN_KEY" \
 Categorías: `propuesta`, `presentacion`, `video`, `portafolio`, `campaña`, `general`.
 
 Por cada clic se registran IP, navegador, procedencia y fecha; se consultan en `/api/links/{id}/stats`.
+
+### Enlace con `click_id` (`/c/{slug}`)
+
+Cualquier enlace corto sirve también con `/c/` delante, sin crear nada nuevo:
+`links.centauroads.com/mi-slug` → `links.centauroads.com/c/mi-slug`. Esa dirección carga
+`/static/click-id.js`, que calcula un identificador del clic y abre el destino con `?click_id=<valor>`:
+
+| Llega… | `click_id` |
+|---|---|
+| desde un anuncio de Meta (`?fbclid=…`) | el fbc de Meta, `fb.1.<milisegundos>.<fbclid>`; queda en la cookie `_fbc` 90 días |
+| sin `fbclid`, pero con la cookie `_fbc` de un clic anterior | ese mismo fbc |
+| sin ninguno de los dos | la huella del dispositivo, `fp.<28 hex>` (mismo teléfono → mismo valor) |
+
+- El clic cuenta en las estadísticas igual que en `/{slug}`, que **no cambia** (sigue siendo un 307 directo).
+- Sin JavaScript se abre el destino igualmente, con el fbc si había `fbclid`.
+- La regla del fbc es la de `meta-events` (`public/centauro-meta.js`); las señales de la huella son
+  las que recoge `qr-tracking` en `/tracking`, quitando las que cambian entre visitas.
+- En Meta Ads, el enlace del anuncio es el de `/c/`: Meta le añade el `fbclid` solo.
 
 ---
 

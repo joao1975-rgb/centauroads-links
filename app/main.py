@@ -120,6 +120,10 @@ app.include_router(router_entregas)
 app.include_router(router_catalogo)
 app.include_router(router_textos)
 
+# /c/<slug>: el mismo enlace corto, pero abre el destino con ?click_id= (fbc de Meta o huella).
+from .click_id import router as router_click_id  # noqa: E402
+app.include_router(router_click_id)
+
 # Primero se entra, luego se usa la herramienta. El compositor es un fichero estatico y se
 # abria sin preguntar quien eras: solo al pulsar algo que hablaba con el servidor salia
 # "Hay que entrar al panel", que es el orden al reves. Sin sesion, a la pantalla de entrada,
