@@ -107,6 +107,35 @@ def test_ir_guarda_los_dos_y_los_manda_al_destino(cliente):
     assert clic.referer == "https://instagram.com/"
 
 
+def test_ir_reenvia_los_parametros_de_la_llamada(cliente):
+    # q = lo que traía /c/<slug>: utm de la campaña, fbclid… y un click_id que no debe colarse.
+    q = "utm_source=facebook&utm_campaign=Promo%20Nov&fbclid=IwAR_prueba-1&click_id=impostor"
+    r = cliente.get(f"/c/{ENLACE['slug']}/ir",
+                    params={"click_id": FBC, "fingerprint": HUELLA, "q": q}, follow_redirects=False)
+    destino = urlparse(r.headers["location"])
+    assert destino.fragment == "oferta"
+    assert parse_qs(destino.query) == {
+        "utm_source": ["facebook"],          # el de la llamada gana al del destino (meta)
+        "utm_campaign": ["Promo Nov"],
+        "fbclid": ["IwAR_prueba-1"],
+        "click_id": [FBC],                   # el nuestro, no el impostor
+        "fingerprint": [HUELLA],
+    }
+
+
+def test_sin_javascript_tambien_reenvia_los_parametros(cliente):
+    r = cliente.get(f"/c/{ENLACE['slug']}?utm_campaign=Promo&fbclid=IwAR_x")
+    assert "q=utm_campaign%3DPromo%26fbclid%3DIwAR_x" in r.text
+
+
+def test_parametros_a_reenviar_se_acotan():
+    from app.click_id import parametros_a_reenviar
+    muchos = "&".join(f"p{i}={i}" for i in range(50))
+    assert len(parametros_a_reenviar(muchos)) == 30
+    assert parametros_a_reenviar("fingerprint=x&a=" + "z" * 5000) == [("a", "z" * 1000)]
+    assert parametros_a_reenviar(None) == []
+
+
 def test_ir_sin_fbc_el_click_id_es_la_huella(cliente):
     r = cliente.get(f"/c/{ENLACE['slug']}/ir", params={"click_id": HUELLA, "fingerprint": HUELLA},
                     follow_redirects=False)

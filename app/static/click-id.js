@@ -2,7 +2,7 @@
  * click-id.js — el script de la página /c/<slug> del acortador.
  *
  * Calcula dos valores y sigue a /c/<slug>/ir, que los guarda con el clic y abre el destino con
- * ?click_id=<valor>&fingerprint=<huella>:
+ * ?click_id=<valor>&fingerprint=<huella>, más los parámetros con los que se llamó al link (`q`):
  *   - fingerprint: siempre, la huella del dispositivo, `fp.<28 hex>` (mismo teléfono → mismo valor).
  *   - click_id: si la persona llega desde un anuncio de Meta (?fbclid=...), el fbc de Meta,
  *     `fb.1.<milisegundos>.<fbclid>`, que se guarda en la cookie `_fbc` 90 días, como hace el píxel.
@@ -139,6 +139,8 @@
     var v = calculaValores(root);
     // La procedencia real la ve esta página; en /ir la cabecera Referer ya sería esta misma.
     v.ref = (root.document.referrer || '').slice(0, 1000);
+    // Los parámetros con los que se llamó al link (utm_*, fbclid…): /ir los reenvía al destino.
+    v.q = (root.location.search || '').replace(/^\?/, '');
     salida = conParametros(ir, v, root.location.href);
   } catch (e) { /* si algo falla, al destino igual (sin valores): nunca un enlace roto */ }
   root.__clickIdListo = true;

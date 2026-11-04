@@ -271,7 +271,7 @@ un administrador sin programar (especificación 005); los comerciales lo ven sin
 | `/p/{slug}/{espacio}` | Enlace propio de un espacio de la entrega (010): su tarjeta para WhatsApp; las personas van a su presentación | público |
 | `/admin` | Panel del acortador | clave `X-Admin-Key` |
 | `/{slug}` | Enlace corto → destino | público |
-| `/c/{slug}` | El mismo enlace corto, pero abre el destino con `?click_id=` (ver abajo) | público |
+| `/c/{slug}` | El mismo enlace corto, pero abre el destino con `?click_id=` y `fingerprint=`, y reenvía los parámetros de la llamada (ver abajo) | público |
 | `/health` | Estado del servicio | público |
 
 ---
@@ -354,7 +354,11 @@ el destino con `?click_id=<valor>&fingerprint=<huella>`:
   migración al arrancar; los clics anteriores quedan vacíos.
 - El clic cuenta en las estadísticas igual que en `/{slug}`, que **no cambia** (sigue siendo un 307
   directo). Lo cuenta `/c/{slug}/ir`, no la página: los robots que solo leen la página no suman.
-- Sin JavaScript se abre el destino igualmente, con el fbc si había `fbclid` (sin huella).
+- **Reenvía los parámetros de la llamada** (`utm_*`, `fbclid`…) al destino; `/{slug}` no lo hace.
+  Si el destino ya tenía ese parámetro, gana el de la llamada. `click_id` y `fingerprint` siempre son
+  los calculados (los que lleguen en la llamada se ignoran). Máximo 30 parámetros, 1000 caracteres cada uno.
+  Ejemplo: `/c/promo?utm_campaign=Nov&fbclid=X` → `destino?utm_campaign=Nov&fbclid=X&click_id=fb.1.…&fingerprint=fp.…`.
+- Sin JavaScript se abre el destino igualmente, con el fbc si había `fbclid` y los parámetros (sin huella).
 - La regla del fbc es la de `meta-events` (`public/centauro-meta.js`); las señales de la huella son
   las que recoge `qr-tracking` en `/tracking`, quitando las que cambian entre visitas.
 - En Meta Ads, el enlace del anuncio es el de `/c/`: Meta le añade el `fbclid` solo.
