@@ -5,8 +5,9 @@ Es la misma dirección corta, con `/c/` delante. Funciona en dos pasos:
 
   1. `GET /c/<slug>` sirve una página mínima que carga `/static/click-id.js`. El script calcula el
      fbc de Meta (si la persona viene de un anuncio) y la huella del dispositivo.
-  2. El script sigue a `GET /c/<slug>/ir?click_id=…&fingerprint=…`, que guarda el clic con los dos
-     valores y redirige al destino con esos mismos parámetros.
+  2. El script sigue a `GET /c/<slug>/ir?click_id=…&fingerprint=…&q=…`, que guarda el clic con los
+     dos valores y redirige al destino con esos mismos parámetros. `q` lleva los parámetros con los
+     que se llamó al link (utm_*, fbclid…) y también se reenvían al destino.
 
 El clic se cuenta en el paso 2: así se guarda con lo que se calculó, y los robots que solo leen la
 página (vistas previas de WhatsApp, buscadores) no inflan las estadísticas.
@@ -67,6 +68,36 @@ def con_click_id(destino: str, valor: str) -> str:
     return con_parametros(destino, {"click_id": valor})
 
 
+# Los que calcula este módulo: si llegan en la llamada, se ignoran (nadie puede imponer su valor).
+PROPIOS = {"click_id", "fingerprint"}
+MAX_REENVIADOS = 30
+
+
+def parametros_a_reenviar(query: Optional[str]) -> list:
+    """Los parámetros con los que se llamó a /c/<slug> (utm_*, fbclid…), limpios y acotados."""
+    pares = []
+    for k, v in parse_qsl(query or "", keep_blank_values=True):
+        if k in PROPIOS or not k or len(k) > 100:
+            continue
+        pares.append((k, v[:1000]))
+        if len(pares) == MAX_REENVIADOS:
+            break
+    return pares
+
+
+def destino_final(destino: str, reenviados: list, click_id: Optional[str], huella: Optional[str]) -> str:
+    """
+    El destino guardado + los parámetros de la llamada + click_id y fingerprint. Si un parámetro de la
+    llamada ya está en el destino, gana el de la llamada: es el que trae la campaña concreta.
+    """
+    partes = urlparse(destino)
+    nuevos = {k for k, _ in reenviados}
+    query = [(k, v) for k, v in parse_qsl(partes.query, keep_blank_values=True) if k not in nuevos]
+    query.extend(reenviados)
+    url = urlunparse(partes._replace(query=urlencode(query)))
+    return con_parametros(url, {"click_id": click_id, "fingerprint": huella})
+
+
 def _ip_real(request: Request) -> str:
     # Igual que el redirect de siempre: detrás de Traefik la IP real llega en X-Forwarded-For.
     ip = request.headers.get("X-Forwarded-For")
@@ -93,9 +124,11 @@ async def enlace_con_click_id(
 ):
     _enlace_activo(db, slug)
     ir = f"/c/{quote(slug, safe='')}/ir"
-    # Sin JavaScript no hay huella; con fbclid, el fbc sí se puede calcular aquí.
+    # Sin JavaScript no hay huella; con fbclid, el fbc sí se puede calcular aquí. Los parámetros de
+    # la llamada viajan enteros en `q` (el script hace lo mismo con location.search).
     fbc = fbc_de(fbclid)
-    sin_js = ir + ("?" + urlencode({"click_id": fbc}) if fbc else "")
+    valores = {"click_id": fbc, "q": request.url.query}
+    sin_js = ir + "?" + urlencode({k: v for k, v in valores.items() if v}) if any(valores.values()) else ir
 
     respuesta = templates.TemplateResponse(request, "click_id.html", {"ir": ir, "ir_sin_js": sin_js})
     # Cada visita calcula sus propios valores: que ningún navegador ni proxy guarde la página.
@@ -111,6 +144,7 @@ async def ir_al_destino(
     click_id: Optional[str] = Query(None),
     fingerprint: Optional[str] = Query(None),
     ref: Optional[str] = Query(None),
+    q: Optional[str] = Query(None),
     db: Session = Depends(get_db),
 ):
     link = _enlace_activo(db, slug)
@@ -134,7 +168,8 @@ async def ir_al_destino(
     link.last_clicked_at = datetime.now(timezone.utc)
     db.commit()
 
-    destino = con_parametros(link.target_url, {"click_id": cid, "fingerprint": huella})
+    # `q` = los parámetros con los que se llamó a /c/<slug> (utm_*, fbclid…): se reenvían al destino.
+    destino = destino_final(link.target_url, parametros_a_reenviar(q), cid, huella)
     respuesta = RedirectResponse(url=destino, status_code=307)
     respuesta.headers["Cache-Control"] = "no-store"
     respuesta.headers["X-Robots-Tag"] = "noindex"
